@@ -39,7 +39,7 @@ set_target_properties(shasta2Executable PROPERTIES LINK_FLAGS "-static" )
 # Libraries to link with.
 target_link_libraries(
     shasta2Executable
-    atomic boost_system boost_program_options boost_chrono boost_serialization png z
+    atomic boost_program_options boost_chrono boost_serialization png z
     abpoa poasta_c z m pthread)
 
   
