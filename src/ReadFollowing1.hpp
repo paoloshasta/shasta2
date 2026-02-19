@@ -103,8 +103,10 @@ private:
     vector<EdgeCandidate> edgeCandidates;
     void createEdgeCandidates();
 
-    // Create edges.
+    // Edge creation.
     void createEdges();
+    void createEdgesMultithreaded();
+    void createEdgesThreadFunction(uint64_t);
 
     // This fills in the outEdges and inEdges vectors
     // of all vertices, which are then used to generate

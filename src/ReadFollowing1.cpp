@@ -32,11 +32,12 @@ Graph::Graph(const AssemblyGraph& assemblyGraph) :
     MultithreadedObject<Graph>(*this),
     assemblyGraph(assemblyGraph)
 {
+    cout << "Graph constructor called." << endl;
     Graph& graph = *this;
 
     createVertices();
     createEdgeCandidates();
-    createEdges();
+    createEdgesMultithreaded();
     cout << "The read following graph has " << num_vertices(graph) <<
         " vertices and " << num_edges(graph) << " edges." << endl;
   	write("Final");
@@ -197,6 +198,84 @@ void Graph::createEdges()
     performanceLog << timestamp << "ReadFollowing1::Graph::createEdges ends." << endl;
 }
 
+
+
+void Graph::createEdgesMultithreaded()
+{
+    uint64_t threadCount = assemblyGraph.options.threadCount;
+    if(threadCount == 0) {
+        threadCount = std::thread::hardware_concurrency();
+    }
+
+    setupLoadBalancing(edgeCandidates.size(), 100);
+    runThreads(&Graph::createEdgesThreadFunction, threadCount);
+}
+
+
+
+void Graph::createEdgesThreadFunction([[maybe_unused]] uint64_t threadId)
+{
+    Graph& graph = *this;
+    const uint64_t minCommonCount = assemblyGraph.options.readFollowingMinCommonCount;
+    const double minCorrectedJaccard = assemblyGraph.options.readFollowingMinCorrectedJaccard;
+
+    // Prepare a vector of edges to be added.
+    // We will add them all at the end so we only have to acquire the mutex once.
+    class EdgeToBeAdded {
+    public:
+        vertex_descriptor v0;
+        vertex_descriptor v1;
+        Edge edge;
+        EdgeToBeAdded(
+            const EdgeCandidate& edgeCandidate,
+            const Graph& graph
+            ) :
+            v0(edgeCandidate.v0),
+            v1(edgeCandidate.v1),
+            edge(graph.assemblyGraph, graph[v0].segment, graph[v1].segment)
+        {}
+    };
+    vector<EdgeToBeAdded> edgesToBeAdded;
+
+    // Loop over batches of candidate edges assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over candidate edges assigned to this batch.
+        for(uint64_t i=begin; i<end; i++) {
+            const EdgeCandidate& edgeCandidate = edgeCandidates[i];
+
+            // Tentatively add it to the edges to be added.
+            EdgeToBeAdded& edgeToBeAdded = edgesToBeAdded.emplace_back(edgeCandidate, graph);
+            const Edge& edge = edgeToBeAdded.edge;
+
+            // This must be true given the way we constructed the vertex pairs.
+            SHASTA2_ASSERT(edge.segmentPairInformation.commonCount >= minCommonCount);
+
+            // If it does not satisfy our requirements, get rid of it.
+            if(edge.segmentPairInformation.segmentOffset < 0) {
+                edgesToBeAdded.pop_back();
+                continue;
+            }
+            if(edge.segmentPairInformation.correctedJaccard < minCorrectedJaccard) {
+                edgesToBeAdded.pop_back();
+                continue;
+            }
+            if(not assemblyGraph.canConnect(graph[edgeCandidate.v0].segment, graph[edgeCandidate.v1].segment)) {
+                edgesToBeAdded.pop_back();
+                continue;
+            }
+        }
+    }
+
+
+    // Now grab the mutex and add the edges we found.
+    std::lock_guard<std::mutex> lock(mutex);
+    for(const EdgeToBeAdded& edgeToBeAdded: edgesToBeAdded) {
+        add_edge(edgeToBeAdded.v0, edgeToBeAdded.v1, edgeToBeAdded.edge, graph);
+    }
+
+}
 
 
 Edge::Edge(
