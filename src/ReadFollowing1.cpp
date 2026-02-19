@@ -864,9 +864,14 @@ void Graph::findPaths(vector< vector<Segment> >& assemblyPaths)
             }
         }
     }
-    cout << "The initial PathGraph has " << num_vertices(pathGraph) <<
-        " vertices and " << num_edges(pathGraph) << " vertices." << endl;
-    pathGraph.writeGraphviz("Initial");
+    cout << "At stage 0, the PathGraph has " << num_vertices(pathGraph) <<
+        " vertices and " << num_edges(pathGraph) << " edges." << endl;
+    pathGraph.writeGraphviz("0");
+
+    pathGraph.removeNonBestEdges();
+    cout << "At stage 1, the PathGraph has " << num_vertices(pathGraph) <<
+        " vertices and " << num_edges(pathGraph) << " edges." << endl;
+    pathGraph.writeGraphviz("1");
 
     assemblyPaths.clear();
 }
@@ -948,6 +953,18 @@ void PathGraph::writeGraphviz(ostream& dot) const
         const Segment segment0 = pathGraph[v0].segment;
         const Segment segment1 = pathGraph[v1].segment;
 
+        const bool isBestOutEdge = (e == bestOutEdge(v0));
+        const bool isBestInEdge  = (e == bestInEdge (v1));
+
+        string color;
+        if(isBestOutEdge and isBestInEdge) {
+            color = "green";
+        } else  if(isBestOutEdge or isBestInEdge) {
+            color = "black";
+        } else {
+            color = "red";
+        }
+
         dot <<
             assemblyGraph[segment0].id << "->" <<
             assemblyGraph[segment1].id <<
@@ -955,6 +972,7 @@ void PathGraph::writeGraphviz(ostream& dot) const
             forwardPathCountFraction(e) << "/" <<
             backwardPathCountFraction(e) <<
             "\""
+            " color=" << color <<
             "];\n";
     }
 
@@ -991,3 +1009,65 @@ double PathGraph::backwardPathCountFraction(edge_descriptor e) const
     return pathCountFraction(e, 1);
 }
 
+
+
+PathGraph::edge_descriptor PathGraph::bestInEdge(vertex_descriptor v) const
+{
+    const PathGraph& pathGraph = *this;
+    SHASTA2_ASSERT(in_degree(v, pathGraph) > 0);
+
+    edge_descriptor eBest = {0, 0, 0};
+    uint64_t bestPathCount = 0;
+    BGL_FORALL_INEDGES(v, e, pathGraph, PathGraph) {
+        const uint64_t pathCount = pathGraph[e].paths[1].size();
+        if(pathCount > bestPathCount) {
+            eBest = e;
+            bestPathCount = pathCount;
+        }
+    }
+    return eBest;
+}
+
+
+
+PathGraph::edge_descriptor PathGraph::bestOutEdge(vertex_descriptor v) const
+{
+    const PathGraph& pathGraph = *this;
+    SHASTA2_ASSERT(out_degree(v, pathGraph) > 0);
+
+    edge_descriptor eBest = {0, 0, 0};
+    uint64_t bestPathCount = 0;
+    BGL_FORALL_OUTEDGES(v, e, pathGraph, PathGraph) {
+        const uint64_t pathCount = pathGraph[e].paths[0].size();
+        if(pathCount > bestPathCount) {
+            eBest = e;
+            bestPathCount = pathCount;
+        }
+    }
+    return eBest;
+}
+
+
+
+void PathGraph::removeNonBestEdges()
+{
+    PathGraph& pathGraph = *this;
+
+    vector<edge_descriptor> edgesToBeRemoved;
+    BGL_FORALL_EDGES(e, pathGraph, PathGraph) {
+        const PathGraph::vertex_descriptor v0 = source(e, pathGraph);
+        const PathGraph::vertex_descriptor v1 = target(e, pathGraph);
+
+        const bool isBestOutEdge = (e == bestOutEdge(v0));
+        const bool isBestInEdge  = (e == bestInEdge (v1));
+
+        if(not (isBestOutEdge or isBestInEdge)) {
+            edgesToBeRemoved.push_back(e);
+        }
+    }
+
+    for(const edge_descriptor e: edgesToBeRemoved) {
+        boost::remove_edge(e, pathGraph);
+    }
+
+}

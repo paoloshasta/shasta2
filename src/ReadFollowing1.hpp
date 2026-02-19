@@ -212,6 +212,7 @@ public:
 class shasta2::ReadFollowing1::PathGraph : public PathGraphBaseClass {
 public:
     PathGraph(const AssemblyGraph&);
+    void removeNonBestEdges();
 
     // Graphviz output.
     void writeGraphviz(const string& name) const;
@@ -223,4 +224,7 @@ private:
     double pathCountFraction(edge_descriptor, uint64_t direction) const;
     double forwardPathCountFraction(edge_descriptor) const;
     double backwardPathCountFraction(edge_descriptor) const;
+
+    edge_descriptor bestInEdge(vertex_descriptor) const;
+    edge_descriptor bestOutEdge(vertex_descriptor) const;
 };
