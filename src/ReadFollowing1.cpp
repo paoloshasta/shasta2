@@ -61,10 +61,15 @@ Graph::Graph(const AssemblyGraph& assemblyGraph) :
 void Graph::createVertices()
 {
     Graph& graph = *this;
+    const uint64_t lengthThreshold = assemblyGraph.options.readFollowingSegmentLengthThreshold;
 
     BGL_FORALL_EDGES(segment, assemblyGraph, AssemblyGraph) {
         const vertex_descriptor v = add_vertex(Vertex(assemblyGraph, segment), graph);
         vertexMap.insert(make_pair(segment, v));
+
+        if(graph[v].length >= lengthThreshold) {
+            longVertices.insert(v);
+        }
     }
 }
 
@@ -480,12 +485,13 @@ void Graph::writeEdgesCsv(const string& name) const
 template<std::uniform_random_bit_generator RandomGenerator> void Graph::findRandomPath(
     vertex_descriptor v, uint64_t direction,
     RandomGenerator& randomGenerator,
-    vector<vertex_descriptor>& path)
+    vector<vertex_descriptor>& path,
+    const std::set<vertex_descriptor>& stopVertices)
 {
     if(direction == 0) {
-        findRandomForwardPath(v, randomGenerator, path);
+        findRandomForwardPath(v, randomGenerator, path, stopVertices);
     } else {
-        findRandomBackwardPath(v, randomGenerator, path);
+        findRandomBackwardPath(v, randomGenerator, path, stopVertices);
     }
 }
 
@@ -494,7 +500,8 @@ template<std::uniform_random_bit_generator RandomGenerator> void Graph::findRand
 template<std::uniform_random_bit_generator RandomGenerator> void Graph::findRandomForwardPath(
     vertex_descriptor v,
     RandomGenerator& randomGenerator,
-    vector<vertex_descriptor>& path)
+    vector<vertex_descriptor>& path,
+    const std::set<vertex_descriptor>& stopVertices)
 {
     const Graph& graph = *this;
 
@@ -515,6 +522,10 @@ template<std::uniform_random_bit_generator RandomGenerator> void Graph::findRand
         // Add to the path the target of this edge and continue from here.
         v = target(e, graph);
         path.push_back(v);
+
+        if(stopVertices.contains(v)) {
+            break;
+        }
     }
 }
 
@@ -523,7 +534,8 @@ template<std::uniform_random_bit_generator RandomGenerator> void Graph::findRand
 template<std::uniform_random_bit_generator RandomGenerator> void Graph::findRandomBackwardPath(
     vertex_descriptor v,
     RandomGenerator& randomGenerator,
-    vector<vertex_descriptor>& path)
+    vector<vertex_descriptor>& path,
+    const std::set<vertex_descriptor>& stopVertices)
 {
     const Graph& graph = *this;
 
@@ -544,6 +556,10 @@ template<std::uniform_random_bit_generator RandomGenerator> void Graph::findRand
         // Add to the path the source of this edge and continue from here.
         v = source(e, graph);
         path.push_back(v);
+
+        if(stopVertices.contains(v)) {
+            break;
+        }
     }
 
     // Reverse the path so it goes forward.
@@ -562,7 +578,7 @@ void Graph::writeRandomPath(Segment segment, uint64_t direction)
 
     vector<vertex_descriptor> path;
     std::random_device randomGenerator;
-    findRandomPath(v, direction, randomGenerator, path);
+    findRandomPath(v, direction, randomGenerator, path, longVertices);
 
     cout << "Found a path of length " << path.size() << ":" << endl;
     for(const vertex_descriptor v: path) {
@@ -571,6 +587,7 @@ void Graph::writeRandomPath(Segment segment, uint64_t direction)
     }
     cout << endl;
 }
+
 
 
 void Graph::writePath(Segment segment, uint64_t direction)
@@ -693,21 +710,12 @@ void Graph::fillConnectivity()
 
 
 
-// Prune removes all vertices that are not accessible from "long"
+// Prune removes all vertices that are not accessible from long
 // vertices in both directions.
 void Graph::prune()
 {
     Graph& graph = *this;
     const uint64_t lengthThreshold = assemblyGraph.options.readFollowingSegmentLengthThreshold;
-
-    // Gather the "long" vertices.
-    vector<vertex_descriptor> longVertices;
-    BGL_FORALL_VERTICES(v, graph, Graph) {
-        if(graph[v].length >= lengthThreshold) {
-            longVertices.push_back(v);
-        }
-    }
-
 
     // Loop over both directions.
     array<std::set<vertex_descriptor>, 2> reachedVertices;
@@ -770,7 +778,7 @@ void Graph::prune()
     cout << "Pruned " << verticesToBeRemoved.size() <<
         " vertices from the read following graph." << endl;
 
-    // Sanity check: all leafs must be "long" vertices.
+    // Sanity check: all leafs must be long vertices.
     BGL_FORALL_VERTICES(v, graph, Graph) {
         const bool isLeaf = (in_degree(v, graph) == 0) or (out_degree(v, graph) == 0);
         if(isLeaf) {
@@ -779,3 +787,207 @@ void Graph::prune()
     }
 
 }
+
+
+
+void Graph::findPaths(vector< vector<Segment> >& assemblyPaths)
+{
+
+    // EXPOSE WHEN CODE STABILIZES.
+    const uint64_t pathCount = 100;
+
+    const Graph& graph = *this;
+
+    // Random generator used to generate random paths.
+    std::mt19937 randomGenerator;
+
+    PathGraph pathGraph(assemblyGraph);
+    std::map<Segment, PathGraph::vertex_descriptor> pathGraphVertexMap;
+
+
+    // Each long Segment generates a PathGraphVertex.
+    for(const vertex_descriptor v: longVertices) {
+        const Vertex& vertex = graph[v];
+        const PathGraph::vertex_descriptor u = boost::add_vertex({vertex.segment}, pathGraph);
+        pathGraphVertexMap.insert({vertex.segment, u});
+    }
+    cout << "The PathGraph has " << pathGraphVertexMap.size() <<
+        " vertices, each corresponding to a long segment." << endl;
+
+
+
+    // Loop over PathGraph vertices (that is, over long segments).
+    vector<vertex_descriptor> path;
+    BGL_FORALL_VERTICES(u0, pathGraph, PathGraph) {
+        const Segment segment0 = pathGraph[u0].segment;
+        const auto it0 = vertexMap.find(segment0);
+        SHASTA2_ASSERT(it0 != vertexMap.end());
+        const vertex_descriptor v0 = it0->second;
+
+        // Loop over both directions.
+        for(uint64_t direction=0; direction<2; direction++) {
+
+            // Generate pathCount random paths starting at v0 and moving in this direction.
+            for(uint64_t i=0; i<pathCount; i++) {
+                findRandomPath(v0, direction, randomGenerator, path, longVertices);
+                const vertex_descriptor v1 = (direction == 0) ? path.back() : path.front();
+                const Segment segment1 = graph[v1].segment;
+
+                // Discard a trivial path.
+                SHASTA2_ASSERT(not path.empty());
+                if(path.size() == 1) {
+                    continue;
+                }
+
+                // Because of the way the graph was pruned, the path must end at a long vertex.
+                const auto it1 = pathGraphVertexMap.find(segment1);
+                SHASTA2_ASSERT(it1 != pathGraphVertexMap.end());
+                const PathGraph::vertex_descriptor u1 = it1->second;
+
+                // Update the PathGraph with this path.
+                ++(pathGraph[u0].pathCount[direction]);
+
+                // Find the PathGraph edge between u0 and u1, creating it if necessary.
+                PathGraph::vertex_descriptor uu0 = u0;
+                PathGraph::vertex_descriptor uu1 = u1;
+                if(direction == 1) {
+                    std::swap(uu0, uu1);
+                }
+                auto[e, edgeExists] = boost::edge(uu0, uu1, pathGraph);
+                if(not edgeExists) {
+                    tie(e, ignore) = boost::add_edge(uu0, uu1, pathGraph);
+                }
+
+                // Update the PathGraphEdge with this path.
+                PathGraphEdge& pathGraphEdge = pathGraph[e];
+                pathGraphEdge.paths[direction].push_back(path);
+            }
+        }
+    }
+    cout << "The initial PathGraph has " << num_vertices(pathGraph) <<
+        " vertices and " << num_edges(pathGraph) << " vertices." << endl;
+    pathGraph.writeGraphviz("Initial");
+
+    assemblyPaths.clear();
+}
+
+
+
+void Graph::writePaths(const vector< vector<Segment> >& assemblyPaths)
+{
+    ofstream csv("AssemblyPaths.csv");
+    cout << "Found " << assemblyPaths.size() << " assembly paths. See AssemblyPaths.csv for details." << endl;
+    for(const vector<Segment>& assemblyPath: assemblyPaths) {
+        cout << "Assembly path with " << assemblyPath.size() <<
+        " segments beginning at " << assemblyGraph[assemblyPath.front()].id <<
+        " and ending at " << assemblyGraph[assemblyPath.back()].id << endl;
+
+        for(const Segment& segment: assemblyPath) {
+            csv << assemblyGraph[segment].id << ",";
+        }
+        csv << "\n";
+    }
+
+}
+
+
+
+void Graph::findAndWritePaths()
+{
+    vector< vector<Segment> > assemblyPaths;
+    findPaths(assemblyPaths);
+    writePaths(assemblyPaths);
+}
+
+
+
+PathGraph::PathGraph(const AssemblyGraph& assemblyGraph) :
+    assemblyGraph(assemblyGraph)
+{}
+
+
+
+void PathGraph::writeGraphviz(const string& name) const
+{
+    ofstream dot("PathGraph-" + name + ".dot");
+    writeGraphviz(dot);
+}
+
+
+
+void PathGraph::writeGraphviz(ostream& dot) const
+{
+    const PathGraph& pathGraph = *this;
+    dot << std::fixed << std::setprecision(2);
+
+    dot << "digraph PathGraph {\n";
+
+
+
+    // Vertices.
+    BGL_FORALL_VERTICES(v, pathGraph, PathGraph) {
+        const Segment segment = pathGraph[v].segment;
+        const AssemblyGraphEdge& assemblyGraphEdge = assemblyGraph[segment];
+        dot << assemblyGraphEdge.id <<
+            " ["
+            "label=\"" << assemblyGraphEdge.id <<
+            "\\n" << assemblyGraphEdge.length() <<
+            "\""
+            "]"
+            ";\n";
+    }
+
+
+
+    // Edges.
+    BGL_FORALL_EDGES(e, pathGraph, PathGraph) {
+
+        const PathGraph::vertex_descriptor v0 = source(e, pathGraph);
+        const PathGraph::vertex_descriptor v1 = target(e, pathGraph);
+
+        const Segment segment0 = pathGraph[v0].segment;
+        const Segment segment1 = pathGraph[v1].segment;
+
+        dot <<
+            assemblyGraph[segment0].id << "->" <<
+            assemblyGraph[segment1].id <<
+            " [label=\"" <<
+            forwardPathCountFraction(e) << "/" <<
+            backwardPathCountFraction(e) <<
+            "\""
+            "];\n";
+    }
+
+
+
+    dot << "}\n";
+
+}
+
+
+
+double PathGraph::pathCountFraction(edge_descriptor e, uint64_t direction) const
+{
+    const PathGraph& pathGraph = *this;
+    const PathGraphEdge& edge = pathGraph[e];
+
+    const vertex_descriptor v0 = (direction == 0) ? source(e, pathGraph) : target(e, pathGraph);
+    const PathGraphVertex& vertex = pathGraph[v0];
+
+    return double(edge.paths[direction].size()) / double(vertex.pathCount[direction]);
+}
+
+
+
+double PathGraph::forwardPathCountFraction(edge_descriptor e) const
+{
+    return pathCountFraction(e, 0);
+}
+
+
+
+double PathGraph::backwardPathCountFraction(edge_descriptor e) const
+{
+    return pathCountFraction(e, 1);
+}
+

@@ -31,6 +31,18 @@ namespace shasta2 {
             Vertex,
             Edge>;
 
+        using Path = vector<GraphBaseClass::vertex_descriptor>;
+
+        class PathGraph;
+        class PathGraphVertex;
+        class PathGraphEdge;
+        using PathGraphBaseClass = boost::adjacency_list<
+            boost::listS,
+            boost::listS,
+            boost::bidirectionalS,
+            PathGraphVertex,
+            PathGraphEdge>;
+
         // A Segment is an edge of the AssemblyGraph.
         using Segment = AssemblyGraph::edge_descriptor;
     }
@@ -85,6 +97,7 @@ private:
     // Vertex creation.
     std::map<Segment, vertex_descriptor> vertexMap;
     void createVertices();
+    std::set<vertex_descriptor> longVertices;
 
     // Create edge candidates.
     class EdgeCandidate {
@@ -136,15 +149,18 @@ public:
     template<std::uniform_random_bit_generator RandomGenerator> void findRandomPath(
         vertex_descriptor, uint64_t direction,
         RandomGenerator&,
-        vector<vertex_descriptor>& path);
+        vector<vertex_descriptor>& path,
+        const std::set<vertex_descriptor>& stopVertices);
     template<std::uniform_random_bit_generator RandomGenerator> void findRandomForwardPath(
         vertex_descriptor,
         RandomGenerator&,
-        vector<vertex_descriptor>& path);
+        vector<vertex_descriptor>& path,
+        const std::set<vertex_descriptor>& stopVertices);
     template<std::uniform_random_bit_generator RandomGenerator> void findRandomBackwardPath(
         vertex_descriptor,
         RandomGenerator&,
-        vector<vertex_descriptor>& path);
+        vector<vertex_descriptor>& path,
+        const std::set<vertex_descriptor>& stopVertices);
     // Python callable.
     void writeRandomPath(Segment, uint64_t direction);
 
@@ -162,4 +178,49 @@ public:
     // Python callable.
     void writePath(Segment, uint64_t direction);
 
+    // Assembly paths.
+    void findPaths(vector< vector<Segment> >& assemblyPaths);
+    void writePaths(const vector< vector<Segment> >& assemblyPaths);
+    void findAndWritePaths();
+
+};
+
+
+
+// Each PathGraph vertex corresponds to a long segment.
+class shasta2::ReadFollowing1::PathGraphVertex {
+public:
+    Segment segment;
+
+    // The number of paths starting at this segment, in each direction.
+    array<uint64_t, 2> pathCount = {0, 0};
+};
+
+
+
+class shasta2::ReadFollowing1::PathGraphEdge {
+public:
+
+    // The Paths between v0 and v1 of this edge found in each direction.
+    array< vector<Path>, 2> paths;
+
+};
+
+
+
+// Class used to store paths between long segments.
+class shasta2::ReadFollowing1::PathGraph : public PathGraphBaseClass {
+public:
+    PathGraph(const AssemblyGraph&);
+
+    // Graphviz output.
+    void writeGraphviz(const string& name) const;
+    void writeGraphviz(ostream&) const;
+
+private:
+    const AssemblyGraph& assemblyGraph;
+
+    double pathCountFraction(edge_descriptor, uint64_t direction) const;
+    double forwardPathCountFraction(edge_descriptor) const;
+    double backwardPathCountFraction(edge_descriptor) const;
 };
