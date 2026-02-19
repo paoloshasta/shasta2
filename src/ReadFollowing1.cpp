@@ -20,7 +20,9 @@ using namespace ReadFollowing1;
 // Standard library.
 #include "fstream.hpp"
 #include <iomanip>
+#include <queue>
 #include <random>
+#include <set>
 
 // Explicit instantiation.
 #include "MultithreadedObject.tpp"
@@ -38,7 +40,13 @@ Graph::Graph(const AssemblyGraph& assemblyGraph) :
     createVertices();
     createEdgeCandidates();
     createEdgesMultithreaded();
-    cout << "The read following graph has " << num_vertices(graph) <<
+    cout << "The initial read following graph has " << num_vertices(graph) <<
+        " vertices and " << num_edges(graph) << " edges." << endl;
+    write("Initial");
+
+    prune();
+
+    cout << "The final read following graph has " << num_vertices(graph) <<
         " vertices and " << num_edges(graph) << " edges." << endl;
   	write("Final");
 
@@ -684,3 +692,90 @@ void Graph::fillConnectivity()
 }
 
 
+
+// Prune removes all vertices that are not accessible from "long"
+// vertices in both directions.
+void Graph::prune()
+{
+    Graph& graph = *this;
+    const uint64_t lengthThreshold = assemblyGraph.options.readFollowingSegmentLengthThreshold;
+
+    // Gather the "long" vertices.
+    vector<vertex_descriptor> longVertices;
+    BGL_FORALL_VERTICES(v, graph, Graph) {
+        if(graph[v].length >= lengthThreshold) {
+            longVertices.push_back(v);
+        }
+    }
+
+
+    // Loop over both directions.
+    array<std::set<vertex_descriptor>, 2> reachedVertices;
+    vector<vertex_descriptor> neighbors;
+    for(uint64_t direction=0; direction<2; direction++) {
+
+        // Initialize the BFS.
+        std::queue<vertex_descriptor> q;
+        for(const vertex_descriptor v: longVertices) {
+            q.push(v);
+            reachedVertices[direction].insert(v);
+        }
+
+        // BFS loop in this direction.
+        while(not q.empty()) {
+            const vertex_descriptor v0 = q.front();
+            q.pop();
+
+            // Find the neighbors in this direction.
+            neighbors.clear();
+            if(direction == 0) {
+                // Forward.
+                BGL_FORALL_OUTEDGES(v0, e, graph, Graph) {
+                    const vertex_descriptor v1 = target(e, graph);
+                    neighbors.push_back(v1);
+                }
+            } else {
+                // Backward.
+                BGL_FORALL_INEDGES(v0, e, graph, Graph) {
+                    const vertex_descriptor v1 = source(e, graph);
+                    neighbors.push_back(v1);
+                }
+            }
+
+            // Loop over the neighbors.
+            for(const vertex_descriptor v1: neighbors) {
+                if(not reachedVertices[direction].contains(v1)) {
+                    reachedVertices[direction].insert(v1);
+                    q.push(v1);
+                }
+            }
+        }
+
+        cout << "Found " << reachedVertices[direction].size() <<
+            " reachable vertices in direction " << direction << endl;
+    }
+
+
+    // Remove vertices that are not reachable in both directions.
+    vector<vertex_descriptor> verticesToBeRemoved;
+    BGL_FORALL_VERTICES(v, graph, Graph) {
+        if(not (reachedVertices[0].contains(v) and reachedVertices[1].contains(v))) {
+            verticesToBeRemoved.push_back(v);
+        }
+    }
+    for(const vertex_descriptor v: verticesToBeRemoved) {
+        boost::clear_vertex(v, graph);
+        boost::remove_vertex(v, graph);
+    }
+    cout << "Pruned " << verticesToBeRemoved.size() <<
+        " vertices from the read following graph." << endl;
+
+    // Sanity check: all leafs must be "long" vertices.
+    BGL_FORALL_VERTICES(v, graph, Graph) {
+        const bool isLeaf = (in_degree(v, graph) == 0) or (out_degree(v, graph) == 0);
+        if(isLeaf) {
+            SHASTA2_ASSERT(graph[v].length >= lengthThreshold);
+        }
+    }
+
+}

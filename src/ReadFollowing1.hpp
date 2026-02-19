@@ -108,6 +108,10 @@ private:
     void createEdgesMultithreaded();
     void createEdgesThreadFunction(uint64_t);
 
+    // Prune removes all vertices that are not accessible from "long"
+    // vertices in both directions.
+    void prune();
+
     // This fills in the outEdges and inEdges vectors
     // of all vertices, which are then used to generate
     // random paths.
