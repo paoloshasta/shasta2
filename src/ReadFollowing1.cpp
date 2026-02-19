@@ -3,7 +3,7 @@
 // Shasta.
 #include "ReadFollowing1.hpp"
 #include "deduplicate.hpp"
-// #include "findLinearChains.hpp"
+#include "findLinearChains.hpp"
 #include "Journeys.hpp"
 // #include "Markers.hpp"
 #include "Options.hpp"
@@ -792,13 +792,30 @@ void Graph::prune()
 
 void Graph::findPaths(vector< vector<Segment> >& assemblyPaths)
 {
+    assemblyPaths.clear();
 
+    const shared_ptr<PathGraph> pathGraphPointer = createPathGraph();
+    PathGraph& pathGraph = *pathGraphPointer;
+    pathGraph.writeGraphviz("0");
+
+    pathGraph.removeLowPathCountFractionEdges();
+    pathGraph.writeGraphviz("1");
+
+    pathGraph.removeNonBestEdges();
+    pathGraph.writeGraphviz("2");
+}
+
+
+
+shared_ptr<PathGraph> Graph::createPathGraph()
+{
     const Graph& graph = *this;
 
     // Random generator used to generate random paths.
     std::mt19937 randomGenerator;
 
-    PathGraph pathGraph(assemblyGraph);
+    shared_ptr<PathGraph> pathGraphPointer = make_shared<PathGraph>(assemblyGraph);
+    PathGraph& pathGraph = *pathGraphPointer;
     std::map<Segment, PathGraph::vertex_descriptor> pathGraphVertexMap;
 
 
@@ -861,21 +878,8 @@ void Graph::findPaths(vector< vector<Segment> >& assemblyPaths)
             }
         }
     }
-    cout << "At stage 0, the PathGraph has " << num_vertices(pathGraph) <<
-        " vertices and " << num_edges(pathGraph) << " edges." << endl;
-    pathGraph.writeGraphviz("0");
 
-    pathGraph.removeLowPathCountFractionEdges();
-    cout << "At stage 1, the PathGraph has " << num_vertices(pathGraph) <<
-        " vertices and " << num_edges(pathGraph) << " edges." << endl;
-    pathGraph.writeGraphviz("1");
-
-    pathGraph.removeNonBestEdges();
-    cout << "At stage 2, the PathGraph has " << num_vertices(pathGraph) <<
-        " vertices and " << num_edges(pathGraph) << " edges." << endl;
-    pathGraph.writeGraphviz("2");
-
-    assemblyPaths.clear();
+    return pathGraphPointer;
 }
 
 
@@ -916,6 +920,10 @@ PathGraph::PathGraph(const AssemblyGraph& assemblyGraph) :
 
 void PathGraph::writeGraphviz(const string& name) const
 {
+    const PathGraph& pathGraph = *this;
+    cout << "At stage " << name << ", the PathGraph has " << num_vertices(pathGraph) <<
+        " vertices and " << num_edges(pathGraph) << " edges." << endl;
+
     ofstream dot("PathGraph-" + name + ".dot");
     writeGraphviz(dot);
 }
@@ -1092,5 +1100,51 @@ void PathGraph::removeLowPathCountFractionEdges()
 
     for(const edge_descriptor e: edgesToBeRemoved) {
         boost::remove_edge(e, pathGraph);
+    }
+}
+
+
+
+void PathGraph::cleanupBubbles()
+{
+    vector<Bubble> bubbles;
+    findBubbles(bubbles);
+}
+
+
+
+void PathGraph::findBubbles(vector<Bubble>& bubbles) const
+{
+    const PathGraph& pathGraph = *this;
+
+    using Chain = vector<edge_descriptor>;
+    vector<Chain> chains;
+    findLinearChains(pathGraph, 0, chains);
+
+    // Create a map of linear chains keyed by the first/last vertex.
+    std::map< pair<vertex_descriptor, vertex_descriptor>, vector<uint64_t> > chainMap;
+    for(uint64_t chainId=0; chainId<chains.size(); chainId++) {
+        const vector<edge_descriptor>& chain = chains[chainId];
+        const edge_descriptor e0 = chain.front();
+        const edge_descriptor e1 = chain.back();
+        const vertex_descriptor v0 = source(e0, pathGraph);
+        const vertex_descriptor v1 = target(e1, pathGraph);
+        chainMap[{v0, v1}].push_back(chainId);
+    }
+
+    // Now we can find the bubbles.
+    bubbles.clear();
+    for(const auto&[vertexPair, chainIds]: chainMap) {
+        if(chainIds.size() < 2) {
+            continue;
+        }
+        const vertex_descriptor v0 = vertexPair.first;
+        const vertex_descriptor v1 = vertexPair.second;
+        const Segment segment0 = pathGraph[v0].segment;
+        const Segment segment1 = pathGraph[v1].segment;
+        cout << "Found a PathGraph bubble with " << chainIds.size() <<
+            " branches between " << assemblyGraph[segment0].id << " and " <<
+            assemblyGraph[segment1].id << endl;
+
     }
 }

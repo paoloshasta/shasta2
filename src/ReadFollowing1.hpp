@@ -93,7 +93,7 @@ public:
 
     // EXPOSE WHEN CODE STABILIZES.
     static const uint64_t pathCount = 100;
-    static constexpr double minPathCountFraction = 0.2;
+    static constexpr double minPathCountFraction = 0.4;
 
 private:
     const AssemblyGraph& assemblyGraph;
@@ -183,6 +183,7 @@ public:
     void writePath(Segment, uint64_t direction);
 
     // Assembly paths.
+    shared_ptr<PathGraph> createPathGraph();
     void findPaths(vector< vector<Segment> >& assemblyPaths);
     void writePaths(const vector< vector<Segment> >& assemblyPaths);
     void findAndWritePaths();
@@ -218,6 +219,7 @@ public:
     PathGraph(const AssemblyGraph&);
     void removeLowPathCountFractionEdges();
     void removeNonBestEdges();
+    void cleanupBubbles();
 
     // Graphviz output.
     void writeGraphviz(const string& name) const;
@@ -232,4 +234,7 @@ private:
 
     edge_descriptor bestInEdge(vertex_descriptor) const;
     edge_descriptor bestOutEdge(vertex_descriptor) const;
+
+    using Bubble = vector< vector<edge_descriptor> >;
+    void findBubbles(vector<Bubble>&) const;
 };
