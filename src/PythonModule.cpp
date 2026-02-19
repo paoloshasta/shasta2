@@ -18,7 +18,7 @@
 #include "Options.hpp"
 #include "performanceLog.hpp"
 #include "poastaWrapper.hpp"
-#include "ReadFollowing.hpp"
+#include "ReadFollowing1.hpp"
 #include "ReadSummary.hpp"
 #include "ShortBaseSequence.hpp"
 #include "SimpleMap.hpp"
@@ -196,10 +196,10 @@ PYBIND11_MODULE(shasta2, shasta2Module)
 
 
     // Class ReadFollowing.
-    class_<ReadFollowing::Graph>(shasta2Module, "ReadFollowing")
+    class_<ReadFollowing1::Graph>(shasta2Module, "ReadFollowing")
         .def(pybind11::init<const AssemblyGraph&>())
-        .def("writeRandomPath", &ReadFollowing::Graph::writeRandomPath)
-        .def("writePaths", &ReadFollowing::Graph::writePaths)
+        .def("writeRandomPath", &ReadFollowing1::Graph::writeRandomPath)
+        .def("writePath", &ReadFollowing1::Graph::writePath)
         ;
 
     // Class ExternalAnchors.
