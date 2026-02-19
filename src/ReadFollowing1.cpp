@@ -793,9 +793,6 @@ void Graph::prune()
 void Graph::findPaths(vector< vector<Segment> >& assemblyPaths)
 {
 
-    // EXPOSE WHEN CODE STABILIZES.
-    const uint64_t pathCount = 100;
-
     const Graph& graph = *this;
 
     // Random generator used to generate random paths.
@@ -868,10 +865,15 @@ void Graph::findPaths(vector< vector<Segment> >& assemblyPaths)
         " vertices and " << num_edges(pathGraph) << " edges." << endl;
     pathGraph.writeGraphviz("0");
 
-    pathGraph.removeNonBestEdges();
+    pathGraph.removeLowPathCountFractionEdges();
     cout << "At stage 1, the PathGraph has " << num_vertices(pathGraph) <<
         " vertices and " << num_edges(pathGraph) << " edges." << endl;
     pathGraph.writeGraphviz("1");
+
+    pathGraph.removeNonBestEdges();
+    cout << "At stage 2, the PathGraph has " << num_vertices(pathGraph) <<
+        " vertices and " << num_edges(pathGraph) << " edges." << endl;
+    pathGraph.writeGraphviz("2");
 
     assemblyPaths.clear();
 }
@@ -1070,4 +1072,25 @@ void PathGraph::removeNonBestEdges()
         boost::remove_edge(e, pathGraph);
     }
 
+}
+
+
+
+void PathGraph::removeLowPathCountFractionEdges()
+{
+    PathGraph& pathGraph = *this;
+
+    vector<edge_descriptor> edgesToBeRemoved;
+    BGL_FORALL_EDGES(e, pathGraph, PathGraph) {
+        if(
+            (forwardPathCountFraction (e) < Graph::minPathCountFraction) or
+            (backwardPathCountFraction(e) < Graph::minPathCountFraction))
+        {
+            edgesToBeRemoved.push_back(e);
+        }
+    }
+
+    for(const edge_descriptor e: edgesToBeRemoved) {
+        boost::remove_edge(e, pathGraph);
+    }
 }

@@ -91,6 +91,10 @@ class shasta2::ReadFollowing1::Graph :
 public:
     Graph(const AssemblyGraph&);
 
+    // EXPOSE WHEN CODE STABILIZES.
+    static const uint64_t pathCount = 100;
+    static constexpr double minPathCountFraction = 0.2;
+
 private:
     const AssemblyGraph& assemblyGraph;
 
@@ -212,6 +216,7 @@ public:
 class shasta2::ReadFollowing1::PathGraph : public PathGraphBaseClass {
 public:
     PathGraph(const AssemblyGraph&);
+    void removeLowPathCountFractionEdges();
     void removeNonBestEdges();
 
     // Graphviz output.
