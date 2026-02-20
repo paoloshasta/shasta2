@@ -6,12 +6,10 @@
 #include "DisjointSets.hpp"
 #include "findLinearChains.hpp"
 #include "Journeys.hpp"
-// #include "Markers.hpp"
+#include "longestPath.hpp"
 #include "Options.hpp"
-// #include "orderPairs.hpp"
 #include "performanceLog.hpp"
 #include "timestamp.hpp"
-// #include "transitiveReduction.hpp"
 using namespace shasta2;
 using namespace ReadFollowing1;
 
@@ -812,6 +810,9 @@ void Graph::findPaths(vector< vector<Segment> >& assemblyPaths)
     pathGraphPointer = 0;
 
     // Process one connected component at a time.
+    ofstream csv("RandomPaths.csv");
+    csv << "u0,u1,direction,Path id,Path length,Position in path,v0,v1,Common,Corrected Jaccard,Offset,\n";
+    csv.close();
     for(const shared_ptr<PathGraph>& componentPointer: componentPointers) {
         vector<Segment> assemblyPath;
         componentPointer->findAssemblyPath(assemblyPath);
@@ -830,7 +831,7 @@ shared_ptr<PathGraph> Graph::createPathGraph()
     // Random generator used to generate random paths.
     std::mt19937 randomGenerator;
 
-    shared_ptr<PathGraph> pathGraphPointer = make_shared<PathGraph>(assemblyGraph);
+    shared_ptr<PathGraph> pathGraphPointer = make_shared<PathGraph>(graph);
     PathGraph& pathGraph = *pathGraphPointer;
     std::map<Segment, PathGraph::vertex_descriptor> pathGraphVertexMap;
 
@@ -928,8 +929,8 @@ void Graph::findAndWritePaths()
 
 
 
-PathGraph::PathGraph(const AssemblyGraph& assemblyGraph) :
-    assemblyGraph(assemblyGraph)
+PathGraph::PathGraph(const Graph& graph) :
+    graph(graph)
 {}
 
 
@@ -958,7 +959,7 @@ void PathGraph::writeGraphviz(ostream& dot) const
     // Vertices.
     BGL_FORALL_VERTICES(v, pathGraph, PathGraph) {
         const Segment segment = pathGraph[v].segment;
-        const AssemblyGraphEdge& assemblyGraphEdge = assemblyGraph[segment];
+        const AssemblyGraphEdge& assemblyGraphEdge = graph.assemblyGraph[segment];
         dot << assemblyGraphEdge.id <<
             " ["
             "label=\"" << assemblyGraphEdge.id <<
@@ -992,8 +993,8 @@ void PathGraph::writeGraphviz(ostream& dot) const
         }
 
         dot <<
-            assemblyGraph[segment0].id << "->" <<
-            assemblyGraph[segment1].id <<
+            graph.assemblyGraph[segment0].id << "->" <<
+            graph.assemblyGraph[segment1].id <<
             " [label=\"" <<
             forwardPathCountFraction(e) << "/" <<
             backwardPathCountFraction(e) <<
@@ -1159,8 +1160,8 @@ void PathGraph::findBubbles(vector<Bubble>& bubbles) const
         const Segment segment0 = pathGraph[v0].segment;
         const Segment segment1 = pathGraph[v1].segment;
         cout << "Found a PathGraph bubble with " << chainIds.size() <<
-            " branches between " << assemblyGraph[segment0].id << " and " <<
-            assemblyGraph[segment1].id << endl;
+            " branches between " << graph.assemblyGraph[segment0].id << " and " <<
+            graph.assemblyGraph[segment1].id << endl;
 
     }
 }
@@ -1204,7 +1205,7 @@ vector< shared_ptr<PathGraph> > PathGraph::findConnectedComponents()
     for(const vector<uint64_t>& componentVertexIndexes: componentsVertexIndexes) {
 
         // Create the PathGraph for this component.
-        const shared_ptr<PathGraph> componentPointer = make_shared<PathGraph>(assemblyGraph);
+        const shared_ptr<PathGraph> componentPointer = make_shared<PathGraph>(graph);
         PathGraph& component = *componentPointer;
         components.push_back(componentPointer);
 
@@ -1236,10 +1237,204 @@ vector< shared_ptr<PathGraph> > PathGraph::findConnectedComponents()
 
 
 
-void PathGraph::findAssemblyPath(vector<Segment>&)
+// This computes an assembly path, assuming it is working
+// on a PathGraph with a single connected component.
+void PathGraph::findAssemblyPath(vector<Segment>& assemblyPath)
 {
+    const bool debug = false;
+    ofstream csv("RandomPaths.csv", std::ios::app);
+
+    assemblyPath.clear();
     PathGraph& component = *this;
 
-    cout << "Working on a PathGraph component with " << num_vertices(component) <<
-        " vertices and " << num_edges(component) << " edges." << endl;
+    if(true) {
+        cout << "Working on a PathGraph component with " << num_vertices(component) <<
+            " vertices and " << num_edges(component) << " edges." << endl;
+    }
+
+    // Find the edges of longest path.
+    // This can throw if this component has cycles.
+    vector<edge_descriptor> longestPathEdges;
+    try {
+        longestPath(component, longestPathEdges);
+    } catch(std::exception&) {
+        // We can do better.
+        if(true) {
+            cout << "No assembly path created for this component because of cycles." << endl;
+        }
+        return;
+    }
+    if(true) {
+        cout << "The longest path in the PathGraph has " << longestPathEdges.size() << " edges." << endl;
+    }
+    SHASTA2_ASSERT(not longestPathEdges.empty());
+
+    // Find the vertices of the longest path.
+    vector<vertex_descriptor> longestPathVertices;
+    const edge_descriptor firstPathEdge = longestPathEdges.front();
+    const vertex_descriptor firstPathVertex = source(firstPathEdge, component);
+    longestPathVertices.push_back(firstPathVertex);
+    for(const edge_descriptor e: longestPathEdges) {
+        const vertex_descriptor v = target(e, component);
+        longestPathVertices.push_back(v);
+    }
+    SHASTA2_ASSERT(longestPathVertices.size() > 1);
+    if(debug) {
+        cout << "The longest path has " << longestPathVertices.size() << " vertices:" << endl;
+        for(const vertex_descriptor v: longestPathVertices) {
+            cout << segmentId(v) << " ";
+        }
+        cout << endl;
+    }
+
+
+
+    // To construct the assembly path, we have to fill in the path between
+    // consecutive vertices of the above path. We can do this using the
+    // random paths stored in the corresponding edge.
+    // We use v for vertex descriptors in the Graph, u for vertex descriptors in the PathGraph.
+    // We use e for vertex descriptors in the Graph, f for vertex descriptors in the PathGraph.
+    for(uint64_t i1=1; i1<longestPathVertices.size(); i1++) {
+        const uint64_t i0 = i1 - 1;
+        const vertex_descriptor u0 = longestPathVertices[i0];
+        const vertex_descriptor u1 = longestPathVertices[i1];
+        auto[f, edgeExists] = boost::edge(u0, u1, component);
+        SHASTA2_ASSERT(edgeExists);
+        const PathGraphEdge& pathGraphEdge = component[f];
+
+        // Compute metrics for all the paths stored in this edge.
+        vector<PathMetrics> pathMetrics;
+        computePathMetrics(f, pathMetrics);
+
+        // Sort them using PathMetrics::operator<
+        sort(pathMetrics.begin(), pathMetrics.end());
+
+        if(debug) {
+            cout << "Filling in the assembly path between " <<
+                segmentId(u0) << " and " <<
+                segmentId(u1) << endl;
+            cout << "There are " << pathGraphEdge.paths[0].size() << " forward paths and " <<
+                pathGraphEdge.paths[1].size() << " backward paths." << endl;
+
+            cout << "Path metrics:" << endl;
+            for(const PathMetrics& metrics: pathMetrics) {
+                cout << "Direction " << metrics.direction <<
+                    " path id " << metrics.pathId <<
+                    ": vertex count " << metrics.vertexCount <<
+                    ", segment length " << metrics.totalSegmentLength <<
+                    ", skipped length " << metrics.totalSkippedLength <<
+                    ", total length " << metrics.totalLength() <<
+                    ", min common count " << metrics.minCommonCount <<
+                    ", skipped length at min common count " << metrics.skippedLengthAtMinCommonCount << endl;
+            }
+
+            // Write to csv the details of all the random paths stored in this edge.
+            for(uint64_t direction=0; direction<2; direction++) {
+                const vector<Path> paths = pathGraphEdge.paths[direction];
+                for(uint64_t pathId=0; pathId<paths.size(); pathId++) {
+                    const Path& path = paths[pathId];
+
+                    for(uint64_t j1=1; j1<path.size(); j1++) {
+                        const uint64_t j0 = j1 - 1;
+                        const Graph::vertex_descriptor v0 = path[j0];
+                        const Graph::vertex_descriptor v1 = path[j1];
+                        auto[e, edgeExists] = boost::edge(v0, v1, graph);
+                        SHASTA2_ASSERT(edgeExists);
+                        const Edge& edge = graph[e];
+
+                        csv << segmentId(u0) << ",";
+                        csv << segmentId(u1) << ",";
+                        csv << direction << ",";
+                        csv << pathId << ",";
+                        csv << path.size() << ",";
+                        csv << j0 << ",";
+                        csv << graph.segmentId(v0) << ",";
+                        csv << graph.segmentId(v1) << ",";
+                        csv << edge.segmentPairInformation.commonCount << ",";
+                        csv << edge.segmentPairInformation.correctedJaccard << ",";
+                        csv << edge.segmentPairInformation.segmentOffset << ",";
+                        csv << "\n";
+                     }
+                }
+            }
+        }
+
+        // Use the path with the best metrics.
+        const PathMetrics& bestPathMetrics = pathMetrics.front();
+        const Path& path = pathGraphEdge.paths[bestPathMetrics.direction][bestPathMetrics.pathId];
+
+        // Add all segments except the last to the assembly path.
+        for(uint64_t i=0; i<path.size()-1; i++) {
+            const Graph::vertex_descriptor v = path[i];
+            assemblyPath.push_back(graph[v].segment);
+        }
+
+    }
+
+    // Add the final segment to the assembly path.
+    assemblyPath.push_back(component[longestPathVertices.back()].segment);
+
+    cout << "This component of the PathGraph generated an assembly path with " <<
+        assemblyPath.size() << " segments beginning at " <<
+        graph.assemblyGraph[assemblyPath.front()].id << " and ending at " <<
+        graph.assemblyGraph[assemblyPath.back()].id << endl;
+}
+
+
+
+void PathGraph::computePathMetrics(
+    edge_descriptor e,
+    vector<PathMetrics>& pathMetrics
+    ) const
+{
+    const PathGraph& pathGraph = *this;
+    const PathGraphEdge& pathGraphEdge = pathGraph[e];
+
+    pathMetrics.clear();
+
+    // Loop over the two directions.
+    for(uint64_t direction=0; direction<2; direction++) {
+
+        // Loop over the stored paths for this direction.
+        const vector<Path> paths = pathGraphEdge.paths[direction];
+        for(uint64_t pathId=0; pathId<paths.size(); pathId++) {
+            const Path& path = paths[pathId];
+
+            PathMetrics& metrics = pathMetrics.emplace_back();
+            metrics.direction = direction;
+            metrics.pathId = pathId;
+            metrics.vertexCount = path.size();
+            metrics.edgeCount = path.size() - 1;
+
+            metrics.totalSegmentLength = 0;
+            metrics.totalSkippedLength = 0;
+            metrics.minCommonCount = std::numeric_limits<uint64_t>::max();
+            for(uint64_t j1=1; j1<path.size(); j1++) {
+                const uint64_t j0 = j1 - 1;
+                const Graph::vertex_descriptor v0 = path[j0];
+                const Graph::vertex_descriptor v1 = path[j1];
+                auto[e, edgeExists] = boost::edge(v0, v1, graph);
+                SHASTA2_ASSERT(edgeExists);
+                const Edge& edge = graph[e];
+                metrics.totalSkippedLength += edge.segmentPairInformation.segmentOffset;
+                if(j0 != 0) {
+                    metrics.totalSegmentLength += graph[v0].length;
+                }
+                metrics.minCommonCount = min(metrics.minCommonCount, edge.segmentPairInformation.commonCount);
+            }
+
+            metrics.skippedLengthAtMinCommonCount = 0;
+            for(uint64_t j1=1; j1<path.size(); j1++) {
+                const uint64_t j0 = j1 - 1;
+                const Graph::vertex_descriptor v0 = path[j0];
+                const Graph::vertex_descriptor v1 = path[j1];
+                auto[e, edgeExists] = boost::edge(v0, v1, graph);
+                SHASTA2_ASSERT(edgeExists);
+                const Edge& edge = graph[e];
+                if(edge.segmentPairInformation.commonCount == metrics.minCommonCount) {
+                    metrics.skippedLengthAtMinCommonCount += edge.segmentPairInformation.segmentOffset;
+                }
+            }
+        }
+    }
 }

@@ -95,8 +95,8 @@ public:
     static const uint64_t pathCount = 100;
     static constexpr double minPathCountFraction = 0.4;
 
-private:
     const AssemblyGraph& assemblyGraph;
+private:
 
     // Vertex creation.
     std::map<Segment, vertex_descriptor> vertexMap;
@@ -142,6 +142,12 @@ private:
     void writeGraphviz(const string& name) const;
 
 public:
+    uint64_t segmentId(vertex_descriptor v) const
+    {
+        const Graph& graph = *this;
+        const Segment segment = graph[v].segment;
+        return assemblyGraph[segment].id;
+    }
 
 
 
@@ -216,7 +222,7 @@ public:
 // Class used to store paths between long segments.
 class shasta2::ReadFollowing1::PathGraph : public PathGraphBaseClass {
 public:
-    PathGraph(const AssemblyGraph&);
+    PathGraph(const Graph&);
     void removeLowPathCountFractionEdges();
     void removeNonBestEdges();
     void cleanupBubbles();
@@ -229,12 +235,19 @@ public:
     // on a PathGraph with a single connected component.
     void findAssemblyPath(vector<Segment>&);
 
+    uint64_t segmentId(vertex_descriptor v) const
+    {
+        const PathGraph& pathGraph = *this;
+        const Segment segment = pathGraph[v].segment;
+        return graph.assemblyGraph[segment].id;
+    }
+
     // Graphviz output.
     void writeGraphviz(const string& name) const;
     void writeGraphviz(ostream&) const;
 
+    const Graph& graph;
 private:
-    const AssemblyGraph& assemblyGraph;
 
     double pathCountFraction(edge_descriptor, uint64_t direction) const;
     double forwardPathCountFraction(edge_descriptor) const;
@@ -242,6 +255,30 @@ private:
 
     edge_descriptor bestInEdge(vertex_descriptor) const;
     edge_descriptor bestOutEdge(vertex_descriptor) const;
+
+    // Compute metrics for all the Paths on an edge.
+    class PathMetrics {
+    public:
+        uint64_t direction;
+        uint64_t pathId;        // Index in paths[direction]
+        uint64_t vertexCount;
+        uint64_t edgeCount;
+        uint64_t totalSegmentLength;
+        uint64_t totalSkippedLength;
+        uint64_t totalLength() const {
+            return totalSegmentLength + totalSkippedLength;
+        }
+        uint64_t skippedLengthAtMinCommonCount;
+        uint64_t minCommonCount;
+        bool operator<(const PathMetrics& that) const
+        {
+            return skippedLengthAtMinCommonCount < that.skippedLengthAtMinCommonCount;
+        }
+    };
+    void computePathMetrics(
+        edge_descriptor,
+        vector<PathMetrics>&
+        ) const;
 
     using Bubble = vector< vector<edge_descriptor> >;
     void findBubbles(vector<Bubble>&) const;
