@@ -3,6 +3,7 @@
 // Shasta.
 #include "ReadFollowing1.hpp"
 #include "deduplicate.hpp"
+#include "DisjointSets.hpp"
 #include "findLinearChains.hpp"
 #include "Journeys.hpp"
 // #include "Markers.hpp"
@@ -794,7 +795,7 @@ void Graph::findPaths(vector< vector<Segment> >& assemblyPaths)
 {
     assemblyPaths.clear();
 
-    const shared_ptr<PathGraph> pathGraphPointer = createPathGraph();
+    shared_ptr<PathGraph> pathGraphPointer = createPathGraph();
     PathGraph& pathGraph = *pathGraphPointer;
     pathGraph.writeGraphviz("0");
 
@@ -803,6 +804,21 @@ void Graph::findPaths(vector< vector<Segment> >& assemblyPaths)
 
     pathGraph.removeNonBestEdges();
     pathGraph.writeGraphviz("2");
+
+    // Find the non-trivial connected components of the PathGraph.
+    const vector< shared_ptr<PathGraph> > componentPointers = pathGraph.findConnectedComponents();
+
+    // We no longer need the PathGraph.
+    pathGraphPointer = 0;
+
+    // Process one connected component at a time.
+    for(const shared_ptr<PathGraph>& componentPointer: componentPointers) {
+        vector<Segment> assemblyPath;
+        componentPointer->findAssemblyPath(assemblyPath);
+        if(assemblyPath.size() > 1) {
+            assemblyPaths.push_back(assemblyPath);
+        }
+    }
 }
 
 
@@ -1147,4 +1163,83 @@ void PathGraph::findBubbles(vector<Bubble>& bubbles) const
             assemblyGraph[segment1].id << endl;
 
     }
+}
+
+
+
+vector< shared_ptr<PathGraph> > PathGraph::findConnectedComponents()
+{
+    PathGraph& pathGraph = *this;
+
+    // Map vertices to integers.
+    vector<vertex_descriptor> vertexTable;
+    std::map<vertex_descriptor, uint64_t> vertexIndexMap;
+    uint64_t vertexIndex = 0;
+    BGL_FORALL_VERTICES(v, pathGraph, PathGraph) {
+        vertexTable.push_back(v);
+        vertexIndexMap.insert({v, vertexIndex++});
+    }
+    const uint64_t n = vertexIndex;
+
+    // Use DisjointSets to compute connected components.
+    DisjointSets disjointSets(n);
+    BGL_FORALL_EDGES(e, pathGraph, PathGraph) {
+        const vertex_descriptor v0 = source(e, pathGraph);
+        const vertex_descriptor v1 = target(e, pathGraph);
+        const uint64_t i0 = vertexIndexMap[v0];
+        const uint64_t i1 = vertexIndexMap[v1];
+        disjointSets.unionSet(i0, i1);
+    }
+
+    // Get the vertex indexes for the non-trivial connected components.
+    vector< vector<uint64_t> > componentsVertexIndexes;
+    disjointSets.gatherComponents(2, componentsVertexIndexes);
+    cout << "Found " << componentsVertexIndexes.size() <<
+        " non-trivial connected components of the PathGraph." << endl;
+
+
+
+    // Now create the PathGraphs for each of the non-trivial components.
+    vector< shared_ptr<PathGraph> > components;
+    for(const vector<uint64_t>& componentVertexIndexes: componentsVertexIndexes) {
+
+        // Create the PathGraph for this component.
+        const shared_ptr<PathGraph> componentPointer = make_shared<PathGraph>(assemblyGraph);
+        PathGraph& component = *componentPointer;
+        components.push_back(componentPointer);
+
+        // Add the vertices, copying them form the PathGraph.
+        std::map<vertex_descriptor, vertex_descriptor> componentVertexMap;
+        for(const uint64_t i: componentVertexIndexes) {
+            const vertex_descriptor v = vertexTable[i];
+            const vertex_descriptor u = add_vertex(pathGraph[v], component);
+            componentVertexMap.insert({v, u});
+        }
+
+        // Add the edges.
+        // Use v for vertices of the PathGraph and u for vertices of the component.
+        for(const uint64_t i0: componentVertexIndexes) {
+            const vertex_descriptor v0 = vertexTable[i0];
+            const vertex_descriptor u0 = componentVertexMap[v0];
+            BGL_FORALL_OUTEDGES(v0, e, pathGraph, PathGraph) {
+                const vertex_descriptor v1 = target(e, pathGraph);
+                const vertex_descriptor u1 = componentVertexMap[v1];
+                add_edge(u0, u1, pathGraph[e], component);
+            }
+        }
+    }
+
+
+
+    return components;
+}
+
+
+
+void PathGraph::findAssemblyPath(vector<Segment>&)
+{
+    PathGraph& component = *this;
+
+    cout << "Working on a PathGraph component with " << num_vertices(component) <<
+        " vertices and " << num_edges(component) << " edges." << endl;
 }

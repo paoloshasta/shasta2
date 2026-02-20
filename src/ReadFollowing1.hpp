@@ -221,6 +221,14 @@ public:
     void removeNonBestEdges();
     void cleanupBubbles();
 
+    // This returns all the non-trivial connected components
+    // of the PathGraph (that is, the ones with at least two vertices).
+    vector< shared_ptr<PathGraph> > findConnectedComponents();
+
+    // This computes an assembly path, assuming it is working
+    // on a PathGraph with a single connected component.
+    void findAssemblyPath(vector<Segment>&);
+
     // Graphviz output.
     void writeGraphviz(const string& name) const;
     void writeGraphviz(ostream&) const;
