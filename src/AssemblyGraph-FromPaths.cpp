@@ -3,7 +3,7 @@
 #include "Assembler.hpp"
 #include "deduplicate.hpp"
 #include "performanceLog.hpp"
-#include "ReadFollowing.hpp"
+#include "ReadFollowing1.hpp"
 #include "RestrictedAnchorGraph.hpp"
 #include "TangleMatrix1.hpp"
 #include "timestamp.hpp"
@@ -17,7 +17,7 @@ using namespace shasta2;
 // There may be jumps, which are bridged using local assemblies.
 void AssemblyGraph::findAssemblyPaths(vector< vector<edge_descriptor> >& assemblyPaths) const
 {
-	ReadFollowing::Graph readFollowingGraph(*this);
+	ReadFollowing1::Graph readFollowingGraph(*this);
 	readFollowingGraph.findPaths(assemblyPaths);
 }
 
