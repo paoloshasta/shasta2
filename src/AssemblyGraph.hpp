@@ -330,7 +330,7 @@ public:
     // There may be jumps, which are bridged using local assemblies.
     void findAssemblyPaths(vector< vector<edge_descriptor> >& assemblyPaths) const;
     void connectAssemblyPaths(const vector< vector<edge_descriptor> >&  assemblyPaths);
-    void findAndConnectAssemblyPaths();
+    uint64_t findAndConnectAssemblyPaths();
 
 
 
