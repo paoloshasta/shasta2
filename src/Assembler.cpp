@@ -134,7 +134,7 @@ void Assembler::createAnchors(
     const vector<uint64_t>& minAnchorDistinctSubkmerCount,
     uint64_t threadCount)
 {
-    const bool doAnchorCleanup = true;
+    const bool doAnchorCleanup = false;
 
     if(doAnchorCleanup) {
 
