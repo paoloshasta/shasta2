@@ -46,8 +46,8 @@ public:
 
     // Begin/end indexes in the AnchorGraph::orientedReadIds vector
     // for the OrientedReadIds that belong to this edge.
-    uint64_t orientedReadIdsBegin;
-    uint64_t orientedReadIdsEnd;
+    uint64_t orientedReadIdsBegin = invalid<uint64_t>;
+    uint64_t orientedReadIdsEnd = invalid<uint64_t>;
 
     uint64_t id = invalid<uint64_t>;
     bool useForAssembly = false;
