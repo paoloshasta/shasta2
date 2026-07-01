@@ -231,27 +231,71 @@ void AssemblyGraph::strandSymmetricPhaseSuperbubbleChains()
         SHASTA2_ASSERT(superchainTable[superbubbleChainIdRc] == superbubbleChainId);
     }
 
+    // Fill in the pairs of SuperbubbleChains to be phases.
+    data.superbubbleChainPairs.clear();
+    for(uint64_t superbubbleChainId=0; superbubbleChainId<superbubbleChains.size(); superbubbleChainId++) {
+        const uint64_t superbubbleChainIdRc = superchainTable[superbubbleChainId];
+        if(superbubbleChainId < superbubbleChainIdRc) {
+            data.superbubbleChainPairs.push_back(make_pair(superbubbleChainId, superbubbleChainIdRc));
+        }
+    }
 
 
     // Now, for each pair of reverse complement superbubble chains,
     // phase the first one, then make a reverse complemented copy to replace the second one.
-    // This should be multithreaded.
-    for(uint64_t superbubbleChainId=0; superbubbleChainId<superbubbleChains.size(); superbubbleChainId++) {
-        const uint64_t superbubbleChainIdRc = superchainTable[superbubbleChainId];
-        if(superbubbleChainId < superbubbleChainIdRc) {
-            const SuperbubbleChain& superbubbleChain = superbubbleChains[superbubbleChainId];
-            const SuperbubbleChain& superbubbleChainRc = superbubbleChains[superbubbleChainIdRc];
-            superbubbleChain.phase1(assemblyGraph, superbubbleChainId);
-
-            // For testing phase superbubbleChainRc separately.
-            superbubbleChainRc.phase1(assemblyGraph, superbubbleChainIdRc);
-        }
-    }
+    const uint64_t batchSize = 1;
+    setupLoadBalancing(data.superbubbleChainPairs.size(), batchSize);
+    runThreads(&AssemblyGraph::strandSymmetricPhaseSuperbubbleChainsThreadFunction, options.actualThreadCount());
     superbubbleChains.clear();
     superbubbleChains.shrink_to_fit();
+    data.superbubbleChainPairs.clear();
+    data.superbubbleChainPairs.shrink_to_fit();
 
-
+    compress(); // strandSymmetricCompress(); // ***************** REPLACE WHEN CODE COMPLETE
     performanceLog << timestamp << "AssemblyGraph::strandSymmetricPhaseSuperbubbleChains ends." << endl;
+}
+
+
+
+void AssemblyGraph::strandSymmetricPhaseSuperbubbleChainsThreadFunction([[maybe_unused]] uint64_t threadId)
+{
+    const PhaseSuperbubbleChainsData& data = phaseSuperbubbleChainsData;
+    const vector<SuperbubbleChain>& superbubbleChains = data.superbubbleChains;
+    const vector< pair<uint64_t, uint64_t> >& superbubbleChainPairs = data.superbubbleChainPairs;
+
+    // Loop over SuperbubbleChain pairs batches assigned to this thread.
+    uint64_t begin, end;
+    while(getNextBatch(begin, end)) {
+
+        // Loop over SuperbubbleChain pairs in this batch.
+        for(uint64_t i=begin; i!=end; i++) {
+            const auto&[superbubbleChainId, superbubbleChainIdRc] = superbubbleChainPairs[i];
+            const SuperbubbleChain& superbubbleChain = superbubbleChains[superbubbleChainId];
+            const SuperbubbleChain& superbubbleChainRc = superbubbleChains[superbubbleChainIdRc];
+            strandSymmetricPhase(
+                superbubbleChain, superbubbleChainId,
+                superbubbleChainRc, superbubbleChainIdRc);
+        }
+    }
+}
+
+
+
+// This phases the first SuperbubbleChain of a reverse complemented pair,
+// then copies it with reverse complement to replace the second SuperbubbleChain.
+void AssemblyGraph::strandSymmetricPhase(
+    const SuperbubbleChain& superbubbleChain,
+    uint64_t superbubbleChainId,
+    const SuperbubbleChain& superbubbleChainRc,
+    uint64_t superbubbleChainIdRc)
+{
+    AssemblyGraph& assemblyGraph = *this;
+
+    // For testing, phase the SuperbubbleChains separately.
+    // This operation is not strand-symmetric.
+    superbubbleChain.phase1(assemblyGraph, superbubbleChainId);
+    superbubbleChainRc.phase1(assemblyGraph, superbubbleChainIdRc);
+
 }
 
 

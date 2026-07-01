@@ -402,9 +402,21 @@ public:
     void strandSymmetricPhaseSuperbubbleChains();
     void strandSymmetricPhaseSuperbubbleChainsThreadFunction(uint64_t threadId);
 
+    // This phases the first SuperbubbleChain of a reverse complemented pair,
+    // then copies it with reverse complement to replace the second SuperbubbleChain.
+    void strandSymmetricPhase(
+        const SuperbubbleChain&, uint64_t,
+        const SuperbubbleChain&, uint64_t);
+
+
+
     class PhaseSuperbubbleChainsData {
     public:
         vector<SuperbubbleChain> superbubbleChains;
+
+        // Pairs of reverse complemented SuperbubbleChains.
+        // These are indexes in the superbubbleChains vector.
+        vector< pair<uint64_t, uint64_t> > superbubbleChainPairs;
     };
     PhaseSuperbubbleChainsData phaseSuperbubbleChainsData;
 

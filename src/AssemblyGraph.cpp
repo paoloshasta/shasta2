@@ -338,7 +338,7 @@ void AssemblyGraph::simplifyAndAssemble()
     writeIntermediateStageIfRequested("B");
 
     // Phase SuperbubbleChains.
-    phaseSuperbubbleChains();
+    strandSymmetricPhaseSuperbubbleChains();
     writeIntermediateStageIfRequested("C");
     clearReverseComplementInformation();
 
