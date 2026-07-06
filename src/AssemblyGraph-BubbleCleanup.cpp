@@ -727,7 +727,7 @@ bool AssemblyGraph::bubblePairCleanup(const BubblePair& bubblePair)
             if(target(eA, assemblyGraph) != bubbleA.v1) {
                 continue;
             }
-            const edge_descriptor eB = addReverseComplementEdge(eA);
+            const edge_descriptor eB = createReverseComplementEdge(eA);
 
             // Sanity checks.
             const AssemblyGraphEdge& edgeB = assemblyGraph[eB];
@@ -755,10 +755,45 @@ bool AssemblyGraph::bubblePairCleanup(const BubblePair& bubblePair)
 
 
 
-// This adds an edge eB, identical to the reverse complement
+// This creates a vertex vB, identical to the reverse complement
+// of vertex vA. It sets the vRc fields in vA and vB
+// and returns vB.
+AssemblyGraph::vertex_descriptor AssemblyGraph::createReverseComplementVertex(vertex_descriptor vA)
+{
+    const bool debug = false;
+
+    AssemblyGraph& assemblyGraph = *this;
+    AssemblyGraphVertex& vertexA = assemblyGraph[vA];
+
+    // Get the AnchorIds.
+    const AnchorId anchorIdA = vertexA.anchorId;
+    const AnchorId anchorIdB = reverseComplementAnchorId(anchorIdA);
+
+    // Create the new vertex.
+    const vertex_descriptor vB = add_vertex(AssemblyGraphVertex(anchorIdB, nextVertexId++), assemblyGraph);
+    AssemblyGraphVertex& vertexB = assemblyGraph[vB];
+
+    // Set the vRc fields.
+    vertexA.vRc = vB;
+    vertexB.vRc = vA;
+
+    if(debug) {
+        cout << "Created a reverse complemented copy of a vertex: " <<
+            vertexA.id << " " << anchorIdToString(vertexA.anchorId) <<
+            vertexB.id << " " << anchorIdToString(vertexB.anchorId) << endl;
+
+    }
+
+    return vB;
+}
+
+
+
+// This creates an edge eB, identical to the reverse complement
 // of edge eA. It sets the eRc fields in eA and eB
 // and returns eB.
-AssemblyGraph::edge_descriptor AssemblyGraph::addReverseComplementEdge(edge_descriptor eA)
+// The vertices of eB must already exist.
+AssemblyGraph::edge_descriptor AssemblyGraph::createReverseComplementEdge(edge_descriptor eA)
 {
     AssemblyGraph& assemblyGraph = *this;
     const bool debug = false;
@@ -769,17 +804,23 @@ AssemblyGraph::edge_descriptor AssemblyGraph::addReverseComplementEdge(edge_desc
     const vertex_descriptor vA1 = target(eA, assemblyGraph);
     const AssemblyGraphVertex& vertexA0 = assemblyGraph[vA0];
     const AssemblyGraphVertex& vertexA1 = assemblyGraph[vA1];
+    // cout << "MMM " << vertexA0.id << " " << vertexA1.id << endl;
 
     // Create the new edge eB.
     const vertex_descriptor vB0 = vertexA1.vRc;
     const vertex_descriptor vB1 = vertexA0.vRc;
+    // cout << "NNN " << assemblyGraph[vB0].id << " " << assemblyGraph[vB1].id << endl;
     auto[eB, wasAdded] = add_edge(vB0, vB1, AssemblyGraphEdge(nextEdgeId++), assemblyGraph);
+    // cout << "OOO" << endl;
     SHASTA2_ASSERT(wasAdded);
     AssemblyGraphEdge& edgeB = assemblyGraph[eB];
 
     // Update the eRc fields of both edges.
     edgeA.eRc = eB;
     edgeB.eRc = eA;
+
+    // cout << "PPP " << edgeA.id << " " << edgeB.id << endl;
+    // cout << "QQQ " << edgeA.size() << " " << edgeB.size() << endl;
 
 
 
@@ -827,8 +868,10 @@ AssemblyGraph::edge_descriptor AssemblyGraph::addReverseComplementEdge(edge_desc
     }
 
     // Sanity check.
-    SHASTA2_ASSERT(edgeB.front().anchorPair.anchorIdA == assemblyGraph[vB0].anchorId);
-    SHASTA2_ASSERT(edgeB.back().anchorPair.anchorIdB == assemblyGraph[vB1].anchorId);
+    if(not edgeB.empty()) {
+        SHASTA2_ASSERT(edgeB.front().anchorPair.anchorIdA == assemblyGraph[vB0].anchorId);
+        SHASTA2_ASSERT(edgeB.back().anchorPair.anchorIdB == assemblyGraph[vB1].anchorId);
+    }
 
     return eB;
 }

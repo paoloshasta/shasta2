@@ -203,10 +203,16 @@ private:
     // the vertices/edges vRc/eRc field.
     void clearReverseComplementInformation();
 
-    // This adds an edge eB, identical to the reverse complement
+    // This creates a vertex vB, identical to the reverse complement
+    // of vertex vA. It sets the vRc fields in vA and vB
+    // and returns vB.
+    vertex_descriptor createReverseComplementVertex(vertex_descriptor vA);
+
+    // This creates an edge eB, identical to the reverse complement
     // of edge eA. It sets the eRc fields in eA and eB
     // and returns eB.
-    edge_descriptor addReverseComplementEdge(edge_descriptor eA);
+    // The vertices of eB must already exist.
+    edge_descriptor createReverseComplementEdge(edge_descriptor eA);
 
 
 

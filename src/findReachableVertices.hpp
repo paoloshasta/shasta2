@@ -25,6 +25,19 @@ namespace shasta2 {
         typename Graph::vertex_descriptor vStart,
         typename Graph::vertex_descriptor vEnd,
         uint64_t direction);
+
+    // This finds all vertices and edges that are reachable from vStart
+    // moving forward, but stopping when vEnd is reached.
+    // The vertices returned don't include vStart and vEnd.
+    // The edges returned do include the edges reachable from vStart
+    // that have vEnd as the target.
+    template<class Graph> void findReachableWithStop(
+        const Graph&,
+        typename Graph::vertex_descriptor vStart,
+        typename Graph::vertex_descriptor vEnd,
+        std::set<typename Graph::vertex_descriptor>&,
+        std::set<typename Graph::edge_descriptor>&
+        );
 }
 
 
@@ -86,3 +99,41 @@ template<class Graph> bool shasta2::isReachable(
 
 }
 
+
+
+// This finds all vertices and edges that are reachable from vStart
+// moving forward, but stopping when vEnd is reached.
+// The vertices returned don't include vStart and vEnd.
+// The edges returned do include the edges reachable from vStart
+// that have vEnd as the target.
+template<class Graph> void shasta2::findReachableWithStop(
+    const Graph& graph,
+    typename Graph::vertex_descriptor vStart,
+    typename Graph::vertex_descriptor vEnd,
+    std::set<typename Graph::vertex_descriptor>& reachableVertices,
+    std::set<typename Graph::edge_descriptor>& reachableEdges)
+{
+    using vertex_descriptor = typename Graph::vertex_descriptor;
+
+    reachableVertices.clear();
+    reachableEdges.clear();
+
+    // Initialize the BFS queue.
+    std::queue<vertex_descriptor> q;
+    q.push(vStart);
+
+    // Main BFS loop.
+    while(not q.empty()) {
+        const vertex_descriptor v0 = q.front();
+        q.pop();
+
+        BGL_FORALL_OUTEDGES_T(v0, e, graph, Graph) {
+            reachableEdges.insert(e);
+            const vertex_descriptor v1 = target(e, graph);
+            if((v1 != vEnd) and (not reachableVertices.contains(v1))) {
+                reachableVertices.insert(v1);
+                q.push(v1);
+            }
+        }
+    }
+}

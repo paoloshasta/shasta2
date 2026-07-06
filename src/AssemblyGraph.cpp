@@ -971,7 +971,7 @@ uint64_t AssemblyGraph::strandSymmetricCompress()
         const uint64_t chainIdRc = chainTable[chainId];
         if(chainId < chainIdRc) {
             const edge_descriptor e = compressLinearChain(chains[chainId]);
-            addReverseComplementEdge(e);
+            createReverseComplementEdge(e);
 
             // The call to compressLinearChain removed the edges and
             // the internal edges of chainId. Do the same for chainIdRc.
