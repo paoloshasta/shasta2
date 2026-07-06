@@ -503,6 +503,7 @@ void AssemblyGraph::write(const string& stage)
     writeGfa("Assembly-" + stage + ".gfa");
     writeGraphviz("Assembly-" + stage + ".dot");
     writeCsv("Assembly-" + stage + ".csv");
+    writeSequenceLengthByCoverageCsv("Assembly-SequenceLengthByCoverage-" + stage + ".csv");
 }
 
 
@@ -1261,6 +1262,62 @@ void AssemblyGraph::writeCsv(ostream& csv) const
 
 
 
+void AssemblyGraph::writeSequenceLengthByCoverageCsv(const string& fileName) const
+{
+    ofstream csv(fileName);
+    writeSequenceLengthByCoverageCsv(csv);
+}
+
+
+
+void AssemblyGraph::writeSequenceLengthByCoverageCsv(ostream& csv) const
+{
+    const AssemblyGraph& assemblyGraph = *this;
+
+    // Compute the total sequence length for each coverage value.
+    vector<uint64_t> v; // Sequence
+    vector<uint64_t> n; // Number of segments
+    uint64_t minCoverage = std::numeric_limits<uint64_t>::max();
+    uint64_t maxCoverage =0;
+    BGL_FORALL_EDGES(e, assemblyGraph, AssemblyGraph) {
+        const AssemblyGraphEdge& edge = assemblyGraph[e];
+        const uint64_t length = edge.length();
+        if(length == 0) {
+            continue;
+        }
+        const uint64_t coverage = uint64_t(std::round(edge.averageCoverage()));
+        minCoverage = min(minCoverage, coverage);
+        maxCoverage = max(maxCoverage, coverage);
+
+        if(v.size() <= coverage) {
+            n.resize(coverage + 1, 0);
+            v.resize(coverage + 1, 0);
+        }
+        ++(n[coverage]);
+        v[coverage] += length;
+    }
+
+    // Write it out.
+    csv << "Coverage,Number of segments,Sequence length,"
+        "Cunmulative number of segments,Cumulative sequence length\n";
+    uint64_t cumulativeNumberOfSegments = 0;
+    uint64_t cumulativeSequenceLength = 0;
+    for(uint64_t coverage=minCoverage; coverage<=maxCoverage; coverage++) {
+        cumulativeNumberOfSegments += n[coverage];
+        cumulativeSequenceLength += v[coverage];
+        csv <<
+            coverage << "," <<
+            n[coverage] << "," <<
+            v[coverage] << "," <<
+            cumulativeNumberOfSegments << "," <<
+            cumulativeSequenceLength << "," <<
+            "\n";
+    }
+
+}
+
+
+
 void AssemblyGraph::writeDetailsCsv(const string& fileName) const
 {
     ofstream csv(fileName);
@@ -1381,6 +1438,10 @@ void AssemblyGraph::colorStrongComponents() const
 
 double AssemblyGraphEdge::averageCoverage() const
 {
+    if(empty()) {
+        return 0.;
+    }
+
     uint64_t sum = 0;
     for(const AssemblyGraphEdgeStep& step: *this) {
         sum += step.anchorPair.orientedReadIds.size();

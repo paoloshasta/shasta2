@@ -472,6 +472,8 @@ private:
     void writeCsv(ostream&) const;
     void writeDetailsCsv(const string& fileName) const;
     void writeDetailsCsv(ostream&) const;
+    void writeSequenceLengthByCoverageCsv(const string& fileName) const;
+    void writeSequenceLengthByCoverageCsv(ostream&) const;
 
 
 
