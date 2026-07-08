@@ -374,9 +374,6 @@ void AssemblyGraph::simplifyAndAssemble()
     assembleAll();
     write("Final");
     writeFasta("Final");
-    if(options.writeAssemblyDetails) {
-        writeDetailsCsv("AssemblyDetails-Final.csv");
-    }
 
     writeMemoryStatistics("AssemblyGraph::simplifyAndAssemble ends");
 }
@@ -504,6 +501,11 @@ void AssemblyGraph::write(const string& stage)
     writeGraphviz("Assembly-" + stage + ".dot");
     writeCsv("Assembly-" + stage + ".csv");
     writeSequenceLengthByCoverageCsv("Assembly-SequenceLengthByCoverage-" + stage + ".csv");
+
+    if(options.writeAssemblyDetails) {
+        writeDetailsCsv("AssemblyDetails-" + stage + ".csv");
+    }
+
 }
 
 
@@ -1331,7 +1333,7 @@ void AssemblyGraph::writeDetailsCsv(ostream& csv) const
     const AssemblyGraph& assemblyGraph = *this;
 
     // Write a csv header.
-    csv << "SegmentId,Step,AnchorIdA,AnchorIdB,Coverage,Length,Sequence begin,Sequence end,\n";
+    csv << "SegmentId,Step,AnchorIdA,AnchorIdB,Coverage,Estimated length,Actual length,Sequence begin,Sequence end,\n";
 
     // Loop over all segments (AssemblyGraph edges).
     BGL_FORALL_EDGES(e, assemblyGraph, AssemblyGraph) {
@@ -1341,8 +1343,7 @@ void AssemblyGraph::writeDetailsCsv(ostream& csv) const
         // Loop over all steps of this segment.
         for(uint64_t stepId=0; stepId<edge.size(); stepId++) {
             const AssemblyGraphEdgeStep& step = edge[stepId];
-            const uint64_t length = step.sequence.size();
-            const uint64_t end = begin + length;
+            const uint64_t end = begin + (edge.wasAssembled ? step.sequence.size() : step.offset);
 
             csv <<
                 edge.id << "," <<
@@ -1350,7 +1351,12 @@ void AssemblyGraph::writeDetailsCsv(ostream& csv) const
                 anchorIdToString(step.anchorPair.anchorIdA) << "," <<
                 anchorIdToString(step.anchorPair.anchorIdB) << "," <<
                 step.anchorPair.orientedReadIds.size() << "," <<
-                length << "," <<
+                step.offset << ",";
+            if(edge.wasAssembled) {
+                csv << step.sequence.size();
+            }
+            csv <<
+                "," <<
                 begin << "," <<
                 end << "," <<
                 "\n";
