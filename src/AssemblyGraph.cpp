@@ -445,6 +445,10 @@ void AssemblyGraph::check(bool writeDetails) const
         SHASTA2_ASSERT(eRc != assemblyGraphNullEdge);
         SHASTA2_ASSERT(eRc != e);
         const AssemblyGraphEdge& edgeRc = assemblyGraph[eRc];
+        if(writeDetails) {
+            cout << "Checking reverse complemented edge pair " <<
+                edge.id << " " << edgeRc.id << endl;
+        }
         SHASTA2_ASSERT(edgeRc.eRc != assemblyGraphNullEdge);
         SHASTA2_ASSERT(edgeRc.eRc != eRc);
         SHASTA2_ASSERT(edgeRc.eRc == e);
@@ -452,7 +456,10 @@ void AssemblyGraph::check(bool writeDetails) const
         // Also check the steps of these two edges.
         const uint64_t n = edge.size();
         SHASTA2_ASSERT(edgeRc.size() == n);
-        for(uint64_t i=0; i<edge.size(); i++) {
+        for(uint64_t i=0; i<n; i++) {
+            if(writeDetails) {
+                cout << "Checking step " << i << " of " << n << endl;
+            }
             const AssemblyGraphEdgeStep& step = edge[i];
             const AssemblyGraphEdgeStep& stepRc = edgeRc[n - 1 - i];
             SHASTA2_ASSERT(step.offset == stepRc.offset);
