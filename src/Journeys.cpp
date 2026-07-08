@@ -142,8 +142,19 @@ void Journeys::threadFunction4(uint64_t /* threadId */)
         for(uint64_t orientedReadValue=begin; orientedReadValue!=end; orientedReadValue++) {
             const OrientedReadId orientedReadId = OrientedReadId::fromValue(ReadId(orientedReadValue));
 
-            // Copy the journeysWithPositions to the journeys.
+            // Check that the positions are monotonically increasing.
             const auto v = journeysWithPositions[orientedReadValue];
+            for(uint64_t i1=1; i1<v.size(); i1++) {
+                const uint64_t i0 = i1 - 1;
+                if(not (v[i0].second < v[i1].second)) {
+                    throw runtime_error(
+                        "Invalid Journey for oriented read " + orientedReadId.getString() +
+                        " detected near anchors " +
+                        anchorIdToString(v[i0].first) + " " + anchorIdToString(v[i1].first));
+                }
+            }
+
+            // Copy the journeysWithPositions to the journeys.
             const auto journey = journeys[orientedReadValue];
             SHASTA2_ASSERT(journey.size() == v.size());
             for(uint64_t i=0; i<v.size(); i++) {
