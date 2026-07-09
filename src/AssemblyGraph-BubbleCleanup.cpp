@@ -571,10 +571,11 @@ uint64_t AssemblyGraph::bubblePairCleanupIterationMultithreaded(
     vector<BubblePair> allBubblePairs;
     findBubblePairs(allBubblePairs);
     cout << "Found " << 2 * allBubblePairs.size() << " bubbles." << endl;
+    performanceLog << timestamp << "Found " << 2 * allBubblePairs.size() << " bubbles." << endl;
 
 
 
-    // Find candidate bubble pairss.
+    // Find candidate bubble pairs.
     // These are the ones that are not in the exclude list and
     // in which no branch has offset greater than
     // options.bubbleCleanupMaxBubbleLength.
@@ -583,7 +584,7 @@ uint64_t AssemblyGraph::bubblePairCleanupIterationMultithreaded(
     for(const auto& [bubbleA, bubbleB]: allBubblePairs) {
 
 
-        if(std::ranges::contains(excludeList, make_pair(bubbleA.v0, bubbleA.v1))) {
+        if(std::ranges::binary_search(excludeList, make_pair(bubbleA.v0, bubbleA.v1))) {
             SHASTA2_ASSERT(std::ranges::contains(excludeList, make_pair(bubbleB.v0, bubbleB.v1)));
             continue;
         }
@@ -601,6 +602,7 @@ uint64_t AssemblyGraph::bubblePairCleanupIterationMultithreaded(
         }
     }
     cout << 2 * candidateBubblePairs.size() << " bubbles are candidate for clean up." << endl;
+    performanceLog << timestamp << 2 * candidateBubblePairs.size() << " bubbles are candidate for clean up." << endl;
 
 
 
@@ -621,6 +623,7 @@ uint64_t AssemblyGraph::bubblePairCleanupIterationMultithreaded(
     // All changes to the AssemblyGraph are done under mutex.
     bubblePairCleanupIterationData.modifiedCount = 0;
     const uint64_t batchSize = 10;
+    performanceLog << timestamp << "Begin processing bubble pairs." << endl;
     setupLoadBalancing(candidateBubblePairs.size(), batchSize);
     runThreads(&AssemblyGraph::bubblePairCleanupIterationThreadFunction, options.actualThreadCount());
     cout << "Bubble cleanup modified " << bubblePairCleanupIterationData.modifiedCount << " bubbles." << endl;
