@@ -228,7 +228,6 @@ void AssemblyGraph::strandSymmetricPhaseSuperbubbleChains()
     // Sanity check.
     for(uint64_t superbubbleChainId=0; superbubbleChainId<superbubbleChains.size(); superbubbleChainId++) {
         const uint64_t superbubbleChainIdRc = superchainTable[superbubbleChainId];
-        SHASTA2_ASSERT(superbubbleChainIdRc != superbubbleChainId);
         SHASTA2_ASSERT(superchainTable[superbubbleChainIdRc] == superbubbleChainId);
     }
 
@@ -298,6 +297,25 @@ void AssemblyGraph::strandSymmetricPhase(
         cout << "AssemblyGraph::strandSymmetricPhase begins for superbubble chains " <<
             superbubbleChainId << " " << superbubbleChainIdRc << endl;
     }
+
+
+
+    // If this is a self-complementary superbubble chain, don't phase it.
+    // This could be fixed by splitting it in half, generating a self complementary pair.
+    // For now just skip it.
+    if(superbubbleChainId == superbubbleChainIdRc) {
+        cout << "A self-complementary bubble chain was found and will not be phased." << endl;
+        cout << "It contains the following segments:" << endl;
+        for(const Superbubble& superbubble: superbubbleChain) {
+            for(const edge_descriptor e: superbubble.internalEdges) {
+                cout << assemblyGraph[e].id << ",";
+            }
+        }
+        cout << endl;
+        return;
+    }
+
+
 
     // Phase the first bubble.
     superbubbleChain.phase1(assemblyGraph, superbubbleChainId);
