@@ -295,6 +295,10 @@ public:
     uint64_t compressDebugLevel = 0; // 1=minimal, 2=compact, 3=detailed.
     uint64_t strandSymmetricCompress();
 
+    // Remove zero length segments by collapsing their vertices.
+    void removeZeroLengthSegments();
+    void collapseVertices(const vector<vertex_descriptor>&);
+
     // This cleans up linear chains by removing edges that have low
     // corrected Jaccard similarity with nearby edges and
     // replacing with new edges, constructed by connecting

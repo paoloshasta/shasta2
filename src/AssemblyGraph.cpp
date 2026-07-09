@@ -346,6 +346,7 @@ void AssemblyGraph::simplifyAndAssemble()
     readFollowing();
     writeIntermediateStageIfRequested("D");
     compress();
+    removeZeroLengthSegments();
     writeIntermediateStageIfRequested("E");
 
     // Prune.
@@ -2612,3 +2613,171 @@ void AssemblyGraph::clearReverseComplementInformation()
         assemblyGraph[e].eRc = assemblyGraphNullEdge;
     }
 }
+
+
+
+// Remove zero length segments by collapsing their vertices.
+void AssemblyGraph::removeZeroLengthSegments()
+{
+    AssemblyGraph& assemblyGraph = *this;
+
+    // Map vertices to integers.
+    std::map<vertex_descriptor, uint64_t> vertexIndexMap;
+    vector<vertex_descriptor> vertexTable;
+    uint64_t vertexIndex = 0;
+    BGL_FORALL_VERTICES(v, assemblyGraph, AssemblyGraph) {
+        vertexTable.push_back(v);
+        vertexIndexMap.insert(make_pair(v, vertexIndex++));
+    }
+
+    // Compute connected components using only zero-length edges,
+    // that is, edges with zero steps.
+    // Each non-trivial connected component will be collapsed
+    // into a single vertex.
+    DisjointSets disjointSets(vertexIndexMap.size());
+    BGL_FORALL_EDGES(e, assemblyGraph, AssemblyGraph) {
+        if(assemblyGraph[e].empty()) {
+            const vertex_descriptor v0 = source(e, assemblyGraph);
+            const vertex_descriptor v1 = target(e, assemblyGraph);
+            const uint64_t vertexIndex0 = vertexIndexMap.at(v0);
+            const uint64_t vertexIndex1 = vertexIndexMap.at(v1);
+            disjointSets.unionSet(vertexIndex0, vertexIndex1);
+        }
+    }
+
+    // Get the non-trivial connected components.
+    vector< vector<uint64_t> > components;
+    disjointSets.gatherComponents(2, components);
+    // cout << "Found " << components.size() << " groups of vertices to be collapsed." << endl;
+
+    // Collapse the vertices in each component.
+    for(const vector<uint64_t>& component: components) {
+        vector<vertex_descriptor> componentVertices;
+        for(const uint64_t vertexIndex: component) {
+            componentVertices.push_back(vertexTable[vertexIndex]);
+        }
+        collapseVertices(componentVertices);
+    }
+}
+
+
+
+void AssemblyGraph::collapseVertices(const vector<vertex_descriptor>& verticesToBeCollapsed)
+{
+    SHASTA2_ASSERT(verticesToBeCollapsed.size() > 1);
+    const bool debug = false;
+
+    AssemblyGraph& assemblyGraph = *this;
+
+    if(debug) {
+        cout << "This group of vertices will be collapsed:";
+        for(const vertex_descriptor v: verticesToBeCollapsed) {
+            cout << " " << assemblyGraph[v].id;
+        }
+        cout << endl;
+    }
+
+    // Sanity check: they must all kave the same AnchorId.
+    AnchorId anchorId = invalid<AnchorId>;
+    for(const vertex_descriptor v: verticesToBeCollapsed) {
+        if(anchorId == invalid<AnchorId>) {
+            anchorId = assemblyGraph[v].anchorId;
+        } else {
+            SHASTA2_ASSERT(anchorId == assemblyGraph[v].anchorId);
+        }
+    }
+
+    // Remove edges between these vertices.
+    vector<edge_descriptor> edgesToBeRemoved;
+    for(const vertex_descriptor v0: verticesToBeCollapsed) {
+        BGL_FORALL_OUTEDGES(v0, e, assemblyGraph, AssemblyGraph) {
+            const vertex_descriptor v1 = target(e, assemblyGraph);
+            if(std::ranges::find(verticesToBeCollapsed, v1) != verticesToBeCollapsed.end()) {
+                edgesToBeRemoved.push_back(e);
+            }
+        }
+    }
+    for(const edge_descriptor e: edgesToBeRemoved) {
+        if(debug) {
+            cout << "Removing edge " << assemblyGraph[e].id << endl;
+        }
+        boost::remove_edge(e, assemblyGraph);
+    }
+
+    // Create the new vertex.
+    const vertex_descriptor vNew = add_vertex(AssemblyGraphVertex(anchorId, nextVertexId++), assemblyGraph);
+    if(debug) {
+        cout << "Created new vertex " << assemblyGraph[vNew].id << endl;
+    }
+
+
+
+    // Reroute incoming/outgoing edges to the new, collapsed vertex.
+    edgesToBeRemoved.clear();
+    for(const vertex_descriptor v0: verticesToBeCollapsed) {
+
+        if(debug) {
+            cout << "Rerouting out-edges of " << assemblyGraph[v0].id << endl;
+        }
+        BGL_FORALL_OUTEDGES(v0, e, assemblyGraph, AssemblyGraph) {
+            AssemblyGraphEdge& edge = assemblyGraph[e];
+            const vertex_descriptor v1 = target(e, assemblyGraph);
+            SHASTA2_ASSERT(std::ranges::find(verticesToBeCollapsed, v1) == verticesToBeCollapsed.end());
+
+            auto[eNew, wasAdded] = add_edge(vNew, v1, AssemblyGraphEdge(nextEdgeId++), assemblyGraph);
+            SHASTA2_ASSERT(wasAdded);
+            AssemblyGraphEdge& newEdge = assemblyGraph[eNew];
+            if(debug) {
+                cout << "Edge " << edge.id << " rerouted to collapsed vertex, becomes " << newEdge.id << endl;
+            }
+            newEdge.swapSteps(edge);
+
+            if(edge.eRc != assemblyGraphNullEdge) {
+                SHASTA2_ASSERT(assemblyGraph[edge.eRc].eRc == e);
+                assemblyGraph[edge.eRc].eRc = eNew;
+                newEdge.eRc = edge.eRc;
+            }
+
+            edgesToBeRemoved.push_back(e);
+        }
+
+        if(debug) {
+            cout << "Rerouting in-edges of " << assemblyGraph[v0].id << endl;
+        }
+        BGL_FORALL_INEDGES(v0, e, assemblyGraph, AssemblyGraph) {
+            AssemblyGraphEdge& edge = assemblyGraph[e];
+            const vertex_descriptor v1 = source(e, assemblyGraph);
+            SHASTA2_ASSERT(std::ranges::find(verticesToBeCollapsed, v1) == verticesToBeCollapsed.end());
+
+            auto[eNew, wasAdded] = add_edge(v1, vNew, AssemblyGraphEdge(nextEdgeId++), assemblyGraph);
+            SHASTA2_ASSERT(wasAdded);
+            AssemblyGraphEdge& newEdge = assemblyGraph[eNew];
+            if(debug) {
+                cout << "Edge " << edge.id << " rerouted to collapsed vertex, becomes " << newEdge.id << endl;
+            }
+            newEdge.swapSteps(edge);
+
+            if(edge.eRc != assemblyGraphNullEdge) {
+                SHASTA2_ASSERT(assemblyGraph[edge.eRc].eRc == e);
+                assemblyGraph[edge.eRc].eRc = eNew;
+                newEdge.eRc = edge.eRc;
+            }
+
+            edgesToBeRemoved.push_back(e);
+        }
+    }
+    for(const edge_descriptor e: edgesToBeRemoved) {
+        if(debug) {
+            cout << "Removing edge " << assemblyGraph[e].id << endl;
+        }
+        boost::remove_edge(e, assemblyGraph);
+    }
+
+    // Finally, we can remove the vertices that were collapsed.
+    for(const vertex_descriptor v: verticesToBeCollapsed) {
+        SHASTA2_ASSERT(in_degree(v, assemblyGraph) == 0);
+        SHASTA2_ASSERT(out_degree(v, assemblyGraph) == 0);
+        boost::remove_vertex(v, assemblyGraph);
+    }
+}
+
