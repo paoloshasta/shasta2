@@ -5,6 +5,7 @@
 #include "Options.hpp"
 #include "performanceLog.hpp"
 #include "RestrictedAnchorGraph.hpp"
+#include "SegmentStepSupport.hpp"
 #include "TangleMatrix1.hpp"
 using namespace shasta2;
 using namespace ReadFollowing4;
@@ -93,14 +94,22 @@ void ReadFollower::fillSupportMaps()
     const uint32_t representativeRegionStepCount = uint32_t(assemblyGraph.options.representativeRegionStepCount);
 
     vector<SegmentStepSupport> support;
-    vector<SegmentStepSupport> finalSupport;
+    vector<OrientedReadId> orientedReadIds;
 
     BGL_FORALL_EDGES(segment, assemblyGraph, AssemblyGraph) {
         SegmentStepSupport::getInitialFirst(assemblyGraph, segment, representativeRegionStepCount, support);
-        initialSupportMap.insert(make_pair(segment, support));
+        orientedReadIds.clear();
+        for(const SegmentStepSupport& segmentStepSupport: support) {
+            orientedReadIds.push_back(segmentStepSupport.orientedReadId);
+        }
+        initialSupportMap.insert(make_pair(segment, orientedReadIds));
 
-        SegmentStepSupport::getFinalLast   (assemblyGraph, segment, representativeRegionStepCount, support);
-        finalSupportMap.insert(make_pair(segment, support));
+        SegmentStepSupport::getFinalLast(assemblyGraph, segment, representativeRegionStepCount, support);
+        orientedReadIds.clear();
+        for(const SegmentStepSupport& segmentStepSupport: support) {
+            orientedReadIds.push_back(segmentStepSupport.orientedReadId);
+        }
+        finalSupportMap.insert(make_pair(segment, orientedReadIds));
     }
 }
 
@@ -114,9 +123,9 @@ void ReadFollower::findSegmentPairs()
     // For each OrientedReadId, gather the Segments that the OrientedReadId
     // appears in, in the initial support.
     vector< vector<Segment> > initialSupportSegments(orientedReadCount);
-    for(const auto&[segment, support]: initialSupportMap) {
-        for(const SegmentStepSupport& s: support) {
-            initialSupportSegments[s.orientedReadId.getValue()].push_back(segment);
+    for(const auto&[segment, orientedReadIds]: initialSupportMap) {
+        for(const OrientedReadId orientedReadId: orientedReadIds) {
+            initialSupportSegments[orientedReadId.getValue()].push_back(segment);
         }
 
     }
@@ -124,9 +133,9 @@ void ReadFollower::findSegmentPairs()
     // For each OrientedReadId, gather the Segments that the OrientedReadId
     // appears in, in the final support.
     vector< vector<Segment> > finalSupportSegments(orientedReadCount);
-    for(const auto&[segment, support]: finalSupportMap) {
-        for(const SegmentStepSupport& s: support) {
-            finalSupportSegments[s.orientedReadId.getValue()].push_back(segment);
+    for(const auto&[segment, orientedReadIds]: finalSupportMap) {
+        for(const OrientedReadId orientedReadId: orientedReadIds) {
+            finalSupportSegments[orientedReadId.getValue()].push_back(segment);
         }
 
     }

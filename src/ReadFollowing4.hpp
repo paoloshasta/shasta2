@@ -16,7 +16,6 @@ The Graph has one vertex for each long segment.
 // Shasta.
 #include "AssemblyGraph.hpp"
 #include "MultithreadedObject.hpp"
-#include "SegmentStepSupport.hpp"
 
 
 
@@ -252,8 +251,8 @@ public:
     void findAndWriteShortestPath(Segment, uint64_t direction) const; // Python callable
 
     // Initial and final support for each Segment.
-    std::map<Segment, vector<SegmentStepSupport> > initialSupportMap;
-    std::map<Segment, vector<SegmentStepSupport> > finalSupportMap;
+    std::map<Segment, vector<OrientedReadId> > initialSupportMap;
+    std::map<Segment, vector<OrientedReadId> > finalSupportMap;
     void fillSupportMaps();
 
     // Segment pairs (segment0, segment1) such that the final support
