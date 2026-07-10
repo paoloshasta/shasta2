@@ -14,8 +14,15 @@ The Graph has one vertex for each long segment.
 *****************************************************************/
 
 // Shasta.
-#include "AssemblyGraph.hpp"
+#include "AssemblyGraphBaseClass.hpp"
+#include "invalid.hpp"
 #include "MultithreadedObject.hpp"
+#include "ReadId.hpp"
+
+// Standard library.
+#include "array.hpp"
+#include "string.hpp"
+#include "utility.hpp"
 
 
 
@@ -46,7 +53,7 @@ namespace shasta2 {
             GraphEdge>;
 
         // A Segment is an edge of the AssemblyGraph.
-        using Segment = AssemblyGraph::edge_descriptor;
+        using Segment = AssemblyGraphBaseClass::edge_descriptor;
 
         // EXPOSE WHEN CODE STABILIZES.
         const double logPThreshold = 10.;    // dB
