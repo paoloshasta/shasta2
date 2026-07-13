@@ -352,7 +352,8 @@ void Assembler::anchorGraphTransitiveReduction(
 void Assembler::accessCompleteAnchorGraph()
 {
     const MappedMemoryOwner& mappedMemoryOwner = *this;
-    completeAnchorGraphPointer = make_shared<AnchorGraph>(mappedMemoryOwner, "CompleteAnchorGraph");
+    completeAnchorGraphPointer = make_shared<AnchorGraph>(mappedMemoryOwner,
+        largeDataName("CompleteAnchorGraph"));
 }
 
 
