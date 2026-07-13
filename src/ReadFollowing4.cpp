@@ -97,20 +97,72 @@ void ReadFollower::fillSupportMaps()
     vector<OrientedReadId> orientedReadIds;
 
     BGL_FORALL_EDGES(segment, assemblyGraph, AssemblyGraph) {
+
+        // Initial support. Remove duplicate ReadIds.
         SegmentStepSupport::getInitialFirst(assemblyGraph, segment, representativeRegionStepCount, support);
         orientedReadIds.clear();
-        for(const SegmentStepSupport& segmentStepSupport: support) {
-            orientedReadIds.push_back(segmentStepSupport.orientedReadId);
+        for(uint64_t i=0; i<support.size(); i++) {
+            const OrientedReadId orientedReadId = support[i].orientedReadId;
+            const ReadId readId = orientedReadId.getReadId();
+            if((i != 0) and (readId == support[i-1].orientedReadId.getReadId())) {
+                continue;
+            }
+            if((i != support.size()-1) and (readId == support[i+1].orientedReadId.getReadId())) {
+                continue;
+            }
+            orientedReadIds.push_back(orientedReadId);
         }
         initialSupportMap.insert(make_pair(segment, orientedReadIds));
 
+
+
+        // Final support. Remove duplicate ReadIds.
         SegmentStepSupport::getFinalLast(assemblyGraph, segment, representativeRegionStepCount, support);
         orientedReadIds.clear();
-        for(const SegmentStepSupport& segmentStepSupport: support) {
-            orientedReadIds.push_back(segmentStepSupport.orientedReadId);
+        for(uint64_t i=0; i<support.size(); i++) {
+            const OrientedReadId orientedReadId = support[i].orientedReadId;
+            const ReadId readId = orientedReadId.getReadId();
+            if((i != 0) and (readId == support[i-1].orientedReadId.getReadId())) {
+                continue;
+            }
+            if((i != support.size()-1) and (readId == support[i+1].orientedReadId.getReadId())) {
+                continue;
+            }
+            orientedReadIds.push_back(orientedReadId);
         }
         finalSupportMap.insert(make_pair(segment, orientedReadIds));
     }
+
+
+    // Check that the final support for a Segment is
+    // the reverse complement of the initial support
+    // for the reverse complement of the segment.
+    BGL_FORALL_EDGES(e, assemblyGraph, AssemblyGraph) {
+        const AssemblyGraphEdge& edge = assemblyGraph[e];
+        SHASTA2_ASSERT(edge.eRc != assemblyGraphNullEdge);
+        const Segment eRc = edge.eRc;
+        const AssemblyGraphEdge& edgeRc = assemblyGraph[eRc];
+        SHASTA2_ASSERT(edgeRc.eRc == e);
+        const vector<OrientedReadId>& support = finalSupportMap.at(e);
+        const vector<OrientedReadId>& supportRc = initialSupportMap.at(eRc);
+        const uint64_t n = support.size();
+        SHASTA2_ASSERT(supportRc.size() == n);
+        /*
+        cout << "AAA " << edge.id << " " << edgeRc.id << endl;
+        for(uint64_t i=0; i<n; i++) {
+            const OrientedReadId orientedReadId = support[i];
+            const OrientedReadId orientedReadIdRc = supportRc[i];
+            cout << orientedReadId << " " << orientedReadIdRc << endl;
+        }
+        */
+        for(uint64_t i=0; i<n; i++) {
+            const OrientedReadId orientedReadId = support[i];
+            const OrientedReadId orientedReadIdRc = supportRc[i];
+            SHASTA2_ASSERT(orientedReadId.getReadId() == orientedReadIdRc.getReadId());
+            SHASTA2_ASSERT(orientedReadId.getStrand() == 1 - orientedReadIdRc.getStrand());
+        }
+    }
+
 }
 
 
