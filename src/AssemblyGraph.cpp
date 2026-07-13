@@ -2731,11 +2731,14 @@ void AssemblyGraph::collapseVertices(const vector<vertex_descriptor>& verticesTo
             }
             newEdge.swapSteps(edge);
 
+            // Activate this when read following becomes strand-symmetric.
+            /*
             if(edge.eRc != assemblyGraphNullEdge) {
                 SHASTA2_ASSERT(assemblyGraph[edge.eRc].eRc == e);
                 assemblyGraph[edge.eRc].eRc = eNew;
                 newEdge.eRc = edge.eRc;
             }
+            */
 
             edgesToBeRemoved.push_back(e);
         }
@@ -2756,11 +2759,14 @@ void AssemblyGraph::collapseVertices(const vector<vertex_descriptor>& verticesTo
             }
             newEdge.swapSteps(edge);
 
+            // Activate this when read following becomes strand-symmetric.
+            /*
             if(edge.eRc != assemblyGraphNullEdge) {
                 SHASTA2_ASSERT(assemblyGraph[edge.eRc].eRc == e);
                 assemblyGraph[edge.eRc].eRc = eNew;
                 newEdge.eRc = edge.eRc;
             }
+            */
 
             edgesToBeRemoved.push_back(e);
         }
