@@ -343,6 +343,7 @@ void AssemblyGraph::simplifyAndAssemble()
 
     // Read following.
     readFollowing();
+    clearReverseComplementInformation();
     writeIntermediateStageIfRequested("D");
     compress();
     removeZeroLengthSegments();
