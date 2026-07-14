@@ -1916,20 +1916,22 @@ void LocalAssembly7::runAdaptive()
         }
     }
 
-    // If we have enough oriented reads on both anchors,
-    // use abpoa or poasta.
-    if(getTotalCommonCoverage() >= options.commonCoverageThreshold) {
 
-        if(getMaxLengthCommon() <= options.maxAbpoaLength) {
-            runAbpoa();
-        } else {
-            runPoasta();
-        }
-        return;
+
+    // If we have enough oriented reads on both anchors
+    // and the MSA is not too long, use abpoa.
+    // Otherwise, use theseus.
+    if(
+        (getTotalCommonCoverage() >= options.commonCoverageThreshold) and
+        (getMaxLengthCommon() <= options.maxAbpoaLength)) {
+
+        runAbpoa();
+
+    } else {
+
+        runTheseus();
+
     }
-
-    // In all other cases, run theseus.
-    runTheseus();
 }
 
 
