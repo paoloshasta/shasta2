@@ -1875,6 +1875,8 @@ void LocalAssembly7::runTheseus()
     }
     if(html) {
         html << "<br>Total coverage for Theseus is " << totalWeight << ".";
+        theseusWriteFile(bothSidesFixedSequences, leftFixedSequences, rightFixedSequences,
+            "Pericles.fasta");
     }
 
     // Run Theseus.
