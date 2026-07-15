@@ -255,7 +255,12 @@ public:
         Segment segment0,
         vector<Segment>& path
         ) const;
+    void findShortestPathBackwardNew(   // Version that uses searchGraph[0] instead of searchGraph[1]
+        Segment segment0,
+        vector<Segment>& path
+        ) const;
     void findAndWriteShortestPath(Segment, uint64_t direction) const; // Python callable
+    void findAndWriteShortestPathNew(Segment, uint64_t direction) const; // Python callable
 
     // Initial and final support for each Segment.
     std::map<Segment, vector<OrientedReadId> > initialSupportMap;

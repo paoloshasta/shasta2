@@ -16,6 +16,7 @@ using namespace ReadFollowing4;
 // Standard library.
 #include "fstream.hpp"
 #include <queue>
+#include <ranges>
 
 // Explicit instantiation.
 #include "MultithreadedObject.tpp"
@@ -814,7 +815,7 @@ void ReadFollower::findShortestPath(
     if(direction == 0) {
         findShortestPathForward(segment0, path);
     } else {
-        findShortestPathBackward(segment0, path);
+        findShortestPathBackwardNew(segment0, path);
     }
 }
 
@@ -841,6 +842,27 @@ void ReadFollower::findShortestPathBackward(
 
 
 
+// Version that uses searchGraph[0] instead of searchGraph[1].
+// It does a forward search in searchGraph[0] starting at the reverse complement
+// of segment0, then returns the reverse complement of the path found in this way.
+void ReadFollower::findShortestPathBackwardNew(
+    Segment segment0,
+    vector<Segment>& path
+    ) const
+{
+    const Segment segment0Rc = assemblyGraph[segment0].eRc;
+
+    vector<Segment> pathRc;
+    findShortestPathForward(segment0Rc, pathRc);
+
+    path.clear();
+    for(Segment segmentRc: pathRc | std::views::reverse) {
+        path.push_back(assemblyGraph[segmentRc].eRc);
+    }
+}
+
+
+
 void ReadFollower::findAndWriteShortestPath(Segment segment0, uint64_t direction) const
 {
 
@@ -852,6 +874,43 @@ void ReadFollower::findAndWriteShortestPath(Segment segment0, uint64_t direction
         cout << assemblyGraph[segment].id << ",";
     }
     cout << endl;
+
+}
+
+
+
+void ReadFollower::findAndWriteShortestPathNew(Segment segment0, uint64_t direction) const
+{
+
+    vector<Segment> path;
+
+    if(direction == 0) {
+
+        findShortestPath(segment0, direction, path);
+        cout << "Found a path of length " << path.size() << ":" << endl;
+        for(const Segment segment: path) {
+            cout << assemblyGraph[segment].id << ",";
+        }
+        cout << endl;
+
+    } else {
+
+        // If going backward, try it in two ways.
+        findShortestPathBackward(segment0, path);
+        cout << "findShortestPathBackward found a path of length " << path.size() << ":" << endl;
+        for(const Segment segment: path) {
+            cout << assemblyGraph[segment].id << ",";
+        }
+        cout << endl;
+
+        findShortestPathBackwardNew(segment0, path);
+        cout << "findShortestPathBackwardNew found a path of length " << path.size() << ":" << endl;
+        for(const Segment segment: path) {
+            cout << assemblyGraph[segment].id << ",";
+        }
+        cout << endl;
+    }
+
 
 }
 
