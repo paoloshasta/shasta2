@@ -961,8 +961,12 @@ void Assembler::exploreSegmentStep(
         (localAssembly7Options.method == LocalAssembly7::Method::Abpoa ? " checked=on" : "") << "> Abpoa"
         "<br><input type=radio name=method value=Poasta" <<
         (localAssembly7Options.method == LocalAssembly7::Method::Poasta ? " checked=on" : "") << "> Poasta"
-        "<br><input type=radio name=method value=Theseus" <<
-        (localAssembly7Options.method == LocalAssembly7::Method::Theseus ? " checked=on" : "") << "> Theseus"
+        "<br><input type=radio name=method value=TheseusOnly" <<
+        (localAssembly7Options.method == LocalAssembly7::Method::TheseusOnly ? " checked=on" : "") <<
+        "> Theseus, using only oriented reads on both anchors"
+        "<br><input type=radio name=method value=TheseusAll" <<
+        (localAssembly7Options.method == LocalAssembly7::Method::TheseusAll ? " checked=on" : "") <<
+        "> Theseus, using all oriented reads on one or both anchors."
         "<br><input type=radio name=method value=DeBruijn" <<
         (localAssembly7Options.method == LocalAssembly7::Method::DeBruijn ? " checked=on" : "") << "> De Bruijn"
         ;

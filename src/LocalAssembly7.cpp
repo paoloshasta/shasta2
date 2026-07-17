@@ -94,8 +94,11 @@ void LocalAssembly7::run()
     case Method::Poasta:
         runPoasta();
         break;
-    case Method::Theseus:
-        runTheseus();
+    case Method::TheseusOnly:
+        runTheseus(false);
+        break;
+    case Method::TheseusAll:
+        runTheseus(true);
         break;
     case Method::DeBruijn:
         runDeBruijn();
@@ -1792,15 +1795,19 @@ void LocalAssembly7::runAbpoaOrPoasta(bool usePoasta)
 
 
 
-void LocalAssembly7::runTheseus()
+// If useAll is true, this uses oriented reads that
+// appear only in the left or right anchor.
+void LocalAssembly7::runTheseus(bool useAll)
 {
     // Get the sequenceIds to be used, sorted in order of decreasing coverage.
     vector<uint64_t> bothSidesFixedSequenceIds;
     getSequencesOnBothAnchors(bothSidesFixedSequenceIds);
     vector<uint64_t> leftFixedSequenceIds;
-    getSequencesOnAnchorA(leftFixedSequenceIds);
     vector<uint64_t> rightFixedSequenceIds;
-    getSequencesOnAnchorB(rightFixedSequenceIds);
+    if(useAll) {
+        getSequencesOnAnchorA(leftFixedSequenceIds);
+        getSequencesOnAnchorB(rightFixedSequenceIds);
+    }
 
     if(html) {
         html <<
@@ -1858,20 +1865,22 @@ void LocalAssembly7::runTheseus()
         totalWeight += coverage;
     }
     vector< pair<vector<Base>, uint64_t> > leftFixedSequences;
-    for(const uint64_t sequenceId: leftFixedSequenceIds) {
-        const SequenceInfo& sequenceInfo = sequences[sequenceId];
-        const uint64_t coverage = sequenceInfo.coverage();
-        leftFixedSequences.push_back(make_pair(sequenceInfo.sequence, coverage));
-        msaSequenceIdsWithWeight.push_back(make_pair(sequenceId, coverage));
-        totalWeight += coverage;
-    }
     vector< pair<vector<Base>, uint64_t> > rightFixedSequences;
-    for(const uint64_t sequenceId: rightFixedSequenceIds) {
-        const SequenceInfo& sequenceInfo = sequences[sequenceId];
-        const uint64_t coverage = sequenceInfo.coverage();
-        rightFixedSequences.push_back(make_pair(sequenceInfo.sequence, coverage));
-        msaSequenceIdsWithWeight.push_back(make_pair(sequenceId, coverage));
-        totalWeight += coverage;
+    if(useAll) {
+        for(const uint64_t sequenceId: leftFixedSequenceIds) {
+            const SequenceInfo& sequenceInfo = sequences[sequenceId];
+            const uint64_t coverage = sequenceInfo.coverage();
+            leftFixedSequences.push_back(make_pair(sequenceInfo.sequence, coverage));
+            msaSequenceIdsWithWeight.push_back(make_pair(sequenceId, coverage));
+            totalWeight += coverage;
+        }
+        for(const uint64_t sequenceId: rightFixedSequenceIds) {
+            const SequenceInfo& sequenceInfo = sequences[sequenceId];
+            const uint64_t coverage = sequenceInfo.coverage();
+            rightFixedSequences.push_back(make_pair(sequenceInfo.sequence, coverage));
+            msaSequenceIdsWithWeight.push_back(make_pair(sequenceId, coverage));
+            totalWeight += coverage;
+        }
     }
     if(html) {
         html << "<br>Total coverage for Theseus is " << totalWeight << ".";
@@ -1919,19 +1928,26 @@ void LocalAssembly7::runAdaptive()
     }
 
 
+    // See if we have enough oriented reads on both anchors.
+    if(getTotalCommonCoverage() >= options.commonCoverageThreshold) {
 
-    // If we have enough oriented reads on both anchors
-    // and the MSA is not too long, use abpoa.
-    // Otherwise, use theseus.
-    if(
-        (getTotalCommonCoverage() >= options.commonCoverageThreshold) and
-        (getMaxLengthCommon() <= options.maxAbpoaLength)) {
+        // We have enough oriented reads on both anchors.
+        // Only use those oriented reads on both anchors.
 
-        runAbpoa();
+        if(getMaxLengthCommon() <= options.maxAbpoaLength) {
+            // The MSA is not too long, use abpoa.
+            runAbpoa();
+        } else {
+            // The MSA is long, use theseus,
+            // using only oriented reads on both anchors.
+            runTheseus(false);
+        }
 
     } else {
 
-        runTheseus();
+        // We don'thave enough oriented reads on both anchors,
+        // so we also use oriented reads that are on just one anchor.
+        runTheseus(true);
 
     }
 }
@@ -1948,8 +1964,10 @@ void LocalAssembly7::Options::setMethod(const string& s)
         method = Method::Abpoa;
     } else if(s == "Poasta") {
         method = Method::Poasta;
-    } else if(s == "Theseus") {
-        method = Method::Theseus;
+    } else if(s == "TheseusOnly") {
+        method = Method::TheseusOnly;
+    } else if(s == "TheseusAll") {
+        method = Method::TheseusAll;
     } else if(s == "DeBruijn") {
         method = Method::DeBruijn;
     } else {

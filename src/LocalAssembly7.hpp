@@ -29,7 +29,8 @@ public:
         Adaptive,
         Abpoa,
         Poasta,
-        Theseus,
+        TheseusOnly,    // Only use oriented reads that are on both anchors
+        TheseusAll,     // Also use oriented reads that are om just one anchor.
         DeBruijn,
         Invalid
     };
@@ -257,7 +258,7 @@ private:
     void runAbpoaOrPoasta(bool usePoasta);
     void runAbpoa();
     void runPoasta();
-    void runTheseus();
+    void runTheseus(bool useAll);
 
 
     // Functions and data to find the consensus using a De Bruijn graph
