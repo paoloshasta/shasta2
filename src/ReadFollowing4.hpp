@@ -266,15 +266,12 @@ public:
     // Segment pairs (segment0, segment1) such that the final support
     // of segment0 shares at least readFollowingMinCommonCount
     // OrientedReadIds with the initial support of segment1.
-    // Each of them is a candidate edge for the two Graphs.
+    // Each of them is a candidate edge for the SearchGraph.
     vector< pair<Segment, Segment> > segmentPairs;
     void findSegmentPairs();
 
-    // One graph for each read following direction (0=forward, 1=backward).
-    // The graphs are identical except for edge directions.
-    // This is necessary because I was not able to get boost::dijkstra_shortest_paths
-    // to work in the reversed direction.
-    array<SearchGraph, 2> searchGraphs;
+    // The search graph used for shortest paths.
+    SearchGraph searchGraph;
 
     // Also store a Graph, which contains only vertices corresponding to long Segments.
     // Information on intervening short segments is stored in the edges.
