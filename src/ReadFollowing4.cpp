@@ -831,17 +831,6 @@ void ReadFollower::findShortestPathForward(
 
 
 
-void ReadFollower::findShortestPathBackward(
-    Segment segment0,
-    vector<Segment>& path
-    ) const
-{
-    searchGraphs[1].findShortestPath(segment0, path);
-    std::ranges::reverse(path);
-}
-
-
-
 // Version that uses searchGraph[0] instead of searchGraph[1].
 // It does a forward search in searchGraph[0] starting at the reverse complement
 // of segment0, then returns the reverse complement of the path found in this way.
@@ -894,14 +883,6 @@ void ReadFollower::findAndWriteShortestPathNew(Segment segment0, uint64_t direct
         cout << endl;
 
     } else {
-
-        // If going backward, try it in two ways.
-        findShortestPathBackward(segment0, path);
-        cout << "findShortestPathBackward found a path of length " << path.size() << ":" << endl;
-        for(const Segment segment: path) {
-            cout << assemblyGraph[segment].id << ",";
-        }
-        cout << endl;
 
         findShortestPathBackwardNew(segment0, path);
         cout << "findShortestPathBackwardNew found a path of length " << path.size() << ":" << endl;

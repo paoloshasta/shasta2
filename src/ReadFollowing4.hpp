@@ -251,10 +251,6 @@ public:
         Segment segment0,
         vector<Segment>& path
         ) const;
-    void findShortestPathBackward(
-        Segment segment0,
-        vector<Segment>& path
-        ) const;
     void findShortestPathBackwardNew(   // Version that uses searchGraph[0] instead of searchGraph[1]
         Segment segment0,
         vector<Segment>& path
