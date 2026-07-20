@@ -99,6 +99,8 @@ public:
     // logs are in dB.
     double logP;
     double weight;
+
+    bool isReverseComplement(const SearchGraphEdge&) const;
 };
 
 
@@ -115,6 +117,9 @@ public:
     // Prune removes all vertices that are not accessible from long
     // vertices in both directions.
     void prune();
+
+    // Checks that the SearchGraph is strand-symmetric.
+    void check(const AssemblyGraph&) const;
 
     // The vertex index map is needed to compute shortest paths.
     // It must be created when no more changes will be made to the graph.

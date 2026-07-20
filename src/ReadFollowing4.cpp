@@ -41,10 +41,12 @@ ReadFollower::ReadFollower(const AssemblyGraph& assemblyGraph) :
             " vertices and " << num_edges(searchGraph) << " edges." << endl;
     }
     searchGraph.writeGraphviz(assemblyGraph, "Initial");
+    searchGraph.check(assemblyGraph);
 
     // Prune.
     searchGraph.prune();
     searchGraph.writeGraphviz(assemblyGraph, "Pruned");
+    searchGraph.check(assemblyGraph);
 
     if(true) {
         cout << "After pruning, the read following search graph has " << num_vertices(searchGraph) <<
@@ -336,6 +338,11 @@ void ReadFollower::createEdgesThreadFunction([[maybe_unused]] uint64_t threadId)
     vector<SegmentPair> edgesToBeAddedLong;
 
 
+    // To make sure the SearchGraph and the Graph are strand-symmatric,
+    // we only keep a SegmentPair if the minimum segment id
+    // is less than the minimum segment id of the reverse complemented pair.
+    // Then, when generating edges, we generate a pair of reverse
+    // complemented edges for each segmentPair.
 
     // Loop over batches of segment pairs assigned to this thread.
     uint64_t begin, end;
@@ -344,6 +351,24 @@ void ReadFollower::createEdgesThreadFunction([[maybe_unused]] uint64_t threadId)
         // Loop over segment pairs in this batch.
         for(uint64_t i=begin; i<end; i++) {
             const auto& [segment0, segment1] = segmentPairs[i];
+            SHASTA2_ASSERT(segment0 != segment1);
+
+            // See if this a SegmentPair that we want to use (to ensure strand symmetry).
+            const uint64_t id0 = assemblyGraph[segment0].id;
+            const uint64_t id1 = assemblyGraph[segment1].id;
+            const Segment segment0Rc = assemblyGraph[segment0].eRc;
+            const Segment segment1Rc = assemblyGraph[segment1].eRc;
+            SHASTA2_ASSERT(segment0Rc != assemblyGraphNullEdge);
+            SHASTA2_ASSERT(segment1Rc != assemblyGraphNullEdge);
+            SHASTA2_ASSERT(segment0Rc != segment0);
+            SHASTA2_ASSERT(segment0Rc != segment1);
+            SHASTA2_ASSERT(segment1Rc != segment0);
+            SHASTA2_ASSERT(segment1Rc != segment1);
+            const uint64_t id0Rc = assemblyGraph[segment0Rc].id;
+            const uint64_t id1Rc = assemblyGraph[segment1Rc].id;
+            if(min(id0, id1) >= min(id0Rc, id1Rc)) {
+                continue;
+            }
 
             const SegmentPairInformation segmentPairInformation = SegmentStepSupport::analyzeSegmentPair(
                 html, assemblyGraph, segment0, segment1, representativeRegionStepCount);
@@ -397,7 +422,7 @@ void ReadFollower::createEdgesThreadFunction([[maybe_unused]] uint64_t threadId)
     std::lock_guard<std::mutex> lock(mutex);
     for(const SegmentPair& segmentPair: edgesToBeAdded) {
 
-        const SearchGraphEdge edge(
+        SearchGraphEdge edge(
             segmentPair.segmentPairInformation.commonCount,
             segmentPair.segmentPairInformation.missing0,
             segmentPair.segmentPairInformation.missing1);
@@ -408,13 +433,24 @@ void ReadFollower::createEdgesThreadFunction([[maybe_unused]] uint64_t threadId)
             searchGraph.vertexMap.at(segmentPair.segment1),
             edge,
             searchGraph);
+
+        // Also add the reverse complemented edge.
+        swap(edge.missingCount0, edge.missingCount1);
+        const Segment segment0Rc = assemblyGraph[segmentPair.segment0].eRc;
+        const Segment segment1Rc = assemblyGraph[segmentPair.segment1].eRc;
+        add_edge(
+            searchGraph.vertexMap.at(segment1Rc),
+            searchGraph.vertexMap.at(segment0Rc),
+            edge,
+            searchGraph);
+
     }
 
 
 
     for(const SegmentPair& segmentPair: edgesToBeAddedLong) {
 
-        const ConnectGraphEdge edge(
+        ConnectGraphEdge edge(
             segmentPair.segmentPairInformation.commonCount,
             segmentPair.segmentPairInformation.missing0,
             segmentPair.segmentPairInformation.missing1);
@@ -422,6 +458,17 @@ void ReadFollower::createEdgesThreadFunction([[maybe_unused]] uint64_t threadId)
         add_edge(
             graph.vertexMap.at(segmentPair.segment0),
             graph.vertexMap.at(segmentPair.segment1),
+            edge,
+            graph);
+
+        // Also add the reverse complemented edge.
+        swap(edge.directConnectInformation.missingCount0, edge.directConnectInformation.missingCount1);
+        swap(edge.directConnectInformation.logPForward, edge.directConnectInformation.logPBackward);
+        const Segment segment0Rc = assemblyGraph[segmentPair.segment0].eRc;
+        const Segment segment1Rc = assemblyGraph[segmentPair.segment1].eRc;
+        add_edge(
+            graph.vertexMap.at(segment1Rc),
+            graph.vertexMap.at(segment0Rc),
             edge,
             graph);
     }
@@ -1444,3 +1491,84 @@ Segment ReadFollower::createDisconnectedSegmentCopy(
 
     return newSegment;
 }
+
+
+
+// Checks that the SearchGraph is strand-symmetric.
+void SearchGraph::check(const AssemblyGraph& assemblyGraph) const
+{
+    cout << "SearchGraph::check begins." << endl;
+    const SearchGraph& searchGraph = *this;
+
+    // For strand symatry, every edge must have an identical reverse complemented edge.
+    BGL_FORALL_EDGES(e, searchGraph, SearchGraph) {
+
+        // Get the segments of this edge.
+        const vertex_descriptor v0 = source(e, searchGraph);
+        const vertex_descriptor v1 = target(e, searchGraph);
+        const Segment segment0 = searchGraph[v0].segment;
+        const Segment segment1 = searchGraph[v1].segment;
+
+        // Get the reverse complemented segments.
+        const Segment segment0Rc = assemblyGraph[segment0].eRc;
+        const Segment segment1Rc = assemblyGraph[segment1].eRc;
+        SHASTA2_ASSERT(segment0Rc != assemblyGraphNullEdge);
+        SHASTA2_ASSERT(segment1Rc != assemblyGraphNullEdge);
+
+        // Get the corresponding SearchGraph vertices.
+        const vertex_descriptor v0Rc = vertexMap.at(segment0Rc);
+        const vertex_descriptor v1Rc = vertexMap.at(segment1Rc);
+
+        // Get the reverse complented edge.
+        auto[eRc, edgeExists] = edge(v1Rc, v0Rc, searchGraph);
+        SHASTA2_ASSERT(edgeExists);
+
+        // Check that they are the reverse complement of each other.
+#if 0
+        cout << "Checking " <<
+            assemblyGraph[segment0].id << " " << assemblyGraph[segment1].id << " " <<
+            assemblyGraph[segment0Rc].id << " " << assemblyGraph[segment1Rc].id << endl;
+        if(not(searchGraph[e].isReverseComplement(searchGraph[eRc]))) {
+            cout << "Strand symmetry check." << endl;
+            cout << assemblyGraph[segment0].id << " " << assemblyGraph[segment1].id << " " <<
+                searchGraph[e].commonCount << " " <<
+                searchGraph[e].missingCount0 << " " <<
+                searchGraph[e].missingCount1 << " " <<
+                searchGraph[e].logP << " " <<
+                searchGraph[e].weight << endl;
+            cout << assemblyGraph[segment0Rc].id << " " << assemblyGraph[segment1Rc].id << " " <<
+                searchGraph[eRc].commonCount << " " <<
+                searchGraph[eRc].missingCount0 << " " <<
+                searchGraph[eRc].missingCount1 << " " <<
+                searchGraph[eRc].logP << " " <<
+                searchGraph[eRc].weight << endl;
+        }
+#endif
+        SHASTA2_ASSERT(searchGraph[e].isReverseComplement(searchGraph[eRc]));
+    }
+
+    cout << "SearchGraph::check ends." << endl;
+}
+
+
+bool SearchGraphEdge::isReverseComplement(const SearchGraphEdge& that) const
+{
+    if(commonCount != that.commonCount) {
+        return false;
+    }
+    if(missingCount0 != that.missingCount1) {
+        return false;
+    }
+    if(missingCount1 != that.missingCount0) {
+        return false;
+    }
+    if(logP != that.logP) {
+        return false;
+    }
+    if(weight != that.weight) {
+        return false;
+    }
+
+    return true;
+}
+
