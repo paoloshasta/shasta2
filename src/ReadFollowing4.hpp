@@ -44,15 +44,20 @@ namespace shasta2 {
             SearchGraphVertex,
             SearchGraphEdge>;
 
-        class Graph;
-        class GraphVertex;
-        class GraphEdge;
-        using GraphBaseClass = boost::adjacency_list<
+        class ConnectGraph;
+        class ConnectGraphVertex;
+        class ConnectGraphEdge;
+        using ConnectGraphBaseClass = boost::adjacency_list<
             boost::listS,
             boost::listS,
             boost::bidirectionalS,
-            GraphVertex,
-            GraphEdge>;
+            ConnectGraphVertex,
+            ConnectGraphEdge>;
+
+        // Some aliases the facilitate the transition to new names. These will go away.
+        using Graph = ConnectGraph;
+        using GraphVertex = ConnectGraphVertex;
+        using GraphEdge = ConnectGraphEdge;
 
         // A Segment is an edge of the AssemblyGraph.
         using Segment = AssemblyGraphBaseClass::edge_descriptor;
@@ -131,7 +136,7 @@ public:
 
 
 
-class shasta2::ReadFollowing4::GraphVertex {
+class shasta2::ReadFollowing4::ConnectGraphVertex {
 public:
     // A Segment is an edge of the AssemblyGraph.
     Segment segment;
@@ -139,20 +144,20 @@ public:
     // The sequence length or estimated offset of this AssemblyGraph edge.
     uint64_t length = invalid<uint64_t>;
 
-    GraphVertex(Segment, uint64_t length);
+    ConnectGraphVertex(Segment, uint64_t length);
 };
 
 
 
 
-// A Graph edge between two Segments segments0 and segment1
+// A ConnectGraph edge between two Segments segments0 and segment1
 // can be created for one or both of two reasons:
 // - The SegmentPairInformation between the two segment
 //   satisfies our criteria for minCommonCount
 //   or one or more of the logP values.
 // - We found a shortest path between segment0 and segment1
-//   in one or both of the SearchGraph.
-class shasta2::ReadFollowing4::GraphEdge {
+//   in the SearchGraph.
+class shasta2::ReadFollowing4::ConnectGraphEdge {
 public:
 
     // Direct connection between the source and target Segments
@@ -193,12 +198,12 @@ public:
     DirectConnectionType directConnectionType() const;
 
     // Constructor that initializes the DirectConnectInformation.
-    GraphEdge(
+    ConnectGraphEdge(
         uint64_t commonCount,
         uint64_t missingCount0,
         uint64_t missingCount1);
 
-    GraphEdge() {}
+    ConnectGraphEdge() {}
 
     // The assembly paths between segment0 and segment1 found
     // for each direction.
@@ -208,7 +213,7 @@ public:
 
 
 
-class shasta2::ReadFollowing4::Graph : public GraphBaseClass {
+class shasta2::ReadFollowing4::ConnectGraph : public ConnectGraphBaseClass {
 public:
 
     // A map that gives the vertex_descriptor corresponding to each Segment.
@@ -274,19 +279,19 @@ public:
     // The search graph used for shortest paths.
     SearchGraph searchGraph;
 
-    // Also store a Graph, which contains only vertices corresponding to long Segments.
+    // Also store a ConnectGraph, which contains only vertices corresponding to long Segments.
     // Information on intervening short segments is stored in the edges.
-    Graph graph;
+    ConnectGraph graph;
 
 
 
-    // Use the SearchGraphs to find shortest paths between long segments
-    // and store them in the Graph.
+    // Use the SearchGraph to find shortest paths between long segments
+    // and store them in the ConnectGraph.
     void findShortestPathsMultithreaded(uint64_t threadCount);
     void findShortestPathsThreadFunction(uint64_t threadId);
     class FindShortestPathsData {
     public:
-        vector<Graph::vertex_descriptor> graphVertices;
+        vector<ConnectGraph::vertex_descriptor> graphVertices;
     };
     FindShortestPathsData findShortestPathsData;
 
@@ -298,7 +303,7 @@ public:
 
     const AssemblyGraph& assemblyGraph;
 
-    // Use the Graph to update the AssemblyGraph.
+    // Use the ConnectGraph to update the AssemblyGraph.
     void updateAssemblyGraph(AssemblyGraph& writableAssemblyGraph) const;
 
 private:

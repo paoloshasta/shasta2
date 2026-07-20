@@ -274,7 +274,7 @@ void Graph::createVertex(Segment segment, uint64_t length)
 
 
 
-GraphVertex::GraphVertex(
+ConnectGraphVertex::ConnectGraphVertex(
     Segment segment,
     uint64_t length) :
     segment(segment),
@@ -948,7 +948,8 @@ SearchGraphEdge::SearchGraphEdge(
 }
 
 
-GraphEdge::GraphEdge(
+
+ConnectGraphEdge::ConnectGraphEdge(
     uint64_t commonCount,
     uint64_t missingCount0,
     uint64_t missingCount1) :
@@ -957,7 +958,7 @@ GraphEdge::GraphEdge(
 
 
 
-GraphEdge::DirectConnectInformation::DirectConnectInformation(
+ConnectGraphEdge::DirectConnectInformation::DirectConnectInformation(
     uint64_t commonCount,
     uint64_t missingCount0,
     uint64_t missingCount1) :
@@ -979,14 +980,14 @@ bool ReadFollower::isLong(Segment segment) const
 
 
 
-double GraphEdge::DirectConnectInformation::maxLogP() const
+double ConnectGraphEdge::DirectConnectInformation::maxLogP() const
 {
     return max(logP, max(logPForward, logPBackward));
 }
 
 
 
-GraphEdge::DirectConnectionType GraphEdge::directConnectionType() const
+ConnectGraphEdge::DirectConnectionType ConnectGraphEdge::directConnectionType() const
 {
     if(not hasDirectConnection()) {
         return DirectConnectionType::None;
