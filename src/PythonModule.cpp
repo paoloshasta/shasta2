@@ -206,7 +206,6 @@ PYBIND11_MODULE(shasta2, shasta2Module)
     class_<ReadFollowing4::ReadFollower>(shasta2Module, "ReadFollower")
         .def(pybind11::init<const AssemblyGraph&>())
         .def("findAndWriteShortestPath", &ReadFollowing4::ReadFollower::findAndWriteShortestPath)
-        .def("findAndWriteShortestPathNew", &ReadFollowing4::ReadFollower::findAndWriteShortestPathNew)
         .def("updateAssemblyGraph", &ReadFollowing4::ReadFollower::updateAssemblyGraph)
          ;
 

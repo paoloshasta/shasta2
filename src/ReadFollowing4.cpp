@@ -793,7 +793,7 @@ void ReadFollower::findShortestPath(
     if(direction == 0) {
         findShortestPathForward(segment0, path);
     } else {
-        findShortestPathBackwardNew(segment0, path);
+        findShortestPathBackward(segment0, path);
     }
 }
 
@@ -811,7 +811,7 @@ void ReadFollower::findShortestPathForward(
 
 // This does a forward search in the searchGraph starting at the reverse complement
 // of segment0, then returns the reverse complement of the path found in this way.
-void ReadFollower::findShortestPathBackwardNew(
+void ReadFollower::findShortestPathBackward(
     Segment segment0,
     vector<Segment>& path
     ) const
@@ -833,42 +833,18 @@ void ReadFollower::findAndWriteShortestPath(Segment segment0, uint64_t direction
 {
 
     vector<Segment> path;
-    findShortestPath(segment0, direction, path);
+
+    if(direction == 0) {
+        findShortestPath(segment0, direction, path);
+    } else {
+        findShortestPathBackward(segment0, path);
+    }
 
     cout << "Found a path of length " << path.size() << ":" << endl;
     for(const Segment segment: path) {
         cout << assemblyGraph[segment].id << ",";
     }
     cout << endl;
-
-}
-
-
-
-void ReadFollower::findAndWriteShortestPathNew(Segment segment0, uint64_t direction) const
-{
-
-    vector<Segment> path;
-
-    if(direction == 0) {
-
-        findShortestPath(segment0, direction, path);
-        cout << "Found a path of length " << path.size() << ":" << endl;
-        for(const Segment segment: path) {
-            cout << assemblyGraph[segment].id << ",";
-        }
-        cout << endl;
-
-    } else {
-
-        findShortestPathBackwardNew(segment0, path);
-        cout << "findShortestPathBackwardNew found a path of length " << path.size() << ":" << endl;
-        for(const Segment segment: path) {
-            cout << assemblyGraph[segment].id << ",";
-        }
-        cout << endl;
-    }
-
 
 }
 
@@ -1037,78 +1013,6 @@ GraphEdge::DirectConnectionType GraphEdge::directConnectionType() const
     }
 
     return DirectConnectionType::Ambiguous;
-}
-
-
-
-// Use the SearchGraphs to find shortest paths between long segments
-// and store them in the Graph.
-void ReadFollower::findShortestPaths()
-{
-    const bool debug = false;
-
-    const uint64_t longSegmentCount = graph.vertexMap.size();
-    performanceLog << timestamp << "ReadFollower::findShortestPaths begins with " <<
-        longSegmentCount << " long segments." << endl;
-    SHASTA2_ASSERT(longSegmentCount == num_vertices(graph));
-
-    // Add edges.
-    vector<Segment> path;
-    uint64_t doneCount = 0;
-    BGL_FORALL_VERTICES(v0, graph, Graph) {
-        if((doneCount > 0) and ((doneCount % 1000) == 0)) {
-            performanceLog << timestamp << "Read following: " << doneCount << "/" << longSegmentCount << endl;
-        }
-        ++doneCount;
-
-        const Segment segment0 = graph[v0].segment;
-
-        // Loop for shortest paths in both directions.
-        for(uint64_t direction=0; direction<2; direction++) {
-            if(debug) {
-                cout << "Working on " << assemblyGraph[segment0].id << " direction " << direction << endl;
-            }
-            findShortestPath(segment0, direction, path);
-
-            // Discard a trivial path.
-            if(path.size() < 2) {
-                if(debug) {
-                    cout << "Trivial path of size " << path.size() << endl;
-                }
-                continue;
-            }
-
-            const Segment s0 = path.front();
-            const Segment s1 = path.back();
-            if(direction == 0) {
-                SHASTA2_ASSERT(s0 == segment0);
-            } else {
-                SHASTA2_ASSERT(s1 == segment0);
-            }
-            if(debug) {
-                cout << "Found a shortest path using direction " << direction <<
-                    ":" << assemblyGraph[s0].id << " " << assemblyGraph[s1].id << endl;
-            }
-
-            const Graph::vertex_descriptor u0 = graph.vertexMap.at(s0);
-            const Graph::vertex_descriptor u1 = graph.vertexMap.at(s1);
-
-
-            // Look for a Graph edge between the u0 and u1.
-            Graph::edge_descriptor e;
-            bool edgeExists;
-            tie(e, edgeExists) = boost::edge(u0, u1, graph);
-            if(not edgeExists) {
-                tie(e, edgeExists) = boost::add_edge(u0, u1, graph);
-            }
-            SHASTA2_ASSERT(edgeExists);
-
-            // Store the path.
-            graph[e].assemblyPaths[direction] = path;
-        }
-    }
-
-    performanceLog << timestamp << "ReadFollower::findShortestPaths ends." << endl;
 }
 
 

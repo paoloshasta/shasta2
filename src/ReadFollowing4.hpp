@@ -4,12 +4,14 @@
 
 Read following in the AssemblyGraph.
 
-The SearchGraphs (one per direction) have one vertex for each
+The SearchGraph has one vertex for each
 Segment, regardless of length. They are used to find assembly paths
 that start and end at long Segments and can use zero or more
 short Segments in-between.
 
 The Graph has one vertex for each long segment.
+Its edges store connection information between long segments.
+See below for mode details.
 
 *****************************************************************/
 
@@ -240,7 +242,7 @@ class shasta2::ReadFollowing4::ReadFollower :
 public:
     ReadFollower(const AssemblyGraph&);
 
-    // Use the SearchGraphs to find a shortest path starting at segment0
+    // Use the SearchGraph to find a shortest path starting at segment0
     // and ending at a long Segment, with path length defined by SearchGraphEdge::weight.
     void findShortestPath(
         Segment segment0,
@@ -251,12 +253,11 @@ public:
         Segment segment0,
         vector<Segment>& path
         ) const;
-    void findShortestPathBackwardNew(   // Version that uses searchGraph[0] instead of searchGraph[1]
+    void findShortestPathBackward(
         Segment segment0,
         vector<Segment>& path
         ) const;
     void findAndWriteShortestPath(Segment, uint64_t direction) const; // Python callable
-    void findAndWriteShortestPathNew(Segment, uint64_t direction) const; // Python callable
 
     // Initial and final support for each Segment.
     std::map<Segment, vector<OrientedReadId> > initialSupportMap;
@@ -281,7 +282,6 @@ public:
 
     // Use the SearchGraphs to find shortest paths between long segments
     // and store them in the Graph.
-    void findShortestPaths();
     void findShortestPathsMultithreaded(uint64_t threadCount);
     void findShortestPathsThreadFunction(uint64_t threadId);
     class FindShortestPathsData {
