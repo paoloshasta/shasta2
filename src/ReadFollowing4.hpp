@@ -210,7 +210,7 @@ public:
     // for each direction.
     array<vector<Segment>, 2> assemblyPaths;
 
-    bool isReverseComplement(const ConnectGraphEdge&) const;
+    bool isReverseComplement(const ConnectGraphEdge&, const AssemblyGraph&) const;
 };
 
 

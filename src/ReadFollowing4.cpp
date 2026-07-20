@@ -55,7 +55,6 @@ ReadFollower::ReadFollower(const AssemblyGraph& assemblyGraph) :
             " vertices and " << num_edges(graph) << " edges." << endl;
     }
     graph.writeGraphviz(assemblyGraph, "A");
-    graph.check(assemblyGraph);
 
     // Before we can compute shortest paths we have to create the vertex index map.
     searchGraph.createVertexIndexMap();
@@ -63,7 +62,6 @@ ReadFollower::ReadFollower(const AssemblyGraph& assemblyGraph) :
     // Use the SearchGraphs to find shortest paths between long segments
     // and store them in the ConnectGraph.
     findShortestPathsMultithreaded(assemblyGraph.options.threadCount);
-    graph.check(assemblyGraph);
 
     if(debug) {
         cout << "After finding shortest paths, the read following graph has " << num_vertices(graph) <<
@@ -73,7 +71,6 @@ ReadFollower::ReadFollower(const AssemblyGraph& assemblyGraph) :
 
     graph.removeWeakEdges();
     graph.writeGraphviz(assemblyGraph, "C");
-    graph.check(assemblyGraph);
 
     graph.transitiveReduction();
     graph.writeGraphviz(assemblyGraph, "D");
@@ -1605,20 +1602,41 @@ void ConnectGraph::check(const AssemblyGraph& assemblyGraph) const
         SHASTA2_ASSERT(edgeExists);
 
         // Check it is the reverse complement of e.
-        SHASTA2_ASSERT(connectGraph[e].isReverseComplement(connectGraph[eRc]));
+        SHASTA2_ASSERT(connectGraph[e].isReverseComplement(connectGraph[eRc], assemblyGraph));
     }
     cout << "ConnectGraph::check ends." << endl;
 }
 
 
 
-bool ConnectGraphEdge::isReverseComplement(const ConnectGraphEdge& that) const
+bool ConnectGraphEdge::isReverseComplement(
+    const ConnectGraphEdge& that,
+    const AssemblyGraph& assemblyGraph) const
 {
     if(not directConnectInformation.isReverseComplement(that.directConnectInformation)) {
         return false;
     }
 
-    // For now don't check the assembly paths.
+    for(uint64_t direction=0; direction<2; direction++) {
+        const vector<Segment>& path = assemblyPaths[direction];
+        const vector<Segment>& pathRc = that.assemblyPaths[1 - direction];
+
+        const uint64_t n = path.size();
+        if(pathRc.size() != n) {
+            return false;
+        }
+
+        for(uint64_t i=0; i<n; i++) {
+            const Segment segment = path[i];
+            const Segment segmentRc = pathRc[n - 1- i];
+            if(segmentRc != assemblyGraph[segment].eRc) {
+                return false;
+            }
+            SHASTA2_ASSERT(assemblyGraph[segmentRc].eRc == segment);
+        }
+
+
+    }
 
     // All checks passed.
     return true;
