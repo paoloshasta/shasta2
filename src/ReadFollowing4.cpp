@@ -1603,6 +1603,49 @@ void ConnectGraph::check(const AssemblyGraph& assemblyGraph) const
         // Find the reverse complemented edge.
         auto[eRc, edgeExists] = edge(v1Rc, v0Rc, connectGraph);
         SHASTA2_ASSERT(edgeExists);
+
+        // Check it is the reverse complement of e.
+        SHASTA2_ASSERT(connectGraph[e].isReverseComplement(connectGraph[eRc]));
     }
     cout << "ConnectGraph::check ends." << endl;
+}
+
+
+
+bool ConnectGraphEdge::isReverseComplement(const ConnectGraphEdge& that) const
+{
+    if(not directConnectInformation.isReverseComplement(that.directConnectInformation)) {
+        return false;
+    }
+
+    // For now don't check the assembly paths.
+
+    // All checks passed.
+    return true;
+}
+
+
+
+bool ConnectGraphEdge::DirectConnectInformation::isReverseComplement(const DirectConnectInformation& that) const
+{
+    if(commonCount != that.commonCount) {
+        return false;
+    }
+    if(missingCount0 != that.missingCount1) {
+        return false;
+    }
+    if(missingCount1 != that.missingCount0) {
+        return false;
+    }
+    if(logP != that.logP) {
+        return false;
+    }
+    if(logPForward != that.logPBackward) {
+        return false;
+    }
+    if(logPBackward != that.logPForward) {
+        return false;
+    }
+
+    return true;
 }

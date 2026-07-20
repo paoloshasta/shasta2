@@ -180,6 +180,7 @@ public:
             uint64_t missingCount0,
             uint64_t missingCount1);
         DirectConnectInformation() {}
+        bool isReverseComplement(const DirectConnectInformation&) const;
     };
     DirectConnectInformation directConnectInformation;
 
@@ -209,6 +210,7 @@ public:
     // for each direction.
     array<vector<Segment>, 2> assemblyPaths;
 
+    bool isReverseComplement(const ConnectGraphEdge&) const;
 };
 
 
