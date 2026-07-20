@@ -54,10 +54,6 @@ namespace shasta2 {
             ConnectGraphVertex,
             ConnectGraphEdge>;
 
-        // Some aliases the facilitate the transition to new names. These will go away.
-        using GraphVertex = ConnectGraphVertex;
-        using GraphEdge = ConnectGraphEdge;
-
         // A Segment is an edge of the AssemblyGraph.
         using Segment = AssemblyGraphBaseClass::edge_descriptor;
 

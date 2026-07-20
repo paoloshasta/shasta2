@@ -267,7 +267,7 @@ void ConnectGraph::createVertex(Segment segment, uint64_t length)
 {
     SHASTA2_ASSERT(not vertexMap.contains(segment));
     ConnectGraph& graph = *this;
-    const vertex_descriptor v = add_vertex(GraphVertex(segment, length), graph);
+    const vertex_descriptor v = add_vertex(ConnectGraphVertex(segment, length), graph);
     vertexMap.insert(make_pair(segment, v));
 }
 
@@ -414,7 +414,7 @@ void ReadFollower::createEdgesThreadFunction([[maybe_unused]] uint64_t threadId)
 
     for(const SegmentPair& segmentPair: edgesToBeAddedLong) {
 
-        const GraphEdge edge(
+        const ConnectGraphEdge edge(
             segmentPair.segmentPairInformation.commonCount,
             segmentPair.segmentPairInformation.missing0,
             segmentPair.segmentPairInformation.missing1);
@@ -603,7 +603,7 @@ void ConnectGraph::writeGraphviz(
         "tooltip=\" \";\n";
 
     BGL_FORALL_VERTICES(v, graph, ConnectGraph) {
-        const GraphVertex& vertex = graph[v];
+        const ConnectGraphVertex& vertex = graph[v];
         const Segment segment = vertex.segment;
         const AssemblyGraphEdge& assemblyGraphEdge = assemblyGraph[segment];
         dot << assemblyGraphEdge.id;
@@ -649,7 +649,7 @@ void ConnectGraph::writeGraphviz(
     //   * The target arrow is filled if the backward assembly path is non-trivial.
 
     BGL_FORALL_EDGES(e, graph, ConnectGraph) {
-        const GraphEdge& edge = graph[e];
+        const ConnectGraphEdge& edge = graph[e];
 
         const vertex_descriptor v0 = source(e, graph);
         const vertex_descriptor v1 = target(e, graph);
@@ -684,19 +684,19 @@ void ConnectGraph::writeGraphviz(
             // Color depends on the edge type.
             string color;
             switch(edge.directConnectionType()) {
-            case GraphEdge::DirectConnectionType::None:
+            case ConnectGraphEdge::DirectConnectionType::None:
                 color = "Red";
                 break;
-            case GraphEdge::DirectConnectionType::Bidirectional:
+            case ConnectGraphEdge::DirectConnectionType::Bidirectional:
                 color = "Black";
                 break;
-            case GraphEdge::DirectConnectionType::Forward:
+            case ConnectGraphEdge::DirectConnectionType::Forward:
                 color = "Blue";
                 break;
-            case GraphEdge::DirectConnectionType::Backward:
+            case ConnectGraphEdge::DirectConnectionType::Backward:
                 color = "Green";
                 break;
-            case GraphEdge::DirectConnectionType::Ambiguous:
+            case ConnectGraphEdge::DirectConnectionType::Ambiguous:
                 color = "Orange";
                 break;
             default:
@@ -1113,7 +1113,7 @@ void ConnectGraph::removeWeakEdges()
 
     vector<edge_descriptor> edgesToBeRemoved;
     BGL_FORALL_EDGES(e, graph, ConnectGraph) {
-        const GraphEdge& edge = graph[e];
+        const ConnectGraphEdge& edge = graph[e];
 
         // If it has a direct connection, keep it.
         if(edge.hasDirectConnection()) {
@@ -1219,7 +1219,7 @@ bool ConnectGraph::transitiveReductionCanRemove(edge_descriptor e) const
 vector<Segment> ConnectGraph::getAssemblyPath(edge_descriptor e) const
 {
     const ConnectGraph& graph = *this;
-    const GraphEdge& edge = graph[e];
+    const ConnectGraphEdge& edge = graph[e];
     const vertex_descriptor v0 = source(e, graph);
     const vertex_descriptor v1 = target(e, graph);
     const Segment segment0 = graph[v0].segment;
@@ -1238,7 +1238,7 @@ vector<Segment> ConnectGraph::getAssemblyPath(edge_descriptor e) const
 
     // If the DirectConnectInformation exists and is bidirectional,
     // return an assembly path consisting of just the source and target segments.
-    if(edge.hasDirectConnection() and edge.directConnectionType() == GraphEdge::DirectConnectionType::Bidirectional) {
+    if(edge.hasDirectConnection() and edge.directConnectionType() == ConnectGraphEdge::DirectConnectionType::Bidirectional) {
         return {segment0, segment1};
     }
 
@@ -1297,7 +1297,7 @@ void ReadFollower::updateAssemblyGraph(AssemblyGraph& assemblyGraph) const
         const Segment newSegment0 = longSegmentMap.at(oldSegment0);
         const Segment newSegment1 = longSegmentMap.at(oldSegment1);
 
-        // Get the assembly path for this GraphEdge.
+        // Get the assembly path for this ConnectGraphEdge.
         const vector<Segment> oldAssemblyPath = graph.getAssemblyPath(e);
 
         if(debug) {
