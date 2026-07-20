@@ -58,8 +58,7 @@ ReadFollower::ReadFollower(const AssemblyGraph& assemblyGraph) :
     searchGraph.createVertexIndexMap();
 
     // Use the SearchGraphs to find shortest paths between long segments
-    // and store them in the Graph.
-    // findShortestPaths();
+    // and store them in the ConnectGraph.
     findShortestPathsMultithreaded(assemblyGraph.options.threadCount);
 
     if(debug) {
@@ -228,7 +227,7 @@ void ReadFollower::createVertices()
         // Add a SearchGraph vertex.
         searchGraph.createVertex(segment, length, isLong);
 
-        // If isLong, also add a vertex to the Graph.
+        // If isLong, also add a vertex to the ConnectGraph.
         if(isLong) {
             graph.createVertex(segment, length);
             ++longSegmentCount;
@@ -264,10 +263,10 @@ SearchGraphVertex::SearchGraphVertex(
 
 
 
-void Graph::createVertex(Segment segment, uint64_t length)
+void ConnectGraph::createVertex(Segment segment, uint64_t length)
 {
     SHASTA2_ASSERT(not vertexMap.contains(segment));
-    Graph& graph = *this;
+    ConnectGraph& graph = *this;
     const vertex_descriptor v = add_vertex(GraphVertex(segment, length), graph);
     vertexMap.insert(make_pair(segment, v));
 }
@@ -330,10 +329,10 @@ void ReadFollower::createEdgesThreadFunction([[maybe_unused]] uint64_t threadId)
         }
     };
 
-    // SegmentPairs that will generate edes in the SearchGraphs.
+    // SegmentPairs that will generate edes in the SearchGraph.
     vector<SegmentPair> edgesToBeAdded;
 
-    // SegmentPairs that will generate edges in the Graph.
+    // SegmentPairs that will generate edges in the ConnectGraph.
     vector<SegmentPair> edgesToBeAddedLong;
 
 
@@ -592,18 +591,18 @@ void SearchGraph::writeGraphviz(
 
 
 
-void Graph::writeGraphviz(
+void ConnectGraph::writeGraphviz(
     const AssemblyGraph& assemblyGraph,
     const string& name) const
 {
-    const Graph& graph = *this;
+    const ConnectGraph& graph = *this;
 
-    ofstream dot("ReadFollowing-Graph-" + name + ".dot");
+    ofstream dot("ReadFollowing-ConnectGraph-" + name + ".dot");
     dot <<
-        "digraph ReadFollowingGraph {\n"
+        "digraph ReadFollowingConnectGraph {\n"
         "tooltip=\" \";\n";
 
-    BGL_FORALL_VERTICES(v, graph, Graph) {
+    BGL_FORALL_VERTICES(v, graph, ConnectGraph) {
         const GraphVertex& vertex = graph[v];
         const Segment segment = vertex.segment;
         const AssemblyGraphEdge& assemblyGraphEdge = assemblyGraph[segment];
@@ -649,7 +648,7 @@ void Graph::writeGraphviz(
     //   * The source arrow is filled if the forward  assembly path is non-trivial.
     //   * The target arrow is filled if the backward assembly path is non-trivial.
 
-    BGL_FORALL_EDGES(e, graph, Graph) {
+    BGL_FORALL_EDGES(e, graph, ConnectGraph) {
         const GraphEdge& edge = graph[e];
 
         const vertex_descriptor v0 = source(e, graph);
@@ -1019,8 +1018,7 @@ ConnectGraphEdge::DirectConnectionType ConnectGraphEdge::directConnectionType() 
 
 
 // Use the SearchGraphs to find shortest paths between long segments
-// and store them in the Graph.
-// Multithreaded version.
+// and store them in the ConnectGraph.
 void ReadFollower::findShortestPathsMultithreaded(uint64_t threadCount)
 {
     if(threadCount == 0) {
@@ -1028,9 +1026,9 @@ void ReadFollower::findShortestPathsMultithreaded(uint64_t threadCount)
     }
     FindShortestPathsData& data = findShortestPathsData;
 
-    // Store a vector with all the Graph vertices to be processed.
+    // Store a vector with all the ConnectGraph vertices to be processed.
     data.graphVertices.clear();
-    BGL_FORALL_VERTICES(v, graph, Graph) {
+    BGL_FORALL_VERTICES(v, graph, ConnectGraph) {
         data.graphVertices.push_back(v);
     }
     performanceLog << timestamp << "ReadFollower::findShortestPathsMultithreaded begins with " <<
@@ -1061,7 +1059,7 @@ void ReadFollower::findShortestPathsThreadFunction(uint64_t)
                 std::lock_guard<std::mutex> lock(mutex);
                 performanceLog << timestamp << "Read following: " << i << "/" << data.graphVertices.size() << endl;
             }
-            const Graph::vertex_descriptor v0 = data.graphVertices[i];
+            const ConnectGraph::vertex_descriptor v0 = data.graphVertices[i];
             const Segment segment0 = graph[v0].segment;
 
             // Loop for shortest paths in both directions.
@@ -1082,15 +1080,15 @@ void ReadFollower::findShortestPathsThreadFunction(uint64_t)
                 }
 
 
-                // For all operations on the Graph we need to acquire the mutex.
+                // For all operations on the ConnectGraph we need to acquire the mutex.
                 std::lock_guard<std::mutex> lock(mutex);
 
-                // Now we can update the Graph.
-                const Graph::vertex_descriptor u0 = graph.vertexMap.at(s0);
-                const Graph::vertex_descriptor u1 = graph.vertexMap.at(s1);
+                // Now we can update the ConnectGraph.
+                const ConnectGraph::vertex_descriptor u0 = graph.vertexMap.at(s0);
+                const ConnectGraph::vertex_descriptor u1 = graph.vertexMap.at(s1);
 
-                // Look for a Graph edge between the u0 and u1.
-                Graph::edge_descriptor e;
+                // Look for a ConnectGraph edge between the u0 and u1.
+                ConnectGraph::edge_descriptor e;
                 bool edgeExists;
                 tie(e, edgeExists) = boost::edge(u0, u1, graph);
                 if(not edgeExists) {
@@ -1109,12 +1107,12 @@ void ReadFollower::findShortestPathsThreadFunction(uint64_t)
 
 // This removes edges without a direct connection
 // and that don't have paths in both directions.
-void Graph::removeWeakEdges()
+void ConnectGraph::removeWeakEdges()
 {
-    Graph& graph = *this;
+    ConnectGraph& graph = *this;
 
     vector<edge_descriptor> edgesToBeRemoved;
-    BGL_FORALL_EDGES(e, graph, Graph) {
+    BGL_FORALL_EDGES(e, graph, ConnectGraph) {
         const GraphEdge& edge = graph[e];
 
         // If it has a direct connection, keep it.
@@ -1136,14 +1134,14 @@ void Graph::removeWeakEdges()
 
 
 
-void Graph::transitiveReduction()
+void ConnectGraph::transitiveReduction()
 {
-    Graph& graph = *this;
+    ConnectGraph& graph = *this;
 
     // Gather all edges. They will be processed in this order.
     // It may be better to use a better ordering.
     vector<edge_descriptor> allEdges;
-    BGL_FORALL_EDGES(e, graph, Graph) {
+    BGL_FORALL_EDGES(e, graph, ConnectGraph) {
         allEdges.push_back(e);
     }
 
@@ -1158,9 +1156,9 @@ void Graph::transitiveReduction()
 
 
 
-bool Graph::transitiveReductionCanRemove(edge_descriptor e) const
+bool ConnectGraph::transitiveReductionCanRemove(edge_descriptor e) const
 {
-    const Graph& graph = *this;
+    const ConnectGraph& graph = *this;
     const vertex_descriptor v0 = source(e, graph);
     const vertex_descriptor v1 = target(e, graph);
 
@@ -1187,7 +1185,7 @@ bool Graph::transitiveReductionCanRemove(edge_descriptor e) const
         const uint64_t distanceB = distanceA + 1;
 
         // Loop over its out-edges, without using edge e.
-        BGL_FORALL_OUTEDGES(vA, eAB, graph, Graph) {
+        BGL_FORALL_OUTEDGES(vA, eAB, graph, ConnectGraph) {
             if(eAB == e) {
                 continue;
             }
@@ -1218,9 +1216,9 @@ bool Graph::transitiveReductionCanRemove(edge_descriptor e) const
 
 // Get the assembly path to be used for this edge.
 // This includes the source and target Segment.
-vector<Segment> Graph::getAssemblyPath(edge_descriptor e) const
+vector<Segment> ConnectGraph::getAssemblyPath(edge_descriptor e) const
 {
-    const Graph& graph = *this;
+    const ConnectGraph& graph = *this;
     const GraphEdge& edge = graph[e];
     const vertex_descriptor v0 = source(e, graph);
     const vertex_descriptor v1 = target(e, graph);
@@ -1258,7 +1256,7 @@ vector<Segment> Graph::getAssemblyPath(edge_descriptor e) const
 
 
 
-// Use the ReadFollower::Graph to update the AssemblyGraph.
+// Use the ConnectGraph to update the AssemblyGraph.
 void ReadFollower::updateAssemblyGraph(AssemblyGraph& assemblyGraph) const
 {
     const bool debug = false;
@@ -1266,7 +1264,7 @@ void ReadFollower::updateAssemblyGraph(AssemblyGraph& assemblyGraph) const
 
     // Create a disconnected version of each long Segment.
     std::map<Segment, Segment> longSegmentMap; // (oldSegment, newSegment) (They have the same id).
-    BGL_FORALL_VERTICES(v, graph, Graph) {
+    BGL_FORALL_VERTICES(v, graph, ConnectGraph) {
         const Segment oldSegment = graph[v].segment;
         const Segment newSegment = createDisconnectedSegmentCopy(assemblyGraph, oldSegment);
         longSegmentMap.insert({oldSegment, newSegment});
@@ -1285,13 +1283,13 @@ void ReadFollower::updateAssemblyGraph(AssemblyGraph& assemblyGraph) const
 
 
 
-    // Each edge of the ReadFollower::Graph generates a linear chain between
+    // Each edge of the ConnectGraph generates a linear chain between
     // the source and target segments.
-    BGL_FORALL_EDGES(e, graph, Graph) {
+    BGL_FORALL_EDGES(e, graph, ConnectGraph) {
 
         // Get the old Segments.
-        const Graph::vertex_descriptor oldV0 = source(e, graph);
-        const Graph::vertex_descriptor oldV1 = target(e, graph);
+        const ConnectGraph::vertex_descriptor oldV0 = source(e, graph);
+        const ConnectGraph::vertex_descriptor oldV1 = target(e, graph);
         const Segment oldSegment0 = graph[oldV0].segment;
         const Segment oldSegment1 = graph[oldV1].segment;
 

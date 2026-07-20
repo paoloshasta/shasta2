@@ -9,7 +9,7 @@ Segment, regardless of length. They are used to find assembly paths
 that start and end at long Segments and can use zero or more
 short Segments in-between.
 
-The Graph has one vertex for each long segment.
+The ConnectGraph has one vertex for each long segment.
 Its edges store connection information between long segments.
 See below for mode details.
 
@@ -55,7 +55,6 @@ namespace shasta2 {
             ConnectGraphEdge>;
 
         // Some aliases the facilitate the transition to new names. These will go away.
-        using Graph = ConnectGraph;
         using GraphVertex = ConnectGraphVertex;
         using GraphEdge = ConnectGraphEdge;
 
