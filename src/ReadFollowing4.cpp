@@ -55,6 +55,7 @@ ReadFollower::ReadFollower(const AssemblyGraph& assemblyGraph) :
             " vertices and " << num_edges(graph) << " edges." << endl;
     }
     graph.writeGraphviz(assemblyGraph, "A");
+    graph.check(assemblyGraph);
 
     // Before we can compute shortest paths we have to create the vertex index map.
     searchGraph.createVertexIndexMap();
@@ -62,6 +63,7 @@ ReadFollower::ReadFollower(const AssemblyGraph& assemblyGraph) :
     // Use the SearchGraphs to find shortest paths between long segments
     // and store them in the ConnectGraph.
     findShortestPathsMultithreaded(assemblyGraph.options.threadCount);
+    graph.check(assemblyGraph);
 
     if(debug) {
         cout << "After finding shortest paths, the read following graph has " << num_vertices(graph) <<
@@ -71,9 +73,11 @@ ReadFollower::ReadFollower(const AssemblyGraph& assemblyGraph) :
 
     graph.removeWeakEdges();
     graph.writeGraphviz(assemblyGraph, "C");
+    graph.check(assemblyGraph);
 
     graph.transitiveReduction();
     graph.writeGraphviz(assemblyGraph, "D");
+    graph.check(assemblyGraph);
 
     writeMemoryStatistics("ReadFollower::ReadFollower end");
 }
@@ -1572,3 +1576,33 @@ bool SearchGraphEdge::isReverseComplement(const SearchGraphEdge& that) const
     return true;
 }
 
+
+
+// Check that it is strand-symmetric.
+void ConnectGraph::check(const AssemblyGraph& assemblyGraph) const
+{
+    cout << "ConnectGraph::check begins." << endl;
+    const ConnectGraph& connectGraph = *this;
+
+    // Every edge must have a corresponding reverse complemented edge.
+    BGL_FORALL_EDGES(e, connectGraph, ConnectGraph) {
+
+        // Find the Segments of this edge.
+        const vertex_descriptor v0 = source(e, connectGraph);
+        const vertex_descriptor v1 = target(e, connectGraph);
+        const Segment segment0 = connectGraph[v0].segment;
+        const Segment segment1 = connectGraph[v1].segment;
+
+        // Find the reverse complemented segments and
+        // the corresponding vertices.
+        const Segment segment0Rc = assemblyGraph[segment0].eRc;
+        const Segment segment1Rc = assemblyGraph[segment1].eRc;
+        const vertex_descriptor v0Rc = vertexMap.at(segment0Rc);
+        const vertex_descriptor v1Rc = vertexMap.at(segment1Rc);
+
+        // Find the reverse complemented edge.
+        auto[eRc, edgeExists] = edge(v1Rc, v0Rc, connectGraph);
+        SHASTA2_ASSERT(edgeExists);
+    }
+    cout << "ConnectGraph::check ends." << endl;
+}

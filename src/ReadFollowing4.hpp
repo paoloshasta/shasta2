@@ -236,7 +236,8 @@ public:
 
     vector<Segment> getAssemblyPath(edge_descriptor) const;
 
-
+    // Check that it is strand-symmetric.
+    void check(const AssemblyGraph&) const;
 };
 
 
