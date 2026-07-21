@@ -297,7 +297,9 @@ public:
 
     // Remove zero length segments by collapsing their vertices.
     void removeZeroLengthSegments();
+    void removeZeroLengthSegmentsStrandSymmetric();
     void collapseVertices(const vector<vertex_descriptor>&);
+    void collapseVerticesStrandSymmetric(const vector<vertex_descriptor>&);
 
     // This cleans up linear chains by removing edges that have low
     // corrected Jaccard similarity with nearby edges and
