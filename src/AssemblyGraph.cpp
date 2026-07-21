@@ -301,7 +301,6 @@ AssemblyGraph::AssemblyGraph(
     }
 #endif
 
-    check();
 }
 
 

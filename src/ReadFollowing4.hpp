@@ -308,6 +308,7 @@ public:
 
     // Use the ConnectGraph to update the AssemblyGraph.
     void updateAssemblyGraph(AssemblyGraph& writableAssemblyGraph) const;
+    void updateAssemblyGraphStrandSymmetric(AssemblyGraph& writableAssemblyGraph) const;
 
 private:
     bool isLong(Segment) const;

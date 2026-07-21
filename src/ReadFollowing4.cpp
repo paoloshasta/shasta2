@@ -41,12 +41,10 @@ ReadFollower::ReadFollower(const AssemblyGraph& assemblyGraph) :
             " vertices and " << num_edges(searchGraph) << " edges." << endl;
     }
     searchGraph.writeGraphviz(assemblyGraph, "Initial");
-    searchGraph.check(assemblyGraph);
 
     // Prune.
     searchGraph.prune();
     searchGraph.writeGraphviz(assemblyGraph, "Pruned");
-    searchGraph.check(assemblyGraph);
 
     if(true) {
         cout << "After pruning, the read following search graph has " << num_vertices(searchGraph) <<
@@ -74,7 +72,6 @@ ReadFollower::ReadFollower(const AssemblyGraph& assemblyGraph) :
 
     graph.transitiveReduction();
     graph.writeGraphviz(assemblyGraph, "D");
-    graph.check(assemblyGraph);
 
     writeMemoryStatistics("ReadFollower::ReadFollower end");
 }
@@ -1459,6 +1456,54 @@ void ReadFollower::updateAssemblyGraph(AssemblyGraph& assemblyGraph) const
     }
 
     writeMemoryStatistics("ReadFollower::updateAssemblyGraph end");
+}
+
+
+
+void ReadFollower::updateAssemblyGraphStrandSymmetric(AssemblyGraph& assemblyGraph) const
+{
+    performanceLog << timestamp << "ReadFollower::updateAssemblyGraphStrandSymmetric begins." << endl;
+
+    // Check preconditions.
+    SHASTA2_ASSERT(&assemblyGraph == &(this->assemblyGraph));
+    assemblyGraph.check();
+    graph.check(assemblyGraph);
+
+    // Create a disconnected version of each long Segment,
+    // keeping the same ids.
+    std::map<Segment, Segment> longSegmentMap; // (oldSegment, newSegment)
+    BGL_FORALL_VERTICES(v, graph, ConnectGraph) {
+        const Segment oldSegment = graph[v].segment;
+        const Segment newSegment = createDisconnectedSegmentCopy(assemblyGraph, oldSegment);
+        longSegmentMap.insert({oldSegment, newSegment});
+    }
+
+    // A short Segment usually appears in only one assembly path.
+    // In that case, when making a disconnected copy of that Segment
+    // we keep the same id.
+    // However, occasionally a short Segment will appear in more than one
+    // assembly path. In that case, the first copy keeps the same id,
+    // but subsequent copies are given new ids.
+    // This set keeps track of the short segments we already used.
+    std::set<Segment> usedShortSegments;
+
+
+#if 0
+    // To maintain strand symmetry, each pair of reverse complemented edges
+    // in the connect graph should generate two reverse complemented chains.
+    // To achieve this, we only process one edge for each pair.
+    // When processing that one edge, we generate a chain and its reverse complement.
+    Each edge of the ConnectGraph generates a linear chain between
+    // the source and target segments.
+    BGL_FORALL_EDGES(e, graph, ConnectGraph) {
+    }
+
+#endif
+
+    // Check that the AssemblyGraph remains strand-symmetric.
+    assemblyGraph.check();
+
+    performanceLog << timestamp << "ReadFollower::updateAssemblyGraphStrandSymmetric ends." << endl;
 }
 
 

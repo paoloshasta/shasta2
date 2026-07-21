@@ -150,7 +150,8 @@ void Journeys::threadFunction4(uint64_t /* threadId */)
                     throw runtime_error(
                         "Invalid Journey for oriented read " + orientedReadId.getString() +
                         " detected near anchors " +
-                        anchorIdToString(v[i0].first) + " " + anchorIdToString(v[i1].first));
+                        anchorIdToString(v[i0].first) + " " + anchorIdToString(v[i1].first) +
+                        ". Two anchors at the same position of an oriented read?");
                 }
             }
 

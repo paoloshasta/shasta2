@@ -194,9 +194,9 @@ public:
     uint64_t nextEdgeId = 0;
     const Options& options;
 
+    void check(bool writeDetails = false) const;
 private:
 
-    void check(bool writeDetails = false) const;
 
     // Clear reverse complement information from all vertices and edges.
     // This needs to be done before operations that don't maintain
