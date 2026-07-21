@@ -2725,7 +2725,6 @@ void AssemblyGraph::removeZeroLengthSegmentsStrandSymmetric()
             continue;
         }
 
-        cout << "AAA" << endl;
         collapseVerticesStrandSymmetric(componentVertices);
     }
     check();
