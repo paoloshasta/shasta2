@@ -1462,21 +1462,37 @@ void ReadFollower::updateAssemblyGraph(AssemblyGraph& assemblyGraph) const
 
 void ReadFollower::updateAssemblyGraphStrandSymmetric(AssemblyGraph& assemblyGraph) const
 {
-    performanceLog << timestamp << "ReadFollower::updateAssemblyGraphStrandSymmetric begins." << endl;
+    writeMemoryStatistics("ReadFollower::updateAssemblyGraphStrandSymmetric begins");
 
     // Check preconditions.
     SHASTA2_ASSERT(&assemblyGraph == &(this->assemblyGraph));
     assemblyGraph.check();
     graph.check(assemblyGraph);
 
+
+
     // Create a disconnected version of each long Segment,
     // keeping the same ids.
+    // We must be careful to do it in a way that preserves strand symmetry.
     std::map<Segment, Segment> longSegmentMap; // (oldSegment, newSegment)
     BGL_FORALL_VERTICES(v, graph, ConnectGraph) {
         const Segment oldSegment = graph[v].segment;
+        const Segment oldSegmentRc = assemblyGraph[oldSegment].eRc;
+        SHASTA2_ASSERT(oldSegmentRc != oldSegment);
+        if(assemblyGraph[oldSegment].id >= assemblyGraph[oldSegmentRc].id) {
+            continue;
+        }
+
         const Segment newSegment = createDisconnectedSegmentCopy(assemblyGraph, oldSegment);
         longSegmentMap.insert({oldSegment, newSegment});
+
+        // Create the reverse complemented one.
+        assemblyGraph.createReverseComplementVertex(source(newSegment, assemblyGraph));
+        assemblyGraph.createReverseComplementVertex(target(newSegment, assemblyGraph));
+        const Segment newSegmentRc = assemblyGraph.createReverseComplementEdge(newSegment);
+        longSegmentMap.insert({oldSegmentRc, newSegmentRc});
     }
+
 
     // A short Segment usually appears in only one assembly path.
     // In that case, when making a disconnected copy of that Segment
@@ -1488,22 +1504,152 @@ void ReadFollower::updateAssemblyGraphStrandSymmetric(AssemblyGraph& assemblyGra
     std::set<Segment> usedShortSegments;
 
 
-#if 0
+
     // To maintain strand symmetry, each pair of reverse complemented edges
     // in the connect graph should generate two reverse complemented chains.
     // To achieve this, we only process one edge for each pair.
     // When processing that one edge, we generate a chain and its reverse complement.
-    Each edge of the ConnectGraph generates a linear chain between
-    // the source and target segments.
     BGL_FORALL_EDGES(e, graph, ConnectGraph) {
+
+        // Get the Segments of this ConnectGraph edge.
+        const ConnectGraph::vertex_descriptor v0 = source(e, graph);
+        const ConnectGraph::vertex_descriptor v1 = target(e, graph);
+        const Segment oldSegment0 = graph[v0].segment;
+        const Segment oldSegment1 = graph[v1].segment;
+        SHASTA2_ASSERT(oldSegment0 != oldSegment1);
+
+        // Get the reverse complement segments.
+        const Segment oldSegment0Rc = assemblyGraph[oldSegment0].eRc;
+        const Segment oldSegment1Rc = assemblyGraph[oldSegment1].eRc;
+        SHASTA2_ASSERT(oldSegment0Rc != oldSegment1Rc);
+        SHASTA2_ASSERT(oldSegment0Rc != oldSegment0);
+        SHASTA2_ASSERT(oldSegment0Rc != oldSegment1);
+        SHASTA2_ASSERT(oldSegment1Rc != oldSegment0);
+        SHASTA2_ASSERT(oldSegment1Rc != oldSegment1);
+
+        // Only process one edge in each pair of reverse complemented edges.
+        // Choose the one with lowes minimum Segment id.
+        const uint64_t id0 = assemblyGraph[oldSegment0].id;
+        const uint64_t id1 = assemblyGraph[oldSegment1].id;
+        const uint64_t id0Rc = assemblyGraph[oldSegment0Rc].id;
+        const uint64_t id1Rc = assemblyGraph[oldSegment1Rc].id;
+        const uint64_t idMin = min(id0, id1);
+        const uint64_t idRcMin = min(id0Rc, id1Rc);
+        if(idMin >= idRcMin) {
+            continue;
+        }
+
+        // Get the corresponding new Segments.
+        const Segment newSegment0 = longSegmentMap.at(oldSegment0);
+        const Segment newSegment1 = longSegmentMap.at(oldSegment1);
+
+        // Get the assembly path for this edge of the ConnectGraph.
+        const vector<Segment> oldAssemblyPath = graph.getAssemblyPath(e);
+
+        // Sanity checks: the assembly path begins/ends at segment0/segment1.
+        SHASTA2_ASSERT(oldAssemblyPath.size() >= 2);
+        SHASTA2_ASSERT(oldAssemblyPath.front() == oldSegment0);
+        SHASTA2_ASSERT(oldAssemblyPath.back() == oldSegment1);
+
+        // Sanity check: the segments internal to the assembly path
+        // are not long segment.
+        for(uint64_t i=1; i<oldAssemblyPath.size()-1; i++) {
+            const Segment oldSegment = oldAssemblyPath[i];
+            SHASTA2_ASSERT(not longSegmentMap.contains(oldSegment));
+        }
+
+        // Generate the new Segments of this assembly path,
+        // and their reverse complements.
+        vector<Segment> newAssemblyPath;
+        newAssemblyPath.push_back(newSegment0);
+        for(uint64_t i=1; i<oldAssemblyPath.size()-1; i++) {
+            const Segment oldSegment = oldAssemblyPath[i];
+            const Segment newSegment = createDisconnectedSegmentCopy(assemblyGraph, oldSegment);
+            newAssemblyPath.push_back(newSegment);
+            usedShortSegments.insert(oldSegment);
+
+            assemblyGraph.createReverseComplementVertex(source(newSegment, assemblyGraph));
+            assemblyGraph.createReverseComplementVertex(target(newSegment, assemblyGraph));
+            assemblyGraph.createReverseComplementEdge(newSegment);
+            const Segment oldSegmentRc = assemblyGraph[oldSegment].eRc;
+            usedShortSegments.insert(oldSegmentRc);
+        }
+        newAssemblyPath.push_back(newSegment1);
+
+
+
+        // Now we have to connect adjacent segments.
+        for(uint64_t i1=1; i1<newAssemblyPath.size(); i1++) {
+            const uint64_t i0 = i1 - 1;
+            const Segment newSegment0 = newAssemblyPath[i0];
+            const Segment newSegment1 = newAssemblyPath[i1];
+
+            const AssemblyGraph::vertex_descriptor newV0 = target(newSegment0, assemblyGraph);
+            const AssemblyGraph::vertex_descriptor newV1 = source(newSegment1, assemblyGraph);
+
+            const AnchorId anchorId0 = assemblyGraph[newV0].anchorId;
+            const AnchorId anchorId1 = assemblyGraph[newV1].anchorId;
+
+            // Create the new edge.
+            // If the two anchors are the same, leave it empty without any steps.
+            // Otherwise use the same process in Tangle1::addConnectPair.
+            Segment newSegment;
+            tie(newSegment, ignore) = add_edge(newV0, newV1, AssemblyGraphEdge(assemblyGraph.nextEdgeId++), assemblyGraph);
+            AssemblyGraphEdge& newEdge = assemblyGraph[newSegment];
+            if(anchorId0 != anchorId1) {
+
+                // Create the RestrictedAnchorGraph, then:
+                // - Remove vertices not accessible from anchorId0 and anchorId1.
+                // - Remove cycles.
+                // - Find the longest path.
+                // - Add one step for each edge of the longest path of the RestrictedAnchorGraph.
+
+                ostream html(0);
+                const TangleMatrix1 tangleMatrix(
+                    assemblyGraph,
+                    vector<Segment>(1, newSegment0),
+                    vector<Segment>(1, newSegment1),
+                    html);
+
+                try {
+                    RestrictedAnchorGraph restrictedAnchorGraph(assemblyGraph.anchors, assemblyGraph.journeys, tangleMatrix, 0, 0, html);
+                    vector<RestrictedAnchorGraph::edge_descriptor> longestPath;
+                    // restrictedAnchorGraph.findLongestPath(longestPath);
+                    restrictedAnchorGraph.findOptimalPath(anchorId0, anchorId1, longestPath);
+
+                    for(const RestrictedAnchorGraph::edge_descriptor re: longestPath) {
+                        const auto& rEdge = restrictedAnchorGraph[re];
+                        if(rEdge.anchorPair.size() == 0) {
+                            newEdge.clear();
+                            SHASTA2_ASSERT(0);
+                        }
+                        newEdge.push_back(AssemblyGraphEdgeStep(rEdge.anchorPair, rEdge.offset));
+                    }
+                } catch(RestrictedAnchorGraph::NoTransitions&) {
+                    cout << "Could not connect " << assemblyGraph[newSegment0].id <<
+                        " with " << assemblyGraph[newSegment1].id << endl;
+                    SHASTA2_ASSERT(0);
+                }
+            }
+            assemblyGraph.createReverseComplementEdge(newSegment);
+        }
     }
 
-#endif
+
+    // Remove the old copy of each long Segment.
+    for(const auto& [oldSegment, newSegment]: longSegmentMap) {
+        boost::remove_edge(oldSegment, assemblyGraph);
+    }
+
+    // Remove the old copy of short Segments we used.
+    for(const Segment oldSegment: usedShortSegments) {
+        boost::remove_edge(oldSegment, assemblyGraph);
+    }
 
     // Check that the AssemblyGraph remains strand-symmetric.
     assemblyGraph.check();
 
-    performanceLog << timestamp << "ReadFollower::updateAssemblyGraphStrandSymmetric ends." << endl;
+    writeMemoryStatistics("ReadFollower::updateAssemblyGraphStrandSymmetric ends");
 }
 
 

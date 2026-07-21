@@ -195,7 +195,6 @@ public:
     const Options& options;
 
     void check(bool writeDetails = false) const;
-private:
 
 
     // Clear reverse complement information from all vertices and edges.
@@ -214,6 +213,7 @@ private:
     // The vertices of eB must already exist.
     edge_descriptor createReverseComplementEdge(edge_descriptor eA);
 
+private:
 
 
     // BUBBLE CLEANUP.

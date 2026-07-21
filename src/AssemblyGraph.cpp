@@ -388,7 +388,9 @@ void AssemblyGraph::check(bool writeDetails) const
 
     BGL_FORALL_EDGES(e, assemblyGraph, AssemblyGraph) {
         const AssemblyGraphEdge& edge = assemblyGraph[e];
-        SHASTA2_ASSERT(not edge.empty());
+        if(edge.empty()) {
+            continue;
+        }
 
         if(writeDetails) {
             cout << "Checking edge " << edge.id << " with " << edge.size() << " steps." << endl;
@@ -2330,7 +2332,8 @@ void AssemblyGraph::setAnnotation(edge_descriptor e, const string& annotation)
 void AssemblyGraph::readFollowing()
 {
     ReadFollowing4::ReadFollower readFollower(*this);
-    readFollower.updateAssemblyGraph(*this);
+    // readFollower.updateAssemblyGraph(*this);
+    readFollower.updateAssemblyGraphStrandSymmetric(*this);
 }
 
 
