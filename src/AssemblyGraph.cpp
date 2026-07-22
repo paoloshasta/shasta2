@@ -2761,6 +2761,7 @@ void AssemblyGraph::removeZeroLengthSegments()
 void AssemblyGraph::removeZeroLengthSegmentsStrandSymmetric()
 {
     performanceLog << timestamp << "AssemblyGraph::removeZeroLengthSegmentsStrandSymmetric begins." << endl;
+    const bool debug = false;
 
     AssemblyGraph& assemblyGraph = *this;
     check();
@@ -2773,19 +2774,39 @@ void AssemblyGraph::removeZeroLengthSegmentsStrandSymmetric()
         vertexTable.push_back(v);
         vertexIndexMap.insert(make_pair(v, vertexIndex++));
     }
+    const uint64_t n = vertexTable.size();
+    SHASTA2_ASSERT(vertexIndexMap.size() == n);
+
 
     // Compute connected components using only zero-length edges,
     // that is, edges with zero steps.
     // Each non-trivial connected component will be collapsed
     // into a single vertex.
-    DisjointSets disjointSets(vertexIndexMap.size());
+    // Only get the connected components corresponding to positive anchors.
+    // The ones with negative anchors will be processed below as the
+    // reverse complement component.
+    DisjointSets disjointSets(n);
     BGL_FORALL_EDGES(e, assemblyGraph, AssemblyGraph) {
         if(assemblyGraph[e].empty()) {
             const vertex_descriptor v0 = source(e, assemblyGraph);
             const vertex_descriptor v1 = target(e, assemblyGraph);
+            const AnchorId anchorId0 = assemblyGraph[v0].anchorId;
+            const AnchorId anchorId1 = assemblyGraph[v1].anchorId;
+            SHASTA2_ASSERT(anchorId0 == anchorId1);
+            if(anchorId0 & 1) {
+                continue;
+            }
             const uint64_t vertexIndex0 = vertexIndexMap.at(v0);
             const uint64_t vertexIndex1 = vertexIndexMap.at(v1);
+            SHASTA2_ASSERT(vertexIndex0 < n);
+            SHASTA2_ASSERT(vertexIndex1 < n);
             disjointSets.unionSet(vertexIndex0, vertexIndex1);
+
+            if(debug) {
+                cout << "Empty edge " << assemblyGraph[e].id <<
+                    ", source " << assemblyGraph[v0].id << "/" << vertexIndex0 << "/" << anchorIdToString(assemblyGraph[v0].anchorId) <<
+                    ", target " << assemblyGraph[v1].id << "/" << vertexIndex1 << "/" << anchorIdToString(assemblyGraph[v0].anchorId) << endl;
+            }
         }
     }
 
@@ -2796,17 +2817,27 @@ void AssemblyGraph::removeZeroLengthSegmentsStrandSymmetric()
 
 
 
-    // Collapse the vertices in each component.
-    // To make sure we do it in a strand-symmetric way,
-    // only do it on vertices that correspond to positive anchors.
-    // Then for each of those also collapse the reverse complemented vertices.
+    // Collapse the vertices in each component and its reverse complement.
     for(const vector<uint64_t>& component: components) {
         vector<vertex_descriptor> componentVertices;
         for(const uint64_t vertexIndex: component) {
+            SHASTA2_ASSERT(vertexIndex < n);
             componentVertices.push_back(vertexTable[vertexIndex]);
         }
 
-        // Sanity check: they must all kave the same AnchorId.
+        if(debug) {
+            cout << "Indexes of vertices to be collapsed:" << endl;
+            for(const uint64_t vertexIndex: component) {
+                cout << vertexIndex << endl;
+            }
+            cout << "Collapsing vertices:" << endl;;
+            for(const vertex_descriptor v: componentVertices) {
+                const AssemblyGraphVertex& vertex = assemblyGraph[v];
+                cout << v << " " << vertex.id << " " << anchorIdToString(assemblyGraph[v].anchorId) << endl;
+            }
+        }
+
+        // Sanity check: they must all have the same AnchorId.
         AnchorId anchorId = invalid<AnchorId>;
         for(const vertex_descriptor v: componentVertices) {
             if(anchorId == invalid<AnchorId>) {
@@ -2815,16 +2846,15 @@ void AssemblyGraph::removeZeroLengthSegmentsStrandSymmetric()
                 SHASTA2_ASSERT(anchorId == assemblyGraph[v].anchorId);
             }
         }
-
-        // Only do it for positive anchors.
-        if(anchorId & 1UL) {
-            continue;
+        if(debug) {
+            cout << "AnchorId " << anchorIdToString(anchorId) << " " << (anchorId & 1UL) << endl;
         }
+        SHASTA2_ASSERT((anchorId & 1UL) == 0);
 
         collapseVerticesStrandSymmetric(componentVertices);
     }
     check();
-    performanceLog << timestamp << "AssemblyGraph::removeZeroLengthSegmentsStrandSymmetric begins." << endl;
+    performanceLog << timestamp << "AssemblyGraph::removeZeroLengthSegmentsStrandSymmetric ends." << endl;
 }
 
 
