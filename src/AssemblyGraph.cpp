@@ -435,6 +435,16 @@ void AssemblyGraph::check(bool writeDetails) const
         const AssemblyGraphVertex& vertexRc = assemblyGraph[vRc];
         SHASTA2_ASSERT(vertexRc.vRc != null_vertex());
         SHASTA2_ASSERT(vertexRc.vRc != vRc);
+        if(vertexRc.vRc != v) {
+            cout << "Check fails at vertices " << assemblyGraph[v].id << " " << assemblyGraph[vRc].id << endl;
+            cout << "v " << v << endl;
+            cout << "assemblyGraph[v].id " << assemblyGraph[v].id << endl;
+            cout << "assemblyGraph[v].vRc " << assemblyGraph[v].vRc << endl;
+            cout << "vRc " << vRc << endl;
+            cout << "assemblyGraph[vRc].id " << assemblyGraph[vRc].id << endl;
+            cout << "assemblyGraph[vRc].vRc " << assemblyGraph[vRc].vRc << endl;
+
+        }
         SHASTA2_ASSERT(vertexRc.vRc == v);
     }
 
@@ -640,7 +650,11 @@ void AssemblyGraph::writeGraphviz(ostream& dot) const
     	const AssemblyGraphVertex& vertex = assemblyGraph[v];
     	dot <<
     		vertex.id <<
-    		" [label=\"" << anchorIdToString(vertex.anchorId) << "\\n" << vertex.id << "\"]"
+    		" [label=\"" << anchorIdToString(vertex.anchorId) << "\\n" << vertex.id;
+    	if(vertex.vRc != null_vertex()) {
+    	    dot << "\\n(" << assemblyGraph[vertex.vRc].id << ")";
+    	}
+    	dot << "\"]"
     	    ";\n";
     }
 
@@ -935,6 +949,10 @@ uint64_t AssemblyGraph::compress()
 
 uint64_t AssemblyGraph::strandSymmetricCompress()
 {
+    performanceLog << timestamp << "AssemblyGraph::strandSymmetricCompress begins." << endl;
+    const bool debug = false;
+    check();
+
     AssemblyGraph& assemblyGraph = *this;
 
     // Find linear chains of 2 or more edges.
@@ -965,7 +983,6 @@ uint64_t AssemblyGraph::strandSymmetricCompress()
             SHASTA2_ASSERT(eRc != assemblyGraphNullEdge);
             const uint64_t chainIdRc = chainMap.at(eRc);
             v.push_back(chainIdRc);
-            // cout << "AAA " << assemblyGraph[e].id << " " << assemblyGraph[eRc].id << " " << chainIdRc << endl;
         }
         deduplicate(v);
         SHASTA2_ASSERT(v.size() == 1);
@@ -982,12 +999,86 @@ uint64_t AssemblyGraph::strandSymmetricCompress()
     for(uint64_t chainId=0; chainId<chains.size(); chainId++) {
         const uint64_t chainIdRc = chainTable[chainId];
         if(chainId < chainIdRc) {
+            auto& chain = chains[chainId];
+            auto& chainRc = chains[chainIdRc];
+
+            if(debug) {
+                cout << "Working on chain";
+                for(const edge_descriptor e: chain) {
+                    cout << " " << assemblyGraph[e].id;
+                }
+                cout << endl;
+                cout << "Reverse complemented chain is ";
+                for(const edge_descriptor e: chainRc) {
+                    cout << " " << assemblyGraph[e].id;
+                }
+                cout << endl;
+            }
+
+            // For the special case of an isolated circular chain,
+            // we need to make sure that the reverse complemented
+            // chain begins/ends at a vertex which is the
+            // reverse complement of the begin/end of the chain.
+            // We do this by rotating the reverse complemented chain.
+            {
+                const edge_descriptor e0 = chain.front();
+                const edge_descriptor e1 = chain.back();
+                const vertex_descriptor v0 = source(e0, assemblyGraph);
+                const vertex_descriptor v1 = target(e1, assemblyGraph);
+                if(v0 == v1) {
+                    // It is a circular chain.
+                    if((in_degree(v0, assemblyGraph) == 1) and (out_degree(v0, assemblyGraph) == 1)) {
+                        // It is isolated.
+                        const edge_descriptor e0Rc = assemblyGraph[e0].eRc;
+                        const auto it = find(chainRc.rbegin(), chainRc.rend(), e0Rc);
+                        SHASTA2_ASSERT(it != chainRc.rend());
+                        std::rotate(chainRc.rbegin(), it, chainRc.rend());
+
+                        if(debug) {
+                            cout << "After rotation, reverse complemented chain is ";
+                            for(const edge_descriptor e: chainRc) {
+                                cout << " " << assemblyGraph[e].id;
+                            }
+                            cout << endl;
+                        }
+                    }
+                }
+            }
+
+
+            // Sanity check on the reverse complemented chain.
+            const uint64_t n = chain.size();
+            SHASTA2_ASSERT(chainRc.size() == n);
+            auto it = chain.begin();
+            auto itRc = chainRc.rbegin();
+            for(uint64_t i=0; i<n; i++) {
+                const edge_descriptor e = *it++;
+                const edge_descriptor eRc = *(itRc++);
+                SHASTA2_ASSERT(assemblyGraph[e].eRc == eRc);
+                SHASTA2_ASSERT(assemblyGraph[eRc].eRc == e);
+            }
+
+
             const edge_descriptor e = compressLinearChain(chains[chainId]);
-            createReverseComplementEdge(e);
+            if(debug) {
+                cout << "Created new edge " << assemblyGraph[e].id <<
+                    ", length " << assemblyGraph[e].length() <<
+                    ", source " << assemblyGraph[source(e, assemblyGraph)].id <<
+                    ", target " << assemblyGraph[target(e, assemblyGraph)].id <<
+                    endl;
+            }
+            const edge_descriptor eRc = createReverseComplementEdge(e);
+            if(debug) {
+                cout << "Created new reverse complement edge " << assemblyGraph[eRc].id <<
+                    ", length " << assemblyGraph[eRc].length() <<
+                    ", source " << assemblyGraph[source(eRc, assemblyGraph)].id <<
+                    ", target " << assemblyGraph[target(eRc, assemblyGraph)].id <<
+                    endl;
+            }
+
 
             // The call to compressLinearChain removed the edges and
-            // the internal edges of chainId. Do the same for chainIdRc.
-            // Now we can remove the edges of the chain and its internal vertices.
+            // the internal vertices of chainId. Do the same for chainIdRc.
             bool isFirst = true;
             for(const edge_descriptor e: chains[chainIdRc]) {
                 if(isFirst) {
@@ -1000,6 +1091,9 @@ uint64_t AssemblyGraph::strandSymmetricCompress()
             }
         }
     }
+
+    check();
+    performanceLog << timestamp << "AssemblyGraph::strandSymmetricCompress ends." << endl;
 
     return chains.size();
 }
@@ -2666,6 +2760,8 @@ void AssemblyGraph::removeZeroLengthSegments()
 
 void AssemblyGraph::removeZeroLengthSegmentsStrandSymmetric()
 {
+    performanceLog << timestamp << "AssemblyGraph::removeZeroLengthSegmentsStrandSymmetric begins." << endl;
+
     AssemblyGraph& assemblyGraph = *this;
     check();
 
@@ -2728,6 +2824,7 @@ void AssemblyGraph::removeZeroLengthSegmentsStrandSymmetric()
         collapseVerticesStrandSymmetric(componentVertices);
     }
     check();
+    performanceLog << timestamp << "AssemblyGraph::removeZeroLengthSegmentsStrandSymmetric begins." << endl;
 }
 
 
