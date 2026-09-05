@@ -933,16 +933,21 @@ bool AssemblyGraph::detangleTanglePairStrict(
         return false;
     }
 
-    // Create the connect pairs and make the connections.
+    // Create the connect pairs.
     vector< pair<pair<uint64_t, uint64_t>, bool> > connectPairs;
     for(uint64_t i=0; i<tangle.entrances.size(); i++) {
         for(uint64_t j=0; j<tangle.exits.size(); j++) {
             if(topHypothesis.connectivityMatrix[i][j]) {
+                if(not canConnect(tangle.entrances[i], tangle.exits[j])) {
+                    return false;
+                }
                 connectPairs.push_back(
                     {{id(tangle.entrances[i]), id(tangle.exits[j])}, false});
             }
         }
     }
+
+    // Make the connections.
     detangleMakeConnections(tangle, connectPairs);
     return true;
 }
