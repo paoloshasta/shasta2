@@ -52,7 +52,8 @@ template class MultithreadedObject<AnchorGraph>;
 AnchorGraph::AnchorGraph(
     const Anchors& anchors,
     const Journeys& journeys,
-    uint64_t minEdgeCoverage) :
+    uint64_t minEdgeCoverage,
+    double minEdgeCoverageFraction) :
     MappedMemoryOwner(anchors),
     MultithreadedObject<AnchorGraph>(*this)
 {
@@ -66,14 +67,29 @@ AnchorGraph::AnchorGraph(
         add_vertex(anchorGraph);
     }
 
+
+
     // Loop over possible source vertices to create edges.
     nextEdgeId = 0;
     vector<AnchorPair> anchorPairs;
     for(AnchorId anchorIdA=0; anchorIdA<anchorCount; anchorIdA++) {
+        const uint64_t coverageA = anchors[anchorIdA].coverage();
         AnchorPair::createChildren(anchors, journeys, anchorIdA, 0, anchorPairs);
+
         for(const AnchorPair& anchorPair: anchorPairs) {
-            if(anchorPair.size() >= minEdgeCoverage) {
-                addEdge(anchorIdA, anchorPair.anchorIdB, anchorPair.orientedReadIds, true);
+            const uint64_t edgeCoverage = anchorPair.size();
+
+            // The edge must satisfy both minEdgeCoverage and minEdgeCoverageFraction.
+            if(edgeCoverage >= minEdgeCoverage) {
+                // minEdgeCoverage is satisfied.
+                // We must check if minEdgeCoverageFraction is also satisfied.
+
+                const AnchorId anchorIdB = anchorPair.anchorIdB;
+                const uint64_t coverageB = anchors[anchorIdB].coverage();
+
+                if(double(edgeCoverage) >= minEdgeCoverageFraction * double(min(coverageA, coverageB))) {
+                    addEdge(anchorIdA, anchorIdB, anchorPair.orientedReadIds, true);
+                }
             }
         }
     }

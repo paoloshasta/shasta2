@@ -284,14 +284,15 @@ void Assembler::createAnchorGraph(const Options& options)
 {
     anchorGraphPointer = make_shared<AnchorGraph>(
         anchors(), journeys(),
-        options.minAnchorGraphEdgeCoverage);
+        options.minAnchorGraphEdgeCoverage,
+        options.minAnchorGraphEdgeCoverageFraction);
 }
 
 
 
 void Assembler::createCompleteAnchorGraph()
 {
-    completeAnchorGraphPointer = make_shared<AnchorGraph>(anchors(), journeys(), 1);
+    completeAnchorGraphPointer = make_shared<AnchorGraph>(anchors(), journeys(), 1, 0.);
     completeAnchorGraphPointer->save("CompleteAnchorGraph");
 }
 

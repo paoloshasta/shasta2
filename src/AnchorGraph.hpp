@@ -95,7 +95,11 @@ public:
 
     // Construct the AnchorGraph from the Journeys.
     // Only include edges with at least the specified minCoverage.
-    AnchorGraph(const Anchors&, const Journeys&, uint64_t minEdgeCoverage);
+    AnchorGraph(
+        const Anchors&,
+        const Journeys&,
+        uint64_t minEdgeCoverage,
+        double minEdgeCoverageFraction);
 
     // Constructor from binary data.
     AnchorGraph(const MappedMemoryOwner&, const string& name);

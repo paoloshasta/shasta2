@@ -118,6 +118,10 @@ SHASTA2_OPTION_DEFINE(
     "Minimum anchor graph edge coverage.")
 
 SHASTA2_OPTION_DEFINE(
+    double, minAnchorGraphEdgeCoverageFraction, "--min-anchor-graph-edge-coverage-fraction", 0.,
+    "Minimum anchor graph edge coverage fraction.")
+
+SHASTA2_OPTION_DEFINE(
     uint64_t, transitiveReductionMaxEdgeCoverage, "--transitive-reduction-max-edge-coverage", 10,
     "Maximum coverage of an AnchorGraph edge subject to removal during transitive reduction.")
 
