@@ -159,7 +159,8 @@ void AssemblyGraph::strandSymmetricPhaseSuperbubbleChains(const string& debugOut
     // If a SuperbubbleChain is self-complementary, split it in
     // a pair of reverse complemented SuperbubbleChains.
     bool foundSelfComplementaryPair = false;
-    for(uint64_t superbubbleChainId=0; superbubbleChainId<superbubbleChains.size(); superbubbleChainId++) {
+    const uint64_t initialSuperbubbleChainCount = superbubbleChains.size();
+    for(uint64_t superbubbleChainId=0; superbubbleChainId<initialSuperbubbleChainCount; superbubbleChainId++) {
         if(superchainTable[superbubbleChainId] == superbubbleChainId) {
 
             foundSelfComplementaryPair = true;
@@ -168,14 +169,19 @@ void AssemblyGraph::strandSymmetricPhaseSuperbubbleChains(const string& debugOut
                     " will be split in a reverse complemented pair." << endl;
             }
 
+            // Make space for the new SuperbubbleChain, then get a reference
+            // to the self-complementary SuperbubbleChain.
+            // This must be done in this order because otherwise the call to emplace_back()
+            // coult invalidate the reference to the SuperbubbleChain.
+            SuperbubbleChain& superbubbleChainRc = superbubbleChains.emplace_back();
             SuperbubbleChain& superbubbleChain = superbubbleChains[superbubbleChainId];
+
             const uint64_t n = superbubbleChain.size();
             SHASTA2_ASSERT((n % 2) == 1);
             const uint64_t nHalf = n / 2;
 
             // The second half (minus the middle superbubble) becomes
             // the second superbubble in the new pair.
-            SuperbubbleChain& superbubbleChainRc = superbubbleChains.emplace_back();
             copy(superbubbleChain.begin() + nHalf + 1, superbubbleChain.end(), back_inserter(superbubbleChainRc));
 
             // The first half (minus the middle superbubble) becomes
@@ -190,15 +196,10 @@ void AssemblyGraph::strandSymmetricPhaseSuperbubbleChains(const string& debugOut
             // Update the superbubble chain table.
             superchainTable[superbubbleChainId] = superchainTable.size();
             superchainTable.push_back(superbubbleChainId);
-
         }
     }
+    SHASTA2_ASSERT(superbubbleChains.size() == superchainTable.size());
     if(foundSelfComplementaryPair) {
-        // Sanity check.
-        for(uint64_t superbubbleChainId=0; superbubbleChainId<superbubbleChains.size(); superbubbleChainId++) {
-            const uint64_t superbubbleChainIdRc = superchainTable[superbubbleChainId];
-            SHASTA2_ASSERT(superchainTable[superbubbleChainIdRc] == superbubbleChainId);
-        }
 
         if(debug) {
             cout << "Updated superbubble chains table:" << endl;
@@ -206,6 +207,12 @@ void AssemblyGraph::strandSymmetricPhaseSuperbubbleChains(const string& debugOut
                 const uint64_t superbubbleChainIdRc = superchainTable[superbubbleChainId];
                 cout << superbubbleChainId << " " << superbubbleChainIdRc << endl;
             }
+        }
+
+        // Sanity check.
+        for(uint64_t superbubbleChainId=0; superbubbleChainId<superbubbleChains.size(); superbubbleChainId++) {
+            const uint64_t superbubbleChainIdRc = superchainTable[superbubbleChainId];
+            SHASTA2_ASSERT(superchainTable[superbubbleChainIdRc] == superbubbleChainId);
         }
     }
 
