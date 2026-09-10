@@ -290,6 +290,9 @@ private:
     bool detangleSelfComplementaryTangle2By2(const Tangle&, ostream& html);
     bool readFollowingStrandSymmetric(uint64_t tangleId, const Tangle&, ostream& html);
 
+    // This does nothing for now.
+    void splitSelfComplementaryTangle(const Tangle&) const;
+
     // Make connections for detangling a detangle.
     // The connectPairs contain pairs of entrance/exit segmentIds,
     // and the bool parameter says whether a "deep" connect should be used for that pair.
