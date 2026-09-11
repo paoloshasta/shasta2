@@ -283,6 +283,11 @@ public:
         bool attemptReadFollowing,
         const string& debugOutputBaseName);
     void localReadFollowing();
+    void splitSelfComplementaryTangles(const string& debugOutputBaseName);
+    void splitSelfComplementaryTangle(
+        uint64_t tangleId,
+        const vector<vertex_descriptor>& tangle,
+        const string& debugOutputBaseName);
 private:
     bool detangleStrandSymmetric(const Tangle&, ostream& html);
     bool detangleTanglePair(const Tangle&, ostream& html);
@@ -290,8 +295,6 @@ private:
     bool detangleSelfComplementaryTangle2By2(const Tangle&, ostream& html);
     bool readFollowingStrandSymmetric(uint64_t tangleId, const Tangle&, ostream& html);
 
-    // This does nothing for now.
-    void splitSelfComplementaryTangle(const Tangle&) const;
 
     // Make connections for detangling a detangle.
     // The connectPairs contain pairs of entrance/exit segmentIds,
