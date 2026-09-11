@@ -5,6 +5,7 @@
 #include "DisjointSets.hpp"
 #include "html.hpp"
 #include "performanceLog.hpp"
+#include "StrandSplitter.hpp"
 #include "Tangle.hpp"
 #include "timestamp.hpp"
 using namespace shasta2;
@@ -43,10 +44,18 @@ void AssemblyGraph::splitSelfComplementaryTangles(const string& debugOutputBaseN
         debugOutputBaseName + "-SelfComplementary-Tangles-Bandage.csv");
 
     for(uint64_t tangleId=0; tangleId<selfComplementaryTangles.size(); tangleId++) {
+#if 0
         splitSelfComplementaryTangle(
             tangleId,
             selfComplementaryTangles[tangleId],
             debugOutputBaseName);
+#else
+        StrandSplitter strandSplitter(
+            *this,
+            selfComplementaryTangles[tangleId],
+            tangleId,
+            debugOutputBaseName);
+#endif
     }
 
     performanceLog << timestamp << "AssemblyGraph::splitSelfComplementaryTangles ends: " <<
