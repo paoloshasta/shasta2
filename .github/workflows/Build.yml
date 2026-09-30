@@ -7,31 +7,6 @@ on:
 
 jobs:
 
-  ubuntu-24-04:
-    runs-on: ubuntu-24.04
-    steps:
-    - uses: actions/checkout@master
-    - name: Install-prerequisites
-      run: ./scripts/InstallBuildPrerequisites.py
-    - name: Build-ubuntu-24.04
-      run: |
-        mkdir shasta2-build
-        cd shasta2-build 
-        cmake .. 
-        make -j 8 all
-        make install/strip
-        mv shasta2-install shasta2-Ubuntu-24.04
-        tar -cvf shasta2-Ubuntu-24.04.tar shasta2-Ubuntu-24.04  
-    - uses: actions/upload-artifact@master
-      with:
-        name: shasta2-Linux
-        path: shasta2-build/shasta2-Ubuntu-24.04/bin/shasta2
-    - uses: actions/upload-artifact@master
-      with:
-        name: shasta2-Ubuntu-24.04.tar
-        path: shasta2-build/shasta2-Ubuntu-24.04.tar
-
-
   ubuntu-26-04:
     runs-on: ubuntu-26.04
     steps:
