@@ -4,8 +4,8 @@
 
 ## Clone and build
 
-* Known to work on Ubuntu 24.04 and 26.04.
-* Assumes `python3` and `git` are available.
+* Requires gcc 15. Known to work on Ubuntu 26.04.
+* Assumes `python3`, `git`, and `cmake` are available.
 
 ```
 git clone https://github.com/paoloshasta/shasta2.git
