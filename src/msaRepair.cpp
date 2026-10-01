@@ -94,7 +94,7 @@ namespace shasta2 {
 
     // An alignment written as one string per row, '-' for a gap. This is how the
     // tests and the stored example alignments spell an alignment out.
-    vector< vector<AlignedBase> > msa1AlignmentFromStrings(const vector<string>& rows)
+    vector< vector<AlignedBase> > msaRepairAlignmentFromStrings(const vector<string>& rows)
     {
         vector< vector<AlignedBase> > alignment;
         alignment.reserve(rows.size());
@@ -106,7 +106,7 @@ namespace shasta2 {
 
     uint64_t msaRepairImpureColumnCount(const vector<string>& rows)
     {
-        return msaRepairImpureColumnCount(msa1AlignmentFromStrings(rows));
+        return msaRepairImpureColumnCount(msaRepairAlignmentFromStrings(rows));
     }
 }
 
@@ -289,7 +289,7 @@ namespace shasta2 {
     // at one alignment column: mode, median and mean, computed together in a
     // single pass over lengthWeight so that every RunLengthEstimator shares
     // one scan instead of recomputing its own.
-    class Msa1LengthVote {
+    class MsaRepairLengthVote {
     public:
         uint64_t modeLength = 0;
         uint64_t modeWeight = 0;
@@ -298,7 +298,7 @@ namespace shasta2 {
         uint64_t weightAtMedian = 0;
         uint64_t meanLength = 0;
 
-        Msa1LengthVote(const vector<uint64_t>& lengthWeight, uint64_t maxObserved, uint64_t totalWeight)
+        MsaRepairLengthVote(const vector<uint64_t>& lengthWeight, uint64_t maxObserved, uint64_t totalWeight)
         {
             uint64_t cumulative = 0;
             uint64_t weightedSum = 0;
@@ -539,7 +539,7 @@ void shasta2::extendedConsensus(
                 // One shared pass computes mode, median and mean together; the
                 // estimator just picks which of them (or which simple function of
                 // them) to use.
-                const Msa1LengthVote vote(lengthWeight, maxObserved, totalWeight);
+                const MsaRepairLengthVote vote(lengthWeight, maxObserved, totalWeight);
 
                 switch(estimator) {
 
@@ -1148,7 +1148,7 @@ namespace shasta2 {
     // Everything the repair needs to know about a row follows from these, so
     // they are kept together rather than as index lists that have to be built
     // in one place and read in three more.
-    class Msa1RepairRow {
+    class MsaRepairRepairRow {
     public:
 
         // The window's bases for this row, ungapped and encoded.
@@ -1202,7 +1202,7 @@ namespace shasta2 {
         // it has the window deleted, and a deletion is a thing to vote for. A
         // row that does not reach the window is simply not here. Both look
         // identical in the alignment; the coverage tells them apart.
-        vector<Msa1RepairRow> rows(n);
+        vector<MsaRepairRepairRow> rows(n);
         vector<Base> windowSequence;
         windowSequence.reserve(region.end - region.begin);
         for(uint64_t i=0; i<n; i++) {
@@ -1212,7 +1212,7 @@ namespace shasta2 {
                     windowSequence.push_back(Base(alignment[i][j]));
                 }
             }
-            Msa1RepairRow& row = rows[i];
+            MsaRepairRepairRow& row = rows[i];
             encodeExtended(windowSequence, encodeThreshold, row.encoding);
 
             // Does the row reach each edge of the window? A row that stops short
@@ -1295,7 +1295,7 @@ namespace shasta2 {
         // This can only be answered for the rows that span the window; a row
         // that covers part of it says nothing about the rest.
         bool uniform = leftFixedRows.empty() and rightFixedRows.empty() and
-            std::ranges::none_of(rows, &Msa1RepairRow::isEmpty);
+            std::ranges::none_of(rows, &MsaRepairRepairRow::isEmpty);
         // Compared symbol by symbol rather than by building strings. The run
         // lengths are deliberately not part of this comparison, and comparing
         // only the symbols states that, as well as allocating nothing in what is
@@ -1443,7 +1443,7 @@ namespace shasta2 {
 
         vector< pair<uint64_t, uint64_t> > spans(n, make_pair(0UL, windowLength));
         for(uint64_t i=0; i<n; i++) {
-            const Msa1RepairRow& row = rows[i];
+            const MsaRepairRepairRow& row = rows[i];
             if(row.isEmpty) {
                 spans[i] = row.coversWindow ?
                     make_pair(0UL, windowLength) : make_pair(0UL, 0UL);
@@ -1713,7 +1713,7 @@ namespace shasta2 {
         "TCCAGCCTGGGTGACAGAGCGAGACCCCAACTC---AAAAAAAAAAAA-G--AAAAAAAAAAGTTAAACTATAAAGTAAATTCCTCCCATAGTTTCCAGCCTGGGTGACAGAGCGAGACCCCAACTC---AAAAAAAAAAAA-G--AAAAAAAAAAGTTAAACTATAAAGTAAATTCCTCCCATAGTT",
     };
 
-    static string msa1ToString(const vector<AlignedBase>& v)
+    static string msaRepairToString(const vector<AlignedBase>& v)
     {
         string s;
         for(const AlignedBase b: v) {
@@ -2706,7 +2706,7 @@ void shasta2::testMsaRepairRepair()
             "ACGTACGTAACCGGTTACGTACGT",
             "ACGTACGTAACCGGTTACGTACGT",
             "ACGTACGTAACCTGTTACGTACGT"};
-        vector< vector<AlignedBase> > a = msa1AlignmentFromStrings(cleanRows);
+        vector< vector<AlignedBase> > a = msaRepairAlignmentFromStrings(cleanRows);
         vector<AlignedBase> ac;
         vector< pair<Base, uint64_t> > c;
         const vector<uint64_t> w(a.size(), 1);
@@ -2810,20 +2810,20 @@ void shasta2::testMsaRepairRepair()
         vector<string> prefixBefore;
         vector<string> suffixBefore;
         for(const auto& row: a) {
-            prefixBefore.push_back(msa1ToString(row).substr(0, firstBegin));
-            suffixBefore.push_back(msa1ToString(row).substr(lastEnd));
+            prefixBefore.push_back(msaRepairToString(row).substr(0, firstBegin));
+            suffixBefore.push_back(msaRepairToString(row).substr(lastEnd));
         }
 
         msaRepair(a, ac, c, weights, {}, msa1TestOptions(trigger));
 
         // The prefix is at the same columns and unchanged.
         for(uint64_t i=0; i<a.size(); i++) {
-            SHASTA2_ASSERT(msa1ToString(a[i]).substr(0, firstBegin) == prefixBefore[i]);
+            SHASTA2_ASSERT(msaRepairToString(a[i]).substr(0, firstBegin) == prefixBefore[i]);
         }
         // The suffix is unchanged, though it has moved if the repair changed the
         // number of columns.
         for(uint64_t i=0; i<a.size(); i++) {
-            const string row = msa1ToString(a[i]);
+            const string row = msaRepairToString(a[i]);
             SHASTA2_ASSERT(row.substr(row.size() - tailLength) == suffixBefore[i]);
         }
         cout << "Columns outside the repaired regions are unchanged." << endl;
@@ -2936,7 +2936,7 @@ void shasta2::testMsaRepairRepair()
     {
         const string sequence = "AAAAAAAAAAAAGAAAAAAAAAAA";
         const vector<string> rows = {sequence, sequence, string(24, '-')};
-        vector< vector<AlignedBase> > a = msa1AlignmentFromStrings(rows);
+        vector< vector<AlignedBase> > a = msaRepairAlignmentFromStrings(rows);
         vector<AlignedBase> ac = vectorOfAlignedBasesFromString(sequence);
         vector< pair<Base, uint64_t> > c;
         for(const char ch: sequence) {
@@ -2954,7 +2954,7 @@ void shasta2::testMsaRepairRepair()
     {
         const string sequence = "AAAAAAAAAAAAGAAAAAAAAAAA";
         const vector<string> rows = {sequence, string(24, '-'), string(24, '-')};
-        vector< vector<AlignedBase> > a = msa1AlignmentFromStrings(rows);
+        vector< vector<AlignedBase> > a = msaRepairAlignmentFromStrings(rows);
         vector<AlignedBase> ac(24, AlignedBase::gap());
         vector< pair<Base, uint64_t> > c;
         const vector<uint64_t> w(3, 1);
@@ -2977,7 +2977,7 @@ void shasta2::testMsaRepairRepair()
         // recognisable coverage, repair it, and check the invariants.
         const auto checkOne = [&](const vector<string>& rows, MsaRepairTrigger t) -> bool
         {
-            vector< vector<AlignedBase> > a = msa1AlignmentFromStrings(rows);
+            vector< vector<AlignedBase> > a = msaRepairAlignmentFromStrings(rows);
             const vector<uint64_t> w(a.size(), 1);
 
             vector<AlignedBase> ac;
@@ -3099,7 +3099,7 @@ void shasta2::testMsaRepairRepair()
                 const vector<string>& rows,
                 const vector<Anchoring>& anchoring,
                 const string& expected) {
-                vector< vector<AlignedBase> > a = msa1AlignmentFromStrings(rows);
+                vector< vector<AlignedBase> > a = msaRepairAlignmentFromStrings(rows);
                 const vector<uint64_t> w(a.size(), 1);
 
                 // Plain column majority, which is what an aligner that counts
