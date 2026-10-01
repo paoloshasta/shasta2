@@ -151,7 +151,7 @@ AlignedExtendedBaseInitializer::AlignedExtendedBaseInitializer()
 
 
 
-// See msa1.hpp for comments.
+// See msaRepair.hpp for comments.
 void shasta2::encodeExtended(
     const vector<Base>& sequence,
     uint64_t threshold,
@@ -205,7 +205,7 @@ void shasta2::encodeExtended(
 
 
 
-// See msa1.hpp for comments.
+// See msaRepair.hpp for comments.
 void shasta2::decodeExtended(
     const ExtendedSequence& encoded,
     vector<Base>& sequence)
@@ -229,7 +229,7 @@ void shasta2::decodeExtended(
 
 
 
-// See msa1.hpp for comments.
+// See msaRepair.hpp for comments.
 void shasta2::attachRunLengths(
     const vector<AlignedExtendedBase>& alignedRow,
     const ExtendedSequence& encoded,
@@ -247,7 +247,7 @@ void shasta2::attachRunLengths(
 
     // Locate the part of the encoding that this row covers.
     // Which end theseus may have trimmed is known from the anchoring and is not
-    // inferred: see the comment in msa1.hpp for why searching the encoding for
+    // inferred: see the comment in msaRepair.hpp for why searching the encoding for
     // the row's symbols gives the wrong answer on a repeat.
     uint64_t offset = 0;
     switch(anchoring) {
@@ -339,7 +339,7 @@ namespace shasta2 {
 
 
 
-// See msa1.hpp for comments. This overload infers the spans from the gaps.
+// See msaRepair.hpp for comments. This overload infers the spans from the gaps.
 void shasta2::extendedConsensus(
     const vector<AlignedExtendedSequence>& alignment,
     const vector<uint64_t>& weights,
@@ -588,7 +588,7 @@ void shasta2::extendedConsensus(
 
 
 
-// See msa1.hpp for comments.
+// See msaRepair.hpp for comments.
 void shasta2::expandExtendedAlignment(
     const vector<AlignedExtendedSequence>& alignment,
     const AlignedExtendedSequence& alignedConsensus,
@@ -652,7 +652,7 @@ void shasta2::expandExtendedAlignment(
 
 
 
-// See msa1.hpp for comments.
+// See msaRepair.hpp for comments.
 bool shasta2::msa1PatternPresent(
     const vector<Base>& sequence,
     uint64_t threshold)
@@ -689,7 +689,7 @@ bool shasta2::msa1PatternPresent(
 
 
 
-// See msa1.hpp for comments.
+// See msaRepair.hpp for comments.
 bool shasta2::msa1LongRunPresent(
     const vector<Base>& sequence,
     uint64_t threshold)
@@ -711,7 +711,7 @@ bool shasta2::msa1LongRunPresent(
 
 
 
-// See msa1.hpp for comments.
+// See msaRepair.hpp for comments.
 bool shasta2::msa1TriggerPresent(
     const vector<Base>& sequence,
     Msa1Trigger trigger,
@@ -725,7 +725,7 @@ bool shasta2::msa1TriggerPresent(
 
 
 
-// See msa1.hpp for comments.
+// See msaRepair.hpp for comments.
 bool shasta2::msa1TriggerPresent(
     const vector< vector<Base> >& sequences,
     Msa1Trigger trigger,
@@ -738,7 +738,7 @@ bool shasta2::msa1TriggerPresent(
 
 
 
-// See msa1.hpp for comments.
+// See msaRepair.hpp for comments.
 bool shasta2::msa1TriggerPresent(
     const vector< pair<vector<Base>, uint64_t> >& sequences,
     Msa1Trigger trigger,
@@ -751,7 +751,7 @@ bool shasta2::msa1TriggerPresent(
 
 
 
-// See msa1.hpp for comments.
+// See msaRepair.hpp for comments.
 string shasta2::msa1TriggerDescription(Msa1Trigger trigger)
 {
     return (trigger == Msa1Trigger::PatternOnly) ?
@@ -810,7 +810,7 @@ namespace shasta2 {
 
 
 
-// See msa1.hpp for comments.
+// See msaRepair.hpp for comments.
 void shasta2::msa1RowCoverage(
     const vector< vector<AlignedBase> >& alignment,
     const vector<Anchoring>& anchoring,
@@ -1485,7 +1485,7 @@ namespace shasta2 {
 
 
 
-// See msa1.hpp for comments.
+// See msaRepair.hpp for comments.
 uint64_t shasta2::msa1(
     vector< vector<AlignedBase> >& alignment,
     vector<AlignedBase>& alignedConsensus,
@@ -2777,7 +2777,7 @@ void shasta2::testMsa1Repair()
         // the 60% gate, nudged up to 12 though 11 was already correct). This is
         // the documented trade-off in RunLengthEstimator, not a bug:
         // MedianMarginGated is the default because it minimizes total error
-        // over a whole assembly (see msa1.hpp), not because it is exact on
+        // over a whole assembly (see msaRepair.hpp), not because it is exact on
         // every single locus, and this is the one locus this file has always
         // checked by hand where that trade-off is visible.
         const string s = msa1ToString(c);

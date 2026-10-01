@@ -202,7 +202,7 @@ public:
     uint64_t nextEdgeId = 0;
     const Options& options;
 
-    // The homopolymer model used by msa1, or null if there is none.
+    // The homopolymer model used by msaRepair, or null if there is none.
     shared_ptr<const HomopolymerModel> homopolymerModelPointer;
 
     void check(bool writeDetails = false) const;

@@ -109,7 +109,7 @@ public:
         const string& externalAnchorsNameAbsolutePath,
         const string& externalAnchorGraphNameAbsolutePath);
 
-    // The homopolymer model used by msa1, if one was specified with
+    // The homopolymer model used by msaRepair, if one was specified with
     // --homopolymer-model. Null otherwise.
     shared_ptr<const HomopolymerModel> homopolymerModelPointer;
     void createHomopolymerModel(const string& homopolymerName);

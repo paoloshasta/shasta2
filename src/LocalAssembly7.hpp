@@ -50,7 +50,7 @@ public:
         void setMethod(const string&);
 
         // Whether to repair the bad homopolymer regions of the alignment
-        // computed by whichever Method ran, using msa1 (see msa1.hpp).
+        // computed by whichever Method ran, using msaRepair (see msaRepair.hpp).
         // Independent of Method, so any Method that produces a row alignment
         // (Adaptive, Abpoa, TheseusOnly, TheseusAll) can be repaired
         // or not. Mirrors the global Options::useMsa1 - see OptionsDefine.hpp.
@@ -120,7 +120,7 @@ public:
     // When this completes successfully, the assembled sequence is stored
     // in the sequence vector below. If an error occurs,
     // this throws a std::runtime_error.
-    // If homopolymerModelPointer is not null, msa1 uses it to choose the length of
+    // If homopolymerModelPointer is not null, msaRepair uses it to choose the length of
     // long homopolymer runs (see HomopolymerModel.hpp). Only used if
     // Options::useMsa1 is set.
     LocalAssembly7(

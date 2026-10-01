@@ -19,7 +19,7 @@ namespace shasta2 {
 
 // An empirical model of homopolymer length errors: the probability
 // P(m | n, base, strand, left, right) that a read reports a homopolymer run
-// of length m when its true length is n. Used by msa1 to choose the length of
+// of length m when its true length is n. Used by msaRepair to choose the length of
 // a long homopolymer run from the lengths observed in the reads that cover it.
 //
 // base is the base of the run as it appears in the assembly, and strand is
@@ -48,7 +48,7 @@ namespace shasta2 {
 //   probability of 0.1 is -10 dB. Working in logarithms means the evidence of
 //   many reads is added instead of multiplied, which avoids underflow.
 //
-// n starts at 2: msa1 only asks about runs of at least two bases. A value of
+// n starts at 2: msaRepair only asks about runs of at least two bases. A value of
 // n may be missing entirely for a given base and strand, typically because
 // training saw no runs of that length, and it is then never chosen. An n that
 // is present must have a line for every m from 0 to the largest m in the

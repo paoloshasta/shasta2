@@ -381,7 +381,7 @@ void shasta2::testHomopolymerModel()
     SHASTA2_ASSERT(std::abs(logPosteriorDb[3]) < 1e-9);
     SHASTA2_ASSERT(std::isfinite(logPosteriorDb[2]) and logPosteriorDb[2] < -1000.);
 
-    // The same through msa1's consensus, which must pass the strand of each
+    // The same through msaRepair's consensus, which must pass the strand of each
     // row. One poly A column, a strand 0 row of length 3 and a strand 1 row of
     // length 2. With the model this is 3. The Mode estimator sees a tie and
     // takes 2.
@@ -403,7 +403,7 @@ void shasta2::testHomopolymerModel()
         SHASTA2_ASSERT(alignedConsensus.size() == 1 and alignedConsensus.front().second == 2);
     }
 
-    // msa1's consensus passes the flanking consensus bases, in the order they
+    // msaRepair's consensus passes the flanking consensus bases, in the order they
     // appear in the assembly, skipping gap columns. Columns C, gap, poly A, G,
     // with two strand 0 rows of length 2: between C and G this is 3. The same
     // with the flanks swapped, G and C, has no row of its own and gives 2.
@@ -430,7 +430,7 @@ void shasta2::testHomopolymerModel()
     SHASTA2_ASSERT(modelPointer->mostLikelyLength(A, C, any, {vector<uint64_t>{2, 2}, vector<uint64_t>{}}) == 2);
     SHASTA2_ASSERT(modelPointer->mostLikelyLength(A, any, G, {vector<uint64_t>{2, 2}, vector<uint64_t>{}}) == 2);
 
-    // In msa1's consensus, a run at the beginning or end of the alignment has
+    // In msaRepair's consensus, a run at the beginning or end of the alignment has
     // no flank on that side, and neither does a run whose only neighbors on
     // that side are gap columns. Each of these gives 2, not the 3 of C to G.
     const auto edgeLength = [&](const string& columns) {
