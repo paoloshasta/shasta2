@@ -1754,7 +1754,7 @@ namespace shasta2 {
     // Options for a test, differing from the production defaults only in the
     // trigger. The tests exercise both triggers; everything else they take as
     // shipped, so a default that changes is exercised rather than bypassed.
-    static MsaRepairOptions msa1TestOptions(MsaRepairTrigger trigger)
+    static MsaRepairOptions msaRepairTestOptions(MsaRepairTrigger trigger)
     {
         MsaRepairOptions options;
         options.trigger = trigger;
@@ -1762,7 +1762,7 @@ namespace shasta2 {
     }
 
     // The bases of a row, with the gaps left out: the read it came from.
-    static string msa1Ungap(const vector<AlignedBase>& v)
+    static string msaRepairUngap(const vector<AlignedBase>& v)
     {
         string s;
         for(const AlignedBase b: v) {
@@ -1773,7 +1773,7 @@ namespace shasta2 {
         return s;
     }
 
-    static string msa1ToString(const vector< pair<Base, uint64_t> >& consensus)
+    static string msaRepairToString(const vector< pair<Base, uint64_t> >& consensus)
     {
         string s;
         for(const auto& [base, coverage]: consensus) {
@@ -1868,7 +1868,7 @@ void shasta2::testMsaRepairExtendedBase()
 
     // toString and the fromString helpers round trip.
     // This matters because it is how the encoding reaches theseus and comes
-    // back: msa1AlignExtended passes toString(encoded) in and parses the MSA
+    // back: msaRepairAlignExtended passes toString(encoded) in and parses the MSA
     // rows with vectorOfAlignedExtendedBasesFromString. If either mapping
     // folded 'a' into 'A', as AlignedBase::fromCharacter does, every poly
     // symbol would silently become a plain one.
@@ -1882,7 +1882,7 @@ void shasta2::testMsaRepairExtendedBase()
             ExtendedBase::fromCharacter('A').base());
 
         // AlignedBase, by contrast, would lose it. This documents exactly why
-        // msa1AlignExtended must not use vectorOfAlignedBasesFromString.
+        // msaRepairAlignExtended must not use vectorOfAlignedBasesFromString.
         SHASTA2_ASSERT(AlignedBase::fromCharacter('a') == AlignedBase::fromCharacter('A'));
     }
 
@@ -2137,7 +2137,7 @@ void shasta2::testMsaRepairExtendedBase()
         }
     }
 
-    cout << "testMsa1ExtendedBase passed." << endl;
+    cout << "testMsaRepairExtendedBase passed." << endl;
 }
 
 
@@ -2195,7 +2195,7 @@ void shasta2::testMsaRepairConsensus()
     AlignedExtendedSequence alignedConsensus;
     extendedConsensus(alignment, weights, RunLengthEstimator::Mode,
         consensus, alignedConsensus);
-    const string consensusString = msa1ToString(consensus);
+    const string consensusString = msaRepairToString(consensus);
 
     // The expected consensus. The two variable A runs come out at 12 and 11.
     //
@@ -2251,7 +2251,7 @@ void shasta2::testMsaRepairConsensus()
         AlignedExtendedSequence ignore;
         extendedConsensus(alignment, weights, RunLengthEstimator::Median,
             medianConsensus, ignore);
-        const string medianString = msa1ToString(medianConsensus);
+        const string medianString = msaRepairToString(medianConsensus);
         cout << "Mode gives length " << consensusString.size() <<
             " (correct), median gives length " << medianString.size() << "." << endl;
         SHASTA2_ASSERT(medianString != consensusString);
@@ -2324,7 +2324,7 @@ void shasta2::testMsaRepairConsensus()
                 string(12, 'A') + "GTTAAACTATAAAGTAAATTCCTCCCATAGTT" +
                 "TCCAGCCTGGGTGACAGAGCGAGACCCCAACTC" + string(10, 'A') + "G" +
                 string(12, 'A') + "GTTAAACTATAAAGTAAATTCCTCCCATAGTT";
-            SHASTA2_ASSERT(msa1ToString(skewedConsensus) == expected);
+            SHASTA2_ASSERT(msaRepairToString(skewedConsensus) == expected);
         }
     }
 
@@ -2401,7 +2401,7 @@ void shasta2::testMsaRepairConsensus()
             gapConsensus, gapAlignedConsensus);
         SHASTA2_ASSERT(gapAlignedConsensus[column].first.isGap());
         SHASTA2_ASSERT(gapAlignedConsensus[column].second == 0);
-        SHASTA2_ASSERT(msa1ToString(gapConsensus) == consensusString);
+        SHASTA2_ASSERT(msaRepairToString(gapConsensus) == consensusString);
     }
 
 
@@ -2429,7 +2429,7 @@ void shasta2::testMsaRepairConsensus()
         AlignedExtendedSequence paddedAlignedConsensus;
         extendedConsensus(paddedAlignment, weights, RunLengthEstimator::Mode,
             paddedConsensus, paddedAlignedConsensus);
-        SHASTA2_ASSERT(msa1ToString(paddedConsensus) == consensusString);
+        SHASTA2_ASSERT(msaRepairToString(paddedConsensus) == consensusString);
 
         // Told explicitly that every row is anchored on both sides, the same
         // gaps are deletions and the first half does go away. The two readings
@@ -2463,7 +2463,7 @@ void shasta2::testMsaRepairConsensus()
         vector< pair<Base, uint64_t> > c;
         AlignedExtendedSequence ac;
         extendedConsensus(a, {1, 1, 1}, RunLengthEstimator::Mode, c, ac);
-        SHASTA2_ASSERT(msa1ToString(c) == "ACGTACGTAC");
+        SHASTA2_ASSERT(msaRepairToString(c) == "ACGTACGTAC");
         SHASTA2_ASSERT(c[4].second == 2);
         SHASTA2_ASSERT(c[0].second == 3);
     }
@@ -2578,7 +2578,7 @@ void shasta2::testMsaRepairConsensus()
             one.push_back(make_pair(AlignedExtendedBase(e), runLength));
         }
         extendedConsensus({one}, {7}, RunLengthEstimator::Mode, c, ac);
-        SHASTA2_ASSERT(msa1ToString(c) == "CTC" + string(12, 'A') + "G" + string(11, 'A'));
+        SHASTA2_ASSERT(msaRepairToString(c) == "CTC" + string(12, 'A') + "G" + string(11, 'A'));
         for(const auto& [base, coverage]: c) {
             SHASTA2_ASSERT(coverage == 7);
         }
@@ -2594,7 +2594,7 @@ void shasta2::testMsaRepairConsensus()
         SHASTA2_ASSERT(ac[0].first.isGap() and ac[1].first.isGap());
     }
 
-    cout << "testMsa1Consensus passed." << endl;
+    cout << "testMsaRepairConsensus passed." << endl;
 }
 
 
@@ -2719,7 +2719,7 @@ void shasta2::testMsaRepairRepair()
         const auto acBefore = ac;
         const auto cBefore = c;
 
-        const uint64_t repaired = msaRepair(a, ac, c, w, {}, msa1TestOptions(trigger));
+        const uint64_t repaired = msaRepair(a, ac, c, w, {}, msaRepairTestOptions(trigger));
         SHASTA2_ASSERT(repaired == 0);
         SHASTA2_ASSERT(a == aBefore);
         SHASTA2_ASSERT(ac == acBefore);
@@ -2743,7 +2743,7 @@ void shasta2::testMsaRepairRepair()
         cout << "Found " << regions.size() << " bad region(s) in the real alignment." << endl;
         SHASTA2_ASSERT(not regions.empty());
 
-        const uint64_t repaired = msaRepair(a, ac, c, weights, {}, msa1TestOptions(trigger));
+        const uint64_t repaired = msaRepair(a, ac, c, weights, {}, msaRepairTestOptions(trigger));
         cout << "Repaired " << repaired << " region(s)." << endl;
         SHASTA2_ASSERT(repaired > 0);
 
@@ -2758,7 +2758,7 @@ void shasta2::testMsaRepairRepair()
         // Every row still ungaps to its original read: the repair rearranges
         // columns, it does not alter the reads.
         for(uint64_t i=0; i<a.size(); i++) {
-            SHASTA2_ASSERT(msa1Ungap(a[i]) == reads[i]);
+            SHASTA2_ASSERT(msaRepairUngap(a[i]) == reads[i]);
         }
 
         // All rows still have the length of the aligned consensus.
@@ -2767,7 +2767,7 @@ void shasta2::testMsaRepairRepair()
         }
 
         // consensus is alignedConsensus with the gaps removed.
-        SHASTA2_ASSERT(msa1Ungap(ac) == msa1ToString(c));
+        SHASTA2_ASSERT(msaRepairUngap(ac) == msaRepairToString(c));
 
         // The known true run lengths at this locus are 12 and 11 (see the 19
         // sequences above). The production default, MedianMarginGated, gets
@@ -2780,7 +2780,7 @@ void shasta2::testMsaRepairRepair()
         // over a whole assembly (see msaRepair.hpp), not because it is exact on
         // every single locus, and this is the one locus this file has always
         // checked by hand where that trade-off is visible.
-        const string s = msa1ToString(c);
+        const string s = msaRepairToString(c);
         const string expected =
             "TCCAGCCTGGGTGACAGAGCGAGACCCCAACTCAAAAAAAAAAAAGAAAAAAAAAAAAGTT"
             "AAACTATAAAGTAAATTCCTCCCATAGTT"
@@ -2814,7 +2814,7 @@ void shasta2::testMsaRepairRepair()
             suffixBefore.push_back(msaRepairToString(row).substr(lastEnd));
         }
 
-        msaRepair(a, ac, c, weights, {}, msa1TestOptions(trigger));
+        msaRepair(a, ac, c, weights, {}, msaRepairTestOptions(trigger));
 
         // The prefix is at the same columns and unchanged.
         for(uint64_t i=0; i<a.size(); i++) {
@@ -2879,7 +2879,7 @@ void shasta2::testMsaRepairRepair()
         SHASTA2_ASSERT(insideCount > 0);
         SHASTA2_ASSERT(insideCount < c.size());
 
-        SHASTA2_ASSERT(msaRepair(a, ac, c, weights, {}, msa1TestOptions(trigger)) > 0);
+        SHASTA2_ASSERT(msaRepair(a, ac, c, weights, {}, msaRepairTestOptions(trigger)) > 0);
 
         // The bases before the first repaired region and after the last must be
         // unchanged, coverage and all.
@@ -2943,9 +2943,9 @@ void shasta2::testMsaRepairRepair()
             c.push_back(make_pair(Base::fromCharacter(ch), 2UL));
         }
         const vector<uint64_t> w(3, 1);
-        msaRepair(a, ac, c, w, {}, msa1TestOptions(trigger));
-        SHASTA2_ASSERT(msa1ToString(c) == sequence);
-        SHASTA2_ASSERT(msa1Ungap(a[2]).empty());
+        msaRepair(a, ac, c, w, {}, msaRepairTestOptions(trigger));
+        SHASTA2_ASSERT(msaRepairToString(c) == sequence);
+        SHASTA2_ASSERT(msaRepairUngap(a[2]).empty());
     }
 
 
@@ -2958,9 +2958,9 @@ void shasta2::testMsaRepairRepair()
         vector<AlignedBase> ac(24, AlignedBase::gap());
         vector< pair<Base, uint64_t> > c;
         const vector<uint64_t> w(3, 1);
-        msaRepair(a, ac, c, w, {}, msa1TestOptions(trigger));
+        msaRepair(a, ac, c, w, {}, msaRepairTestOptions(trigger));
         SHASTA2_ASSERT(c.empty());
-        SHASTA2_ASSERT(msa1Ungap(a[0]) == sequence);
+        SHASTA2_ASSERT(msaRepairUngap(a[0]) == sequence);
     }
 
 
@@ -2995,19 +2995,19 @@ void shasta2::testMsaRepairRepair()
             const auto cBefore = c;
             vector<string> readsBefore;
             for(const auto& row: a) {
-                readsBefore.push_back(msa1Ungap(row));
+                readsBefore.push_back(msaRepairUngap(row));
             }
             const uint64_t impureBefore = msaRepairImpureColumnCount(a);
 
-            const uint64_t repaired = msaRepair(a, ac, c, w, {}, msa1TestOptions(t));
+            const uint64_t repaired = msaRepair(a, ac, c, w, {}, msaRepairTestOptions(t));
 
             for(const auto& row: a) {
                 SHASTA2_ASSERT(row.size() == ac.size());
             }
             for(uint64_t i=0; i<a.size(); i++) {
-                SHASTA2_ASSERT(msa1Ungap(a[i]) == readsBefore[i]);
+                SHASTA2_ASSERT(msaRepairUngap(a[i]) == readsBefore[i]);
             }
-            SHASTA2_ASSERT(msa1Ungap(ac) == msa1ToString(c));
+            SHASTA2_ASSERT(msaRepairUngap(ac) == msaRepairToString(c));
             const uint64_t impureAfter = msaRepairImpureColumnCount(a);
             SHASTA2_ASSERT(impureAfter <= impureBefore);
             if(repaired == 0) {
@@ -3109,7 +3109,7 @@ void shasta2::testMsaRepairRepair()
                 msaRepairColumnConsensus(a, w, ac, c);
 
                 msaRepair(a, ac, c, w, anchoring);
-                SHASTA2_ASSERT(msa1ToString(c) == expected);
+                SHASTA2_ASSERT(msaRepairToString(c) == expected);
             };
             const Anchoring both = Anchoring::BothSides;
             const Anchoring left = Anchoring::LeftOnly;
@@ -3225,7 +3225,7 @@ void shasta2::testMsaRepairRepair()
         vector< vector<AlignedBase> > a;
         vector<AlignedBase> ac;
         vector< pair<Base, uint64_t> > c;
-        SHASTA2_ASSERT(msaRepair(a, ac, c, {}, {}, msa1TestOptions(trigger)) == 0);
+        SHASTA2_ASSERT(msaRepair(a, ac, c, {}, {}, msaRepairTestOptions(trigger)) == 0);
 
         // A single row cannot disagree with the consensus, so nothing is found.
         a.push_back(vectorOfAlignedBasesFromString(
@@ -3236,9 +3236,9 @@ void shasta2::testMsaRepairRepair()
             c.push_back(make_pair(Base(b), 1UL));
         }
         const auto aBefore = a;
-        SHASTA2_ASSERT(msaRepair(a, ac, c, {}, {}, msa1TestOptions(trigger)) == 0);
+        SHASTA2_ASSERT(msaRepair(a, ac, c, {}, {}, msaRepairTestOptions(trigger)) == 0);
         SHASTA2_ASSERT(a == aBefore);
     }
 
-    cout << "testMsa1Repair passed." << endl;
+    cout << "testMsaRepairRepair passed." << endl;
 }
