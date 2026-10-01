@@ -574,7 +574,7 @@ public:
 
 
 
-// Class ExtendedBase represents a symbol of the extended alphabet used by msa1.
+// Class ExtendedBase represents a symbol of the extended alphabet used by msaRepair.
 //
 // Aligning ONT reads in the plain ACGT alphabet misplaces bases that border a
 // long homopolymer run. A gap costs gap_open + gap_extend while a mismatch
@@ -695,7 +695,7 @@ public:
     //
     // Derived from the base rather than tabulated, so that "lower case means
     // poly" is one expression the reader can check, instead of a table they have
-    // to check against the one in msa1.cpp.
+    // to check against the one in msaRepair.cpp.
     char character() const
     {
         checkValid();
