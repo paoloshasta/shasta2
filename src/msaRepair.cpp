@@ -714,10 +714,10 @@ bool shasta2::msa1LongRunPresent(
 // See msaRepair.hpp for comments.
 bool shasta2::msa1TriggerPresent(
     const vector<Base>& sequence,
-    Msa1Trigger trigger,
+    MsaRepairTrigger trigger,
     uint64_t threshold)
 {
-    if(trigger == Msa1Trigger::PatternOnly) {
+    if(trigger == MsaRepairTrigger::PatternOnly) {
         return msa1PatternPresent(sequence, threshold);
     }
     return msa1LongRunPresent(sequence, threshold);
@@ -728,7 +728,7 @@ bool shasta2::msa1TriggerPresent(
 // See msaRepair.hpp for comments.
 bool shasta2::msa1TriggerPresent(
     const vector< vector<Base> >& sequences,
-    Msa1Trigger trigger,
+    MsaRepairTrigger trigger,
     uint64_t threshold)
 {
     return std::ranges::any_of(sequences, [&](const vector<Base>& sequence) {
@@ -741,7 +741,7 @@ bool shasta2::msa1TriggerPresent(
 // See msaRepair.hpp for comments.
 bool shasta2::msa1TriggerPresent(
     const vector< pair<vector<Base>, uint64_t> >& sequences,
-    Msa1Trigger trigger,
+    MsaRepairTrigger trigger,
     uint64_t threshold)
 {
     return std::ranges::any_of(sequences, [&](const auto& sequenceAndCoverage) {
@@ -752,9 +752,9 @@ bool shasta2::msa1TriggerPresent(
 
 
 // See msaRepair.hpp for comments.
-string shasta2::msa1TriggerDescription(Msa1Trigger trigger)
+string shasta2::msa1TriggerDescription(MsaRepairTrigger trigger)
 {
-    return (trigger == Msa1Trigger::PatternOnly) ?
+    return (trigger == MsaRepairTrigger::PatternOnly) ?
         "a long homopolymer run bordered by a single base" :
         "a long homopolymer run";
 }
@@ -873,7 +873,7 @@ void shasta2::msa1RowCoverage(
 void shasta2::msa1FindBadRegions(
     const vector< vector<AlignedBase> >& alignment,
     const vector<AlignedBase>& alignedConsensus,
-    Msa1Trigger trigger,
+    MsaRepairTrigger trigger,
     uint64_t threshold,
     uint64_t flank,
     uint64_t mergeDistance,
@@ -1754,7 +1754,7 @@ namespace shasta2 {
     // Options for a test, differing from the production defaults only in the
     // trigger. The tests exercise both triggers; everything else they take as
     // shipped, so a default that changes is exercised rather than bypassed.
-    static Msa1Options msa1TestOptions(Msa1Trigger trigger)
+    static Msa1Options msa1TestOptions(MsaRepairTrigger trigger)
     {
         Msa1Options options;
         options.trigger = trigger;
@@ -2612,7 +2612,7 @@ void shasta2::testMsa1Repair()
     // These tests were written against the pattern trigger and assert on the
     // regions it finds, so they pin that trigger explicitly rather than
     // following the default.
-    const Msa1Trigger trigger = Msa1Trigger::PatternOnly;
+    const MsaRepairTrigger trigger = MsaRepairTrigger::PatternOnly;
 
     // Build the real, defective abpoa alignment.
     vector< vector<AlignedBase> > alignment;
@@ -2643,7 +2643,7 @@ void shasta2::testMsa1Repair()
         for(const string& r: reads) {
             sequences.push_back(vectorOfBasesFromString(r));
         }
-        SHASTA2_ASSERT(msa1TriggerPresent(sequences, Msa1Trigger::PatternOnly, threshold));
+        SHASTA2_ASSERT(msa1TriggerPresent(sequences, MsaRepairTrigger::PatternOnly, threshold));
 
         // And it must not fire on ordinary sequence with no long runs. This is
         // the common case in real reads, where 97% of runs are 4 bases or
@@ -2651,22 +2651,22 @@ void shasta2::testMsa1Repair()
         const vector< vector<Base> > ordinary = {
             vectorOfBasesFromString("ACGTACGTAACCGGTTACGTACGT"),
             vectorOfBasesFromString("ACGTACGTAACCGGTTACGTACGT")};
-        SHASTA2_ASSERT(not msa1TriggerPresent(ordinary, Msa1Trigger::PatternOnly, threshold));
+        SHASTA2_ASSERT(not msa1TriggerPresent(ordinary, MsaRepairTrigger::PatternOnly, threshold));
 
         // Nor on a single long run with no separating base.
         const vector< vector<Base> > oneRun = {
             vectorOfBasesFromString("ACGT" + string(20, 'A') + "CGTA")};
-        SHASTA2_ASSERT(not msa1TriggerPresent(oneRun, Msa1Trigger::PatternOnly, threshold));
+        SHASTA2_ASSERT(not msa1TriggerPresent(oneRun, MsaRepairTrigger::PatternOnly, threshold));
 
         // Nor when the two long runs are separated by more than one base.
         const vector< vector<Base> > twoBases = {
             vectorOfBasesFromString(string(12, 'A') + "GT" + string(11, 'A'))};
-        SHASTA2_ASSERT(not msa1TriggerPresent(twoBases, Msa1Trigger::PatternOnly, threshold));
+        SHASTA2_ASSERT(not msa1TriggerPresent(twoBases, MsaRepairTrigger::PatternOnly, threshold));
 
         // But yes when they are separated by exactly one.
         const vector< vector<Base> > oneBase = {
             vectorOfBasesFromString(string(12, 'A') + "G" + string(11, 'A'))};
-        SHASTA2_ASSERT(msa1TriggerPresent(oneBase, Msa1Trigger::PatternOnly, threshold));
+        SHASTA2_ASSERT(msa1TriggerPresent(oneBase, MsaRepairTrigger::PatternOnly, threshold));
 
         // The exact boundaries of the pattern, on the single sequence primitive.
         // A run must be strictly longer than the threshold on BOTH sides, and
@@ -2975,7 +2975,7 @@ void shasta2::testMsa1Repair()
     {
         // Build an alignment from rows, give it a column majority consensus with
         // recognisable coverage, repair it, and check the invariants.
-        const auto checkOne = [&](const vector<string>& rows, Msa1Trigger t) -> bool
+        const auto checkOne = [&](const vector<string>& rows, MsaRepairTrigger t) -> bool
         {
             vector< vector<AlignedBase> > a = msa1AlignmentFromStrings(rows);
             const vector<uint64_t> w(a.size(), 1);
@@ -3070,7 +3070,7 @@ void shasta2::testMsa1Repair()
             {A12 + "G" + A11, string(14, '-') + string(10, 'A'),
              string(14, '-') + string(10, 'A')}
         };
-        for(const Msa1Trigger t: {Msa1Trigger::PatternOnly, Msa1Trigger::AnyLongRun}) {
+        for(const MsaRepairTrigger t: {MsaRepairTrigger::PatternOnly, MsaRepairTrigger::AnyLongRun}) {
             uint64_t repairedCases = 0;
             for(const vector<string>& rows: cases) {
                 if(checkOne(rows, t)) {
@@ -3078,7 +3078,7 @@ void shasta2::testMsa1Repair()
                 }
             }
             cout << "Checked " << cases.size() << " adversarial alignments with the " <<
-                ((t == Msa1Trigger::PatternOnly) ? "pattern" : "any long run") <<
+                ((t == MsaRepairTrigger::PatternOnly) ? "pattern" : "any long run") <<
                 " trigger, " << repairedCases << " of them repaired." << endl;
             SHASTA2_ASSERT(repairedCases > 0);
         }
@@ -3209,7 +3209,7 @@ void shasta2::testMsa1Repair()
                 }
                 rows.push_back(padded);
             }
-            if(checkOne(rows, (trial % 2) ? Msa1Trigger::AnyLongRun : Msa1Trigger::PatternOnly)) {
+            if(checkOne(rows, (trial % 2) ? MsaRepairTrigger::AnyLongRun : MsaRepairTrigger::PatternOnly)) {
                 ++randomRepaired;
             }
         }

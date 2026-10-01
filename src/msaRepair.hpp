@@ -302,7 +302,7 @@ namespace shasta2 {
     // computeAlignment = bool(html), so with html off there is no alignment to
     // repair and one has to be asked for.
     // What makes a region worth repairing.
-    enum class Msa1Trigger {
+    enum class MsaRepairTrigger {
 
         // Only the problem pattern: two homopolymer runs longer than the
         // threshold separated by a single base. This is the case where an
@@ -320,7 +320,7 @@ namespace shasta2 {
 
     // A human readable phrase for what a trigger looks for, for a caller
     // explaining in a report why a repair did or did not fire.
-    string msa1TriggerDescription(Msa1Trigger trigger);
+    string msa1TriggerDescription(MsaRepairTrigger trigger);
 
 
     // One sequence. This is the primitive the others are built on. It walks the
@@ -331,7 +331,7 @@ namespace shasta2 {
         uint64_t threshold = defaultHomopolymerThreshold);
 
     // True if the sequence contains any homopolymer run longer than the
-    // threshold. This is the test for Msa1Trigger::AnyLongRun.
+    // threshold. This is the test for MsaRepairTrigger::AnyLongRun.
     bool msa1LongRunPresent(
         const vector<Base>& sequence,
         uint64_t threshold = defaultHomopolymerThreshold);
@@ -339,7 +339,7 @@ namespace shasta2 {
     // Either test, chosen by the trigger.
     bool msa1TriggerPresent(
         const vector<Base>& sequence,
-        Msa1Trigger trigger,
+        MsaRepairTrigger trigger,
         uint64_t threshold = defaultHomopolymerThreshold);
 
     // Any of several sequences. Note these take DISTINCT sequences: a caller
@@ -350,13 +350,13 @@ namespace shasta2 {
     // long run early in the first read costs one short walk.
     bool msa1TriggerPresent(
         const vector< vector<Base> >& sequences,
-        Msa1Trigger trigger,
+        MsaRepairTrigger trigger,
         uint64_t threshold = defaultHomopolymerThreshold);
 
     // Same, for sequences that carry a coverage.
     bool msa1TriggerPresent(
         const vector< pair<vector<Base>, uint64_t> >& sequences,
-        Msa1Trigger trigger,
+        MsaRepairTrigger trigger,
         uint64_t threshold = defaultHomopolymerThreshold);
 
 
@@ -385,7 +385,7 @@ namespace shasta2 {
     void msa1FindBadRegions(
         const vector< vector<AlignedBase> >& alignment,
         const vector<AlignedBase>& alignedConsensus,
-        Msa1Trigger trigger,
+        MsaRepairTrigger trigger,
         uint64_t threshold,
         uint64_t flank,
         uint64_t mergeDistance,
@@ -418,8 +418,8 @@ namespace shasta2 {
     class Msa1Options {
     public:
 
-        // What makes a region worth repairing. See Msa1Trigger.
-        Msa1Trigger trigger = Msa1Trigger::AnyLongRun;
+        // What makes a region worth repairing. See MsaRepairTrigger.
+        MsaRepairTrigger trigger = MsaRepairTrigger::AnyLongRun;
 
         // Which runs are long enough to be worth repairing.
         // This controls how much of the alignment is touched, and nothing else.
