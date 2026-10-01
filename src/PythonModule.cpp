@@ -16,7 +16,7 @@
 #include "HomopolymerModel.hpp"
 #include "LongBaseSequence.hpp"
 #include "mappedCopy.hpp"
-#include "msa1.hpp"
+#include "msaRepair.hpp"
 #include "MultithreadedObject.hpp"
 #include "Options.hpp"
 #include "performanceLog.hpp"

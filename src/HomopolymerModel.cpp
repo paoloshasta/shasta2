@@ -1,7 +1,7 @@
 // Shasta.
 #include "HomopolymerModel.hpp"
 #include "invalid.hpp"
-#include "msa1.hpp"
+#include "msaRepair.hpp"
 #include "SHASTA2_ASSERT.hpp"
 #include "tmpDirectory.hpp"
 using namespace shasta2;

@@ -1,5 +1,5 @@
 // Shasta2.
-#include "msa1.hpp"
+#include "msaRepair.hpp"
 #include "HomopolymerModel.hpp"
 #include "invalid.hpp"
 #include "SHASTA2_ASSERT.hpp"

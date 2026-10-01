@@ -5,7 +5,7 @@
 #include "deduplicate.hpp"
 #include "findReachableVertices.hpp"
 #include "graphvizToHtml.hpp"
-#include "msa1.hpp"
+#include "msaRepair.hpp"
 #include "Reads.hpp"
 #include "theseusWrapper.hpp"
 #include "tmpDirectory.hpp"
