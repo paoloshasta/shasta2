@@ -5,7 +5,7 @@
 #include "SHASTA2_ASSERT.hpp"
 using namespace shasta2;
 
-// Theseus. Used directly, not through theseusWrapper: see msa1AlignExtended
+// Theseus. Used directly, not through theseusWrapper: see msaRepairAlignExtended
 // below for why.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wfloat-conversion"
@@ -27,8 +27,8 @@ namespace shasta2 {
     // through the extended alphabet - an AlignedExtendedSequence never
     // appears bare. These let the handful of functions that only care where
     // the gaps are work on both without being written twice.
-    inline bool msa1IsGap(AlignedBase b) { return b.isGap(); }
-    template<class Symbol> inline bool msa1IsGap(const pair<Symbol, uint64_t>& p)
+    inline bool msaRepairIsGap(AlignedBase b) { return b.isGap(); }
+    template<class Symbol> inline bool msaRepairIsGap(const pair<Symbol, uint64_t>& p)
     {
         return p.first.isGap();
     }
@@ -39,12 +39,12 @@ namespace shasta2 {
     // Which end of a row is padding and which is a deletion is decided from
     // this, in more than one place, so it has to mean the same thing in all of
     // them.
-    template<class Row> pair<uint64_t, uint64_t> msa1BaseSpan(const Row& row)
+    template<class Row> pair<uint64_t, uint64_t> msaRepairBaseSpan(const Row& row)
     {
         uint64_t first = row.size();
         uint64_t last = 0;
         for(uint64_t j=0; j<row.size(); j++) {
-            if(not msa1IsGap(row[j])) {
+            if(not msaRepairIsGap(row[j])) {
                 if(first == row.size()) {
                     first = j;
                 }
@@ -65,7 +65,7 @@ namespace shasta2 {
     // because a read that has neither contributes a gap, not a base. The repair
     // guards itself with this and the tests assert on it, so both must be the
     // same code or the guard and the test can disagree.
-    uint64_t msa1ImpureColumnCount(
+    uint64_t msaRepairImpureColumnCount(
         const vector< vector<AlignedBase> >& rows,
         uint64_t begin,
         uint64_t end)
@@ -86,10 +86,10 @@ namespace shasta2 {
         return impureColumnCount;
     }
 
-    uint64_t msa1ImpureColumnCount(const vector< vector<AlignedBase> >& rows)
+    uint64_t msaRepairImpureColumnCount(const vector< vector<AlignedBase> >& rows)
     {
         return rows.empty() ? 0 :
-            msa1ImpureColumnCount(rows, 0, rows.front().size());
+                msaRepairImpureColumnCount(rows, 0, rows.front().size());
     }
 
     // An alignment written as one string per row, '-' for a gap. This is how the
@@ -104,9 +104,9 @@ namespace shasta2 {
         return alignment;
     }
 
-    uint64_t msa1ImpureColumnCount(const vector<string>& rows)
+    uint64_t msaRepairImpureColumnCount(const vector<string>& rows)
     {
-        return msa1ImpureColumnCount(msa1AlignmentFromStrings(rows));
+        return msaRepairImpureColumnCount(msa1AlignmentFromStrings(rows));
     }
 }
 
@@ -352,7 +352,7 @@ void shasta2::extendedConsensus(
     vector< pair<uint64_t, uint64_t> > spans;
     spans.reserve(alignment.size());
     for(const AlignedExtendedSequence& row: alignment) {
-        spans.push_back(msa1BaseSpan(row));
+        spans.push_back(msaRepairBaseSpan(row));
     }
 
     extendedConsensus(alignment, weights, estimator, spans,
@@ -842,7 +842,7 @@ void shasta2::msaRepairRowCoverage(
             coverage.push_back(make_pair(0UL, alignmentLength));
             continue;
         }
-        const pair<uint64_t, uint64_t> baseSpan = msa1BaseSpan(alignment[i]);
+        const pair<uint64_t, uint64_t> baseSpan = msaRepairBaseSpan(alignment[i]);
         const bool noBases = (baseSpan.first == baseSpan.second);
 
         switch(rowAnchoring) {
@@ -1052,12 +1052,12 @@ namespace shasta2 {
     // change here cannot affect theseus()'s own callers or vice versa.
     // Theseus needs no change to accept the extended alphabet: it only ever
     // compares two characters with ==, so it passes through as the string
-    // ACGTacgt (see ExtendedBase in msa1.hpp).
+    // ACGTacgt (see ExtendedBase in msaRepair.hpp).
     //
     // Only the alignment is computed, not the consensus: a consensus over
     // the extended alphabet also needs the run lengths, which theseus does
     // not have. See extendedConsensus for that.
-    static void msa1AlignExtended(
+    static void msaRepairAlignExtended(
         const vector< pair<ExtendedSequence, uint64_t> >& fixedSequences,
         const vector< pair<ExtendedSequence, uint64_t> >& leftFixedSequences,
         const vector< pair<ExtendedSequence, uint64_t> >& rightFixedSequences,
@@ -1352,7 +1352,7 @@ namespace shasta2 {
                 return encoded;
             };
             vector< vector<AlignedExtendedBase> > alignedSymbols;
-            msa1AlignExtended(encodedGroup(fixedRows), encodedGroup(leftFixedRows),
+            msaRepairAlignExtended(encodedGroup(fixedRows), encodedGroup(leftFixedRows),
                 encodedGroup(rightFixedRows), alignedSymbols);
             SHASTA2_ASSERT(alignedSymbols.size() ==
                 fixedRows.size() + leftFixedRows.size() + rightFixedRows.size());
@@ -1431,7 +1431,7 @@ namespace shasta2 {
         // each end that is not anchored. An empty result means the row has
         // nothing left to say and abstains.
         const auto span = [&](uint64_t i, bool anchoredLeft, bool anchoredRight) {
-            const auto [baseFirst, baseEnd] = msa1BaseSpan(extendedAlignment[i]);
+            const auto [baseFirst, baseEnd] = msaRepairBaseSpan(extendedAlignment[i]);
             const uint64_t first = anchoredLeft ? 0 : (baseFirst + 1);
             const uint64_t end = anchoredRight ? windowLength :
                 ((baseEnd > 0) ? (baseEnd - 1) : 0);
@@ -1576,8 +1576,8 @@ uint64_t shasta2::msaRepair(
         // than something the tests have to keep checking for.
         {
             const uint64_t before =
-                msa1ImpureColumnCount(alignment, region.begin, region.end);
-            const uint64_t after = msa1ImpureColumnCount(newRows);
+                    msaRepairImpureColumnCount(alignment, region.begin, region.end);
+            const uint64_t after = msaRepairImpureColumnCount(newRows);
             if(after > before) {
                 continue;
             }
@@ -2151,7 +2151,7 @@ void shasta2::testMsaRepairConsensus()
     // Confirm the input really is defective. If this stops being true the test
     // has lost its point.
     {
-        const uint64_t impureColumnCount = msa1ImpureColumnCount(msa1BadAlignmentRows);
+        const uint64_t impureColumnCount = msaRepairImpureColumnCount(msa1BadAlignmentRows);
         cout << "The input alignment has " << impureColumnCount <<
             " columns containing more than one base." << endl;
         SHASTA2_ASSERT(impureColumnCount == 4);
@@ -2296,7 +2296,7 @@ void shasta2::testMsaRepairConsensus()
         // input had 4. This is structural: a poly symbol and the base next to it
         // are different symbols and get different columns, so they cannot be
         // confused.
-        const uint64_t impureColumnCount = msa1ImpureColumnCount(expandedRows);
+        const uint64_t impureColumnCount = msaRepairImpureColumnCount(expandedRows);
         cout << "The expanded alignment has " << impureColumnCount <<
             " columns containing more than one base, in " <<
             expandedAlignedConsensus.size() << " columns." << endl;
@@ -2736,7 +2736,7 @@ void shasta2::testMsaRepairRepair()
         vector< pair<Base, uint64_t> > c = consensus;
 
         // Before: 4 columns hold more than one base.
-        SHASTA2_ASSERT(msa1ImpureColumnCount(a) == 4);
+        SHASTA2_ASSERT(msaRepairImpureColumnCount(a) == 4);
 
         vector<MsaRepairRegion> regions;
         msaRepairFindBadRegions(a, ac, trigger, threshold, 10, 20, {}, regions);
@@ -2749,7 +2749,7 @@ void shasta2::testMsaRepairRepair()
 
         // After: no column holds more than one base.
         {
-            const uint64_t impure = msa1ImpureColumnCount(a);
+            const uint64_t impure = msaRepairImpureColumnCount(a);
             cout << "After repair the alignment has " << impure <<
                 " columns containing more than one base." << endl;
             SHASTA2_ASSERT(impure == 0);
@@ -2997,7 +2997,7 @@ void shasta2::testMsaRepairRepair()
             for(const auto& row: a) {
                 readsBefore.push_back(msa1Ungap(row));
             }
-            const uint64_t impureBefore = msa1ImpureColumnCount(a);
+            const uint64_t impureBefore = msaRepairImpureColumnCount(a);
 
             const uint64_t repaired = msaRepair(a, ac, c, w, {}, msa1TestOptions(t));
 
@@ -3008,7 +3008,7 @@ void shasta2::testMsaRepairRepair()
                 SHASTA2_ASSERT(msa1Ungap(a[i]) == readsBefore[i]);
             }
             SHASTA2_ASSERT(msa1Ungap(ac) == msa1ToString(c));
-            const uint64_t impureAfter = msa1ImpureColumnCount(a);
+            const uint64_t impureAfter = msaRepairImpureColumnCount(a);
             SHASTA2_ASSERT(impureAfter <= impureBefore);
             if(repaired == 0) {
                 SHASTA2_ASSERT(a == aBefore);
