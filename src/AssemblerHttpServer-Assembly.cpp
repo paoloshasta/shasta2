@@ -6,7 +6,6 @@
 #include "deduplicate.hpp"
 #include "findConvergingVertex.hpp"
 #include "GTest.hpp"
-#include "LocalAssembly6.hpp"
 #include "LocalAssembly7.hpp"
 #include "Markers.hpp"
 #include "RestrictedAnchorGraph.hpp"
@@ -881,9 +880,6 @@ void Assembler::exploreSegmentStep(
     const bool stepIdStringIsPresent = HttpServer::getParameterValue(request, "stepId", stepIdString);
     boost::trim(stepIdString);
 
-    int localAssemblyVersion = 7;
-    getParameterValue(request, "localAssemblyVersion", localAssemblyVersion);
-
 
 
     // LocalAssembly7::Options.
@@ -943,13 +939,6 @@ void Assembler::exploreSegmentStep(
         html << " value='" << stepIdString + "'";
     }
     html << ">";
-
-    html <<
-        "<tr><th class=left>Local assembly version<td class=centered>"
-        "<input type=radio name=localAssemblyVersion value=6" <<
-        (localAssemblyVersion == 6 ? " checked=on" : "") << "> 6"
-        "<br><input type=radio name=localAssemblyVersion value=7" <<
-        (localAssemblyVersion == 7 ? " checked=on" : "") << "> 7";
 
     html <<
         "<tr><th class=left>aExtend<td class=centered>"
@@ -1106,33 +1095,14 @@ void Assembler::exploreSegmentStep(
 
 
     // Do the local assembly.
-    switch(localAssemblyVersion) {
-    case 6:
-        {
-            LocalAssembly6 localAssembly(
-                anchors(),
-                anchorPair.anchorIdA,
-                anchorPair.anchorIdB,
-                html,
-                orientedReadIds);
-            return;
-        }
-    case 7:
-        {
-            LocalAssembly7 localAssembly(
-                localAssembly7Options,
-                anchors(),
-                useHomopolymerModel ? homopolymerModelPointer : nullptr,
-                anchorPair.anchorIdA,
-                anchorPair.anchorIdB,
-                html,
-                orientedReadIds);
-            return;
-        }
-    default:
-        SHASTA2_ASSERT(0);
-    }
-
+    LocalAssembly7 localAssembly(
+        localAssembly7Options,
+        anchors(),
+        useHomopolymerModel ? homopolymerModelPointer : nullptr,
+        anchorPair.anchorIdA,
+        anchorPair.anchorIdB,
+        html,
+        orientedReadIds);
 }
 
 
