@@ -22,12 +22,9 @@ const uint64_t HomopolymerModel::unknownFlank = 4;
 
 
 // See HomopolymerModel.hpp for the file format.
-HomopolymerModel::HomopolymerModel(const string& fileName)
+HomopolymerModel::HomopolymerModel(istream& file)
 {
-    ifstream file(fileName);
-    if(not file) {
-        throw runtime_error("Could not open homopolymer model " + fileName);
-    }
+    SHASTA2_ASSERT(file);
 
     const string expectedHeader = "base,strand,left,right,n,m,count,probability,logProbabilityDb";
     string line;
@@ -36,8 +33,7 @@ HomopolymerModel::HomopolymerModel(const string& fileName)
         line.pop_back();
     }
     if(line != expectedHeader) {
-        throw runtime_error("Homopolymer model " + fileName +
-            " does not begin with the expected header " + expectedHeader);
+        throw runtime_error("Homopolymer model: invalid format. Missing expected header " + expectedHeader);
     }
 
     // Read all the lines first, because the size of the table is only known
@@ -63,7 +59,7 @@ HomopolymerModel::HomopolymerModel(const string& fileName)
         if(line.empty()) {
             continue;
         }
-        const string where = fileName + " line " + to_string(lineNumber);
+        const string where = "line " + to_string(lineNumber);
 
         vector<string> tokens;
         std::istringstream s(line);
@@ -113,7 +109,7 @@ HomopolymerModel::HomopolymerModel(const string& fileName)
         lines.push_back(l);
     }
     if(lines.empty()) {
-        throw runtime_error("Homopolymer model " + fileName + " is empty.");
+        throw runtime_error("Homopolymer model: invalid format. Definition is empty.");
     }
 
     // Fill the table. A NaN marks an entry not yet seen, so a missing or
@@ -135,10 +131,10 @@ HomopolymerModel::HomopolymerModel(const string& fileName)
             row.assign(mCount, missing);
         }
         if(not std::isnan(row[l.m])) {
-            throw runtime_error("Duplicate line for " +
+            throw runtime_error("Homopolymer model format error. Duplicate line for " +
                 string(1, flankCharacters[l.base]) + " strand " + to_string(l.strand) +
                 " flanks " + flankCharacters[l.left] + flankCharacters[l.right] +
-                " n " + to_string(l.n) + " m " + to_string(l.m) + " in " + fileName);
+                " n " + to_string(l.n) + " m " + to_string(l.m));
         }
         row[l.m] = l.logProbabilityDb;
     }
@@ -160,21 +156,22 @@ HomopolymerModel::HomopolymerModel(const string& fileName)
                         const bool isStar = (left == unknownFlank) and (right == unknownFlank);
                         found = found or isStar;
                         if(not isStar and table[base][strand][unknownFlank][unknownFlank][n].empty()) {
-                            throw runtime_error("Flank row without a * row for " + what +
-                                " n " + to_string(n) + " in " + fileName);
+                            throw runtime_error("Homopolymer model format error."
+                                    "Flank row without a * row for " + what +
+                                " n " + to_string(n));
                         }
                         for(uint64_t m=0; m<mCount; m++) {
                             if(std::isnan(r[m])) {
-                                throw runtime_error("Missing line for " + what +
+                                throw runtime_error("Homopolymer model format error. Missing line for " + what +
                                     " flanks " + flankCharacters[left] + flankCharacters[right] +
-                                    " n " + to_string(n) + " m " + to_string(m) + " in " + fileName);
+                                    " n " + to_string(n) + " m " + to_string(m));
                             }
                         }
                     }
                 }
             }
             if(not found) {
-                throw runtime_error("No * lines for " + what + " in " + fileName);
+                throw runtime_error("Homopolymer model format error. No * lines for " + what);
             }
         }
     }
@@ -338,7 +335,8 @@ void shasta2::testHomopolymerModel()
             write('A', 0, "C", "G", n, n - 1, 0);
         }
     }
-    const auto modelPointer = make_shared<const HomopolymerModel>(fileName);
+    ifstream file(fileName);
+    const auto modelPointer = make_shared<const HomopolymerModel>(file);
     std::filesystem::remove(fileName);
 
     const Base A = Base::fromCharacter('A');

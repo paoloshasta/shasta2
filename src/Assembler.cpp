@@ -163,20 +163,36 @@ void Assembler::assemble(
 // directory.
 void Assembler::createHomopolymerModel(const string& homopolymerModelName)
 {
+    // If the name is empty, homopolymerModelPointer is set to 0,
+    // and a median scheme used to determine homopolymer lengths
+    // instead of a homopolymer model.
     if(homopolymerModelName.empty()) {
         homopolymerModelPointer = 0;
         cout << "Not using a homopolymer model." << endl;
         return;
     }
 
+    // The name is required to be an absolute path.
     if(homopolymerModelName[0] != '/') {
         throw runtime_error(
             "Options --homopolymer-model must specify an absolute path but the following was used: " +
             homopolymerModelName);
     }
 
-    cout << "Using homopolymer model " << homopolymerModelName << endl;
-    homopolymerModelPointer = make_shared<const HomopolymerModel>(homopolymerModelName);
+    // Open the csv file that defines the HomopolymerModel.
+    ifstream file(homopolymerModelName);
+    if(not file) {
+        throw runtime_error("Could not open " + homopolymerModelName);
+    }
+
+    // Create the homopolymer model.
+    try {
+        homopolymerModelPointer = make_shared<const HomopolymerModel>(file);
+        cout << "Using homopolymer model " << homopolymerModelName << endl;
+    } catch(std::exception& e) {
+        cout << e.what() << endl;
+        throw runtime_error("The above error occurred while reading homopolymer model " + homopolymerModelName);
+    }
 }
 
 

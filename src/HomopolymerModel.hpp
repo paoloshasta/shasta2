@@ -56,7 +56,7 @@ namespace shasta2 {
 class shasta2::HomopolymerModel {
 public:
 
-    explicit HomopolymerModel(const string& fileName);
+    explicit HomopolymerModel(istream&);
 
     // The value of a flank argument when the flanking base is not known.
     // Defined in the cpp file.
