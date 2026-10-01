@@ -361,15 +361,15 @@ namespace shasta2 {
 
 
     // A range of alignment columns.
-    class Msa1Region {
+    class MsaRepairRegion {
     public:
         uint64_t begin = 0;
         uint64_t end = 0;      // one past the last column
 
         // Sorting regions by where they start, then by where they end, is what
-        // the merge in msa1FindBadRegions needs and is what the member order
+        // the merge in msaRepairFindBadRegions needs and is what the member order
         // already says.
-        auto operator<=>(const Msa1Region&) const = default;
+        auto operator<=>(const MsaRepairRegion&) const = default;
     };
 
 
@@ -395,7 +395,7 @@ namespace shasta2 {
         // every row covers the whole alignment.
         const vector< pair<uint64_t, uint64_t> >& coverage,
 
-        vector<Msa1Region>& regions);
+        vector<MsaRepairRegion>& regions);
 
 
     // Turn the anchoring of each row into the columns it covers.
