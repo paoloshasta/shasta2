@@ -690,7 +690,7 @@ bool shasta2::msaRepairPatternPresent(
 
 
 // See msaRepair.hpp for comments.
-bool shasta2::msa1LongRunPresent(
+bool shasta2::msaRepairLongRunPresent(
     const vector<Base>& sequence,
     uint64_t threshold)
 {
@@ -720,7 +720,7 @@ bool shasta2::msa1TriggerPresent(
     if(trigger == MsaRepairTrigger::PatternOnly) {
         return msaRepairPatternPresent(sequence, threshold);
     }
-    return msa1LongRunPresent(sequence, threshold);
+    return msaRepairLongRunPresent(sequence, threshold);
 }
 
 

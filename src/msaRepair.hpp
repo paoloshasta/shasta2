@@ -332,7 +332,7 @@ namespace shasta2 {
 
     // True if the sequence contains any homopolymer run longer than the
     // threshold. This is the test for MsaRepairTrigger::AnyLongRun.
-    bool msa1LongRunPresent(
+    bool msaRepairLongRunPresent(
         const vector<Base>& sequence,
         uint64_t threshold = defaultHomopolymerThreshold);
 
