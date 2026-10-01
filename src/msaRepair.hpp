@@ -337,7 +337,7 @@ namespace shasta2 {
         uint64_t threshold = defaultHomopolymerThreshold);
 
     // Either test, chosen by the trigger.
-    bool msa1TriggerPresent(
+    bool msaRepairTriggerPresent(
         const vector<Base>& sequence,
         MsaRepairTrigger trigger,
         uint64_t threshold = defaultHomopolymerThreshold);
@@ -348,13 +348,13 @@ namespace shasta2 {
     //
     // Both forms stop at the first sequence that fires, so the common case of a
     // long run early in the first read costs one short walk.
-    bool msa1TriggerPresent(
+    bool msaRepairTriggerPresent(
         const vector< vector<Base> >& sequences,
         MsaRepairTrigger trigger,
         uint64_t threshold = defaultHomopolymerThreshold);
 
     // Same, for sequences that carry a coverage.
-    bool msa1TriggerPresent(
+    bool msaRepairTriggerPresent(
         const vector< pair<vector<Base>, uint64_t> >& sequences,
         MsaRepairTrigger trigger,
         uint64_t threshold = defaultHomopolymerThreshold);

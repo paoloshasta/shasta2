@@ -712,7 +712,7 @@ bool shasta2::msaRepairLongRunPresent(
 
 
 // See msaRepair.hpp for comments.
-bool shasta2::msa1TriggerPresent(
+bool shasta2::msaRepairTriggerPresent(
     const vector<Base>& sequence,
     MsaRepairTrigger trigger,
     uint64_t threshold)
@@ -726,26 +726,26 @@ bool shasta2::msa1TriggerPresent(
 
 
 // See msaRepair.hpp for comments.
-bool shasta2::msa1TriggerPresent(
+bool shasta2::msaRepairTriggerPresent(
     const vector< vector<Base> >& sequences,
     MsaRepairTrigger trigger,
     uint64_t threshold)
 {
     return std::ranges::any_of(sequences, [&](const vector<Base>& sequence) {
-        return msa1TriggerPresent(sequence, trigger, threshold);
+        return msaRepairTriggerPresent(sequence, trigger, threshold);
     });
 }
 
 
 
 // See msaRepair.hpp for comments.
-bool shasta2::msa1TriggerPresent(
+bool shasta2::msaRepairTriggerPresent(
     const vector< pair<vector<Base>, uint64_t> >& sequences,
     MsaRepairTrigger trigger,
     uint64_t threshold)
 {
     return std::ranges::any_of(sequences, [&](const auto& sequenceAndCoverage) {
-        return msa1TriggerPresent(sequenceAndCoverage.first, trigger, threshold);
+        return msaRepairTriggerPresent(sequenceAndCoverage.first, trigger, threshold);
     });
 }
 
@@ -1028,7 +1028,7 @@ void shasta2::msa1FindBadRegions(
                     windowSequence.push_back(Base(row[j]));
                 }
             }
-            if(msa1TriggerPresent(windowSequence, trigger, threshold)) {
+            if(msaRepairTriggerPresent(windowSequence, trigger, threshold)) {
                 found = true;
                 break;
             }
@@ -2643,7 +2643,7 @@ void shasta2::testMsa1Repair()
         for(const string& r: reads) {
             sequences.push_back(vectorOfBasesFromString(r));
         }
-        SHASTA2_ASSERT(msa1TriggerPresent(sequences, MsaRepairTrigger::PatternOnly, threshold));
+        SHASTA2_ASSERT(msaRepairTriggerPresent(sequences, MsaRepairTrigger::PatternOnly, threshold));
 
         // And it must not fire on ordinary sequence with no long runs. This is
         // the common case in real reads, where 97% of runs are 4 bases or
@@ -2651,22 +2651,22 @@ void shasta2::testMsa1Repair()
         const vector< vector<Base> > ordinary = {
             vectorOfBasesFromString("ACGTACGTAACCGGTTACGTACGT"),
             vectorOfBasesFromString("ACGTACGTAACCGGTTACGTACGT")};
-        SHASTA2_ASSERT(not msa1TriggerPresent(ordinary, MsaRepairTrigger::PatternOnly, threshold));
+        SHASTA2_ASSERT(not msaRepairTriggerPresent(ordinary, MsaRepairTrigger::PatternOnly, threshold));
 
         // Nor on a single long run with no separating base.
         const vector< vector<Base> > oneRun = {
             vectorOfBasesFromString("ACGT" + string(20, 'A') + "CGTA")};
-        SHASTA2_ASSERT(not msa1TriggerPresent(oneRun, MsaRepairTrigger::PatternOnly, threshold));
+        SHASTA2_ASSERT(not msaRepairTriggerPresent(oneRun, MsaRepairTrigger::PatternOnly, threshold));
 
         // Nor when the two long runs are separated by more than one base.
         const vector< vector<Base> > twoBases = {
             vectorOfBasesFromString(string(12, 'A') + "GT" + string(11, 'A'))};
-        SHASTA2_ASSERT(not msa1TriggerPresent(twoBases, MsaRepairTrigger::PatternOnly, threshold));
+        SHASTA2_ASSERT(not msaRepairTriggerPresent(twoBases, MsaRepairTrigger::PatternOnly, threshold));
 
         // But yes when they are separated by exactly one.
         const vector< vector<Base> > oneBase = {
             vectorOfBasesFromString(string(12, 'A') + "G" + string(11, 'A'))};
-        SHASTA2_ASSERT(msa1TriggerPresent(oneBase, MsaRepairTrigger::PatternOnly, threshold));
+        SHASTA2_ASSERT(msaRepairTriggerPresent(oneBase, MsaRepairTrigger::PatternOnly, threshold));
 
         // The exact boundaries of the pattern, on the single sequence primitive.
         // A run must be strictly longer than the threshold on BOTH sides, and
