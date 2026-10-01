@@ -53,8 +53,8 @@ public:
         // computed by whichever Method ran, using msaRepair (see msaRepair.hpp).
         // Independent of Method, so any Method that produces a row alignment
         // (Adaptive, Abpoa, TheseusOnly, TheseusAll) can be repaired
-        // or not. Mirrors the global Options::useMsa1 - see OptionsDefine.hpp.
-        bool useMsa1 = false;
+        // or not. Mirrors the global Options::useMsaRepair - see OptionsDefine.hpp.
+        bool useMsaRepair = false;
 
         // If the number of oriented reads on both anchors is at least
         // equal to commonThreshold, the adaptive method uses one of:

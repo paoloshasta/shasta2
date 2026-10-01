@@ -141,10 +141,8 @@ SHASTA2_BOOL_OPTION_DEFINE(
     "Write assembly details in csv format.")
 
 SHASTA2_BOOL_OPTION_DEFINE(
-    useMsa1, "--use-msa1", false,
-    "Repair the bad homopolymer regions of the local assembly alignment "
-    "using msa1 (see msa1.hpp), regardless of which LocalAssembly7::Method "
-    "is used. For testing msa1.")
+    useMsaRepair, "--use-msa-repair,--use-msa1", false,
+    "Repair multiple sequence alignments during local assemblies.")
 
 SHASTA2_OPTION_DEFINE(
     string, homopolymerModelName, "--homopolymer-model", "",

@@ -895,9 +895,9 @@ void Assembler::exploreSegmentStep(
     getParameterValue(request, "method", methodString);
     localAssembly7Options.setMethod(methodString);
 
-    string useMsa1String;
-    localAssembly7Options.useMsa1 = HttpServer::getParameterValue(request,
-        "useMsa1", useMsa1String);
+    string useMsaRepairString;
+    localAssembly7Options.useMsaRepair = HttpServer::getParameterValue(request,
+        "useMsaRepair", useMsaRepairString);
 
     string useHomopolymerModelString;
     const bool useHomopolymerModel = HttpServer::getParameterValue(request,
@@ -978,10 +978,10 @@ void Assembler::exploreSegmentStep(
         ;
 
     html <<
-        "<tr><th class=left>Repair with msa1"
+        "<tr><th class=left>Msa repair"
         "<td class=centered>"
-        "<input type=checkbox name=useMsa1" <<
-        (localAssembly7Options.useMsa1 ? " checked=on" : "") << ">";
+        "<input type=checkbox name=useMsaRepair" <<
+        (localAssembly7Options.useMsaRepair ? " checked=on" : "") << ">";
 
     html <<
         "<tr><th class=left>Use the homopolymer model in msa1"

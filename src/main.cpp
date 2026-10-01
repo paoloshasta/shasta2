@@ -246,8 +246,8 @@ void shasta2::main::assemble(
     // Check --homopolymer-model. It must be in the homopolymerModelTable,
     // or else it must be an absolute path.
     if(not options.homopolymerModelName.empty()) {
-        if(not options.useMsa1) {
-            throw runtime_error("--homopolymer-model requires --use-msa1.");
+        if(not options.useMsaRepair) {
+            throw runtime_error("--homopolymer-model requires --use-msa-repair.");
         }
         if(not homopolymerModelTable.contains(options.homopolymerModelName)) {
             if(options.homopolymerModelName[0] != '/') {
