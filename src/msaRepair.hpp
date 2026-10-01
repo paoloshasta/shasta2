@@ -402,7 +402,7 @@ namespace shasta2 {
     // A row anchored on both sides covers every column. One anchored on the left
     // only covers up to its last base, and one anchored on the right only from
     // its first base. A row with no base at all covers nothing.
-    void msa1RowCoverage(
+    void msaRepairRowCoverage(
         const vector< vector<AlignedBase> >& alignment,
         const vector<Anchoring>& anchoring,
         vector< pair<uint64_t, uint64_t> >& coverage);
@@ -415,7 +415,7 @@ namespace shasta2 {
     // restate the others positionally, and so that a default changed here
     // reaches every caller instead of being re-typed at the call site and
     // silently left behind.
-    class Msa1Options {
+    class MsaRepairOptions {
     public:
 
         // What makes a region worth repairing. See MsaRepairTrigger.
@@ -540,7 +540,7 @@ namespace shasta2 {
         const vector<Anchoring>& anchoring = vector<Anchoring>(),
 
         // How the repair is tuned. The defaults are the measured values.
-        const Msa1Options& options = Msa1Options(),
+        const MsaRepairOptions& options = MsaRepairOptions(),
 
         // Required when options.homopolymerModelPointer is not null, and ignored
         // otherwise: the weight of each row split by the OrientedReadId strand

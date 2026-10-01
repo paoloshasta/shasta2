@@ -811,7 +811,7 @@ namespace shasta2 {
 
 
 // See msaRepair.hpp for comments.
-void shasta2::msa1RowCoverage(
+void shasta2::msaRepairRowCoverage(
     const vector< vector<AlignedBase> >& alignment,
     const vector<Anchoring>& anchoring,
     vector< pair<uint64_t, uint64_t> >& coverage)
@@ -1492,7 +1492,7 @@ uint64_t shasta2::msa1(
     vector< pair<Base, uint64_t> >& consensus,
     const vector<uint64_t>& weights,
     const vector<Anchoring>& anchoring,
-    const Msa1Options& options,
+    const MsaRepairOptions& options,
     const vector< array<uint64_t, 2> >& strandWeights)
 {
     const auto& [trigger, threshold, encodeThreshold, estimator, homopolymerModelPointer,
@@ -1518,7 +1518,7 @@ uint64_t shasta2::msa1(
     // is fixed on both sides and so covers the whole alignment, which is what
     // abpoa always produces.
     vector< pair<uint64_t, uint64_t> > coverage;
-    msa1RowCoverage(alignment, anchoring, coverage);
+    msaRepairRowCoverage(alignment, anchoring, coverage);
 
     // Find the regions worth repairing. Usually there are none, and then nothing
     // below runs and nothing is modified.
@@ -1754,9 +1754,9 @@ namespace shasta2 {
     // Options for a test, differing from the production defaults only in the
     // trigger. The tests exercise both triggers; everything else they take as
     // shipped, so a default that changes is exercised rather than bypassed.
-    static Msa1Options msa1TestOptions(MsaRepairTrigger trigger)
+    static MsaRepairOptions msa1TestOptions(MsaRepairTrigger trigger)
     {
-        Msa1Options options;
+        MsaRepairOptions options;
         options.trigger = trigger;
         return options;
     }
