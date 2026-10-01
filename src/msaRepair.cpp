@@ -770,7 +770,7 @@ namespace shasta2 {
     // A boundary that cuts a run is a problem for everything downstream: the
     // pattern test would see a run shorter than it is and might not recognise
     // the pattern at all, and the encoding would collapse a partial run.
-    static bool msa1BoundaryCutsRun(
+    static bool msaRepairBoundaryCutsRun(
         const vector< vector<AlignedBase> >& alignment,
         uint64_t column)
     {
@@ -967,10 +967,10 @@ void shasta2::msaRepairFindBadRegions(
     for(MsaRepairRegion& region: merged) {
         region.begin = (region.begin > flank) ? (region.begin - flank) : 0;
         region.end = min(alignmentLength, region.end + flank);
-        while((region.begin > 0) and msa1BoundaryCutsRun(alignment, region.begin)) {
+        while((region.begin > 0) and msaRepairBoundaryCutsRun(alignment, region.begin)) {
             --region.begin;
         }
-        while((region.end < alignmentLength) and msa1BoundaryCutsRun(alignment, region.end)) {
+        while((region.end < alignmentLength) and msaRepairBoundaryCutsRun(alignment, region.end)) {
             ++region.end;
         }
     }
@@ -1166,7 +1166,7 @@ namespace shasta2 {
     };
 
     // improved, in which case the caller must leave it as it was.
-    static bool msa1RepairRegion(
+    static bool msaRepairRepairRegion(
         const vector< vector<AlignedBase> >& alignment,
         const MsaRepairRegion& region,
         const vector<uint64_t>& weights,
@@ -1236,7 +1236,7 @@ namespace shasta2 {
 
                 // A row reaching neither edge of the window.
                 //
-                // Coverage as msa1RowCoverage computes it cannot produce one: a
+                // Coverage as msaRepairRowCoverage computes it cannot produce one: a
                 // row fixed on the left reaches every left edge, one fixed on
                 // the right reaches every right edge, and one fixed on both
                 // reaches both. So this only arises from a coverage argument
@@ -1552,7 +1552,7 @@ uint64_t shasta2::msaRepair(
         vector< vector<AlignedBase> > newRows;
         vector<AlignedBase> newAlignedConsensus;
         vector< pair<Base, uint64_t> > newConsensus;
-        if(not msa1RepairRegion(alignment, region, rowWeights, coverage, encodeThreshold,
+        if(not msaRepairRepairRegion(alignment, region, rowWeights, coverage, encodeThreshold,
             estimator, homopolymerModelPointer, strandWeights,
             newRows, newAlignedConsensus, newConsensus)) {
             continue;
@@ -1666,7 +1666,7 @@ uint64_t shasta2::msaRepair(
 // inside a 2x tandem duplication. Only n1 and n2 vary between them, and the
 // TRUE values are known: n1 = 12 and n2 = 11.
 namespace shasta2 {
-    static const vector<string> msa1TestSequences = {
+    static const vector<string> msaRepairTestSequences = {
         "TCCAGCCTGGGTGACAGAGCGAGACCCCAACTCAAAAAAAAAAAAGAAAAAAAAAAAGTTAAACTATAAAGTAAATTCCTCCCATAGTTTCCAGCCTGGGTGACAGAGCGAGACCCCAACTCAAAAAAAAAAAAGAAAAAAAAAAAGTTAAACTATAAAGTAAATTCCTCCCATAGTT",
         "TCCAGCCTGGGTGACAGAGCGAGACCCCAACTCAAAAAAAAAAAAGAAAAAAAAAAAGTTAAACTATAAAGTAAATTCCTCCCATAGTTTCCAGCCTGGGTGACAGAGCGAGACCCCAACTCAAAAAAAAAAAAGAAAAAAAAAAAGTTAAACTATAAAGTAAATTCCTCCCATAGTT",
         "TCCAGCCTGGGTGACAGAGCGAGACCCCAACTCAAAAAAAAAAAAGAAAAAAAAAAAGTTAAACTATAAAGTAAATTCCTCCCATAGTTTCCAGCCTGGGTGACAGAGCGAGACCCCAACTCAAAAAAAAAAAAGAAAAAAAAAAAGTTAAACTATAAAGTAAATTCCTCCCATAGTT",
@@ -1691,7 +1691,7 @@ namespace shasta2 {
     // The alignment abpoa actually produces for those sequences. Four of its
     // columns hold a mixture of A and G, because the G between the two long A
     // runs was placed in two different columns.
-    static const vector<string> msa1BadAlignmentRows = {
+    static const vector<string> msaRepairBadAlignmentRows = {
         "TCCAGCCTGGGTGACAGAGCGAGACCCCAACTC---AAAAAAAAAAAA-G-AAAAAAAAAAAGTTAAACTATAAAGTAAATTCCTCCCATAGTTTCCAGCCTGGGTGACAGAGCGAGACCCCAACTC---AAAAAAAAAAAA-G-AAAAAAAAAAAGTTAAACTATAAAGTAAATTCCTCCCATAGTT",
         "TCCAGCCTGGGTGACAGAGCGAGACCCCAACTC---AAAAAAAAAAAA-G-AAAAAAAAAAAGTTAAACTATAAAGTAAATTCCTCCCATAGTTTCCAGCCTGGGTGACAGAGCGAGACCCCAACTC---AAAAAAAAAAAA-G-AAAAAAAAAAAGTTAAACTATAAAGTAAATTCCTCCCATAGTT",
         "TCCAGCCTGGGTGACAGAGCGAGACCCCAACTC---AAAAAAAAAAAA-G-AAAAAAAAAAAGTTAAACTATAAAGTAAATTCCTCCCATAGTTTCCAGCCTGGGTGACAGAGCGAGACCCCAACTC---AAAAAAAAAAAA-G-AAAAAAAAAAAGTTAAACTATAAAGTAAATTCCTCCCATAGTT",
@@ -1728,7 +1728,7 @@ namespace shasta2 {
     //
     // This is deliberately the naive thing the repair exists to improve on, so
     // the tests start from the same place production does.
-    static void msa1ColumnConsensus(
+    static void msaRepairColumnConsensus(
         const vector< vector<AlignedBase> >& alignment,
         const vector<uint64_t>& weights,
         vector<AlignedBase>& alignedConsensus,
@@ -1897,8 +1897,8 @@ void shasta2::testMsaRepairExtendedBase()
         ExtendedSequence firstEncoded;
         bool uniform = true;
 
-        for(uint64_t i=0; i<msa1TestSequences.size(); i++) {
-            const vector<Base> sequence = vectorOfBasesFromString(msa1TestSequences[i]);
+        for(uint64_t i=0; i<msaRepairTestSequences.size(); i++) {
+            const vector<Base> sequence = vectorOfBasesFromString(msaRepairTestSequences[i]);
 
             ExtendedSequence encoded;
             encodeExtended(sequence, threshold, encoded);
@@ -2151,7 +2151,7 @@ void shasta2::testMsaRepairConsensus()
     // Confirm the input really is defective. If this stops being true the test
     // has lost its point.
     {
-        const uint64_t impureColumnCount = msaRepairImpureColumnCount(msa1BadAlignmentRows);
+        const uint64_t impureColumnCount = msaRepairImpureColumnCount(msaRepairBadAlignmentRows);
         cout << "The input alignment has " << impureColumnCount <<
             " columns containing more than one base." << endl;
         SHASTA2_ASSERT(impureColumnCount == 4);
@@ -2164,7 +2164,7 @@ void shasta2::testMsaRepairConsensus()
     const uint64_t threshold = defaultHomopolymerThreshold;
     vector<AlignedExtendedSequence> alignment;
     vector<uint64_t> weights;
-    for(const string& row: msa1BadAlignmentRows) {
+    for(const string& row: msaRepairBadAlignmentRows) {
         string ungapped;
         for(const char c: row) {
             if(c != '-') {
@@ -2268,7 +2268,7 @@ void shasta2::testMsaRepairConsensus()
         expandExtendedAlignment(alignment, alignedConsensus,
             expandedAlignment, expandedAlignedConsensus);
 
-        SHASTA2_ASSERT(expandedAlignment.size() == msa1BadAlignmentRows.size());
+        SHASTA2_ASSERT(expandedAlignment.size() == msaRepairBadAlignmentRows.size());
         vector<string> expandedRows;
         for(uint64_t i=0; i<expandedAlignment.size(); i++) {
             SHASTA2_ASSERT(expandedAlignment[i].size() == expandedAlignedConsensus.size());
@@ -2284,7 +2284,7 @@ void shasta2::testMsaRepairConsensus()
             expandedRows.push_back(full);
 
             string expected;
-            for(const char c: msa1BadAlignmentRows[i]) {
+            for(const char c: msaRepairBadAlignmentRows[i]) {
                 if(c != '-') {
                     expected.push_back(c);
                 }
@@ -2617,7 +2617,7 @@ void shasta2::testMsaRepairRepair()
     // Build the real, defective abpoa alignment.
     vector< vector<AlignedBase> > alignment;
     vector<string> reads;
-    for(const string& row: msa1BadAlignmentRows) {
+    for(const string& row: msaRepairBadAlignmentRows) {
         alignment.push_back(vectorOfAlignedBasesFromString(row));
         string ungapped;
         for(const char c: row) {
@@ -2632,7 +2632,7 @@ void shasta2::testMsaRepairRepair()
     // Its column-wise consensus, which is what abpoa reports.
     vector<AlignedBase> alignedConsensus;
     vector< pair<Base, uint64_t> > consensus;
-    msa1ColumnConsensus(alignment, weights, alignedConsensus, consensus);
+    msaRepairColumnConsensus(alignment, weights, alignedConsensus, consensus);
 
 
 
@@ -2710,7 +2710,7 @@ void shasta2::testMsaRepairRepair()
         vector<AlignedBase> ac;
         vector< pair<Base, uint64_t> > c;
         const vector<uint64_t> w(a.size(), 1);
-        msa1ColumnConsensus(a, w, ac, c);
+        msaRepairColumnConsensus(a, w, ac, c);
 
         // Note this alignment DOES have a discordant column, at the T for C
         // substitution, so the region finder has something to cluster. It is the
@@ -2982,7 +2982,7 @@ void shasta2::testMsaRepairRepair()
 
             vector<AlignedBase> ac;
             vector< pair<Base, uint64_t> > c;
-            msa1ColumnConsensus(a, w, ac, c);
+            msaRepairColumnConsensus(a, w, ac, c);
 
             // Give every base a distinct coverage that no vote could produce.
             // The splice must carry these through untouched outside a repaired
@@ -3106,7 +3106,7 @@ void shasta2::testMsaRepairRepair()
                 // padding as a gap produces.
                 vector<AlignedBase> ac;
                 vector< pair<Base, uint64_t> > c;
-                msa1ColumnConsensus(a, w, ac, c);
+                msaRepairColumnConsensus(a, w, ac, c);
 
                 msaRepair(a, ac, c, w, anchoring);
                 SHASTA2_ASSERT(msa1ToString(c) == expected);
