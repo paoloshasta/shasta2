@@ -382,7 +382,7 @@ namespace shasta2 {
     // only if the sequences inside it actually show the problem pattern.
     //
     // The returned regions are disjoint and in increasing order.
-    void msa1FindBadRegions(
+    void msaRepairFindBadRegions(
         const vector< vector<AlignedBase> >& alignment,
         const vector<AlignedBase>& alignedConsensus,
         MsaRepairTrigger trigger,

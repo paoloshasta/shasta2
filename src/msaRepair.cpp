@@ -870,7 +870,7 @@ void shasta2::msa1RowCoverage(
 
 
 
-void shasta2::msa1FindBadRegions(
+void shasta2::msaRepairFindBadRegions(
     const vector< vector<AlignedBase> >& alignment,
     const vector<AlignedBase>& alignedConsensus,
     MsaRepairTrigger trigger,
@@ -1523,7 +1523,7 @@ uint64_t shasta2::msa1(
     // Find the regions worth repairing. Usually there are none, and then nothing
     // below runs and nothing is modified.
     vector<MsaRepairRegion> regions;
-    msa1FindBadRegions(alignment, alignedConsensus, trigger, threshold, flank,
+    msaRepairFindBadRegions(alignment, alignedConsensus, trigger, threshold, flank,
         mergeDistance, coverage, regions);
     if(regions.empty()) {
         return 0;
@@ -2739,7 +2739,7 @@ void shasta2::testMsa1Repair()
         SHASTA2_ASSERT(msa1ImpureColumnCount(a) == 4);
 
         vector<MsaRepairRegion> regions;
-        msa1FindBadRegions(a, ac, trigger, threshold, 10, 20, {}, regions);
+        msaRepairFindBadRegions(a, ac, trigger, threshold, 10, 20, {}, regions);
         cout << "Found " << regions.size() << " bad region(s) in the real alignment." << endl;
         SHASTA2_ASSERT(not regions.empty());
 
@@ -2800,7 +2800,7 @@ void shasta2::testMsa1Repair()
         vector< pair<Base, uint64_t> > c = consensus;
 
         vector<MsaRepairRegion> regions;
-        msa1FindBadRegions(a, ac, trigger, threshold, 10, 20, {}, regions);
+        msaRepairFindBadRegions(a, ac, trigger, threshold, 10, 20, {}, regions);
         SHASTA2_ASSERT(not regions.empty());
 
         // Record the columns before the first region and after the last one.
@@ -2853,7 +2853,7 @@ void shasta2::testMsa1Repair()
         // Which consensus bases lie inside a region, worked out before the
         // repair moves anything.
         vector<MsaRepairRegion> regions;
-        msa1FindBadRegions(a, ac, trigger, threshold, 10, 20, {}, regions);
+        msaRepairFindBadRegions(a, ac, trigger, threshold, 10, 20, {}, regions);
         SHASTA2_ASSERT(not regions.empty());
         vector<bool> isInsideRegion(c.size(), false);
         {
