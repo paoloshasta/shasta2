@@ -17,7 +17,7 @@ options = shasta2.Options()
 assembler = shasta2.Assembler()
 assembler.accessAnchors()
 assembler.accessJourneys()
-assembler.createHomopolymerModel(options)
+assembler.createHomopolymerModel(options.homopolymerModelName)
 
 # Load the specified assembly stage and assemble sequence.
 assemblyGraph = assembler.getAssemblyGraph(arguments.stage, options)

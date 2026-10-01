@@ -112,7 +112,7 @@ public:
     // The homopolymer model used by msa1, if one was specified with
     // --homopolymer-model. Null otherwise.
     shared_ptr<const HomopolymerModel> homopolymerModelPointer;
-    void createHomopolymerModel(const Options&);
+    void createHomopolymerModel(const string& homopolymerName);
 
 
     // Reads.

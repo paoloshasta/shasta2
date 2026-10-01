@@ -77,7 +77,7 @@ void Assembler::assemble(
     cout << "Number of threads: " << options.threadCount << endl;
 
     // Create the HomopolymerModel.
-    createHomopolymerModel(options);
+    createHomopolymerModel(options.homopolymerModelName);
 
     // Load the reads.
     addReads(
@@ -161,18 +161,22 @@ void Assembler::assemble(
 // The file name must be an absolute path so the same Options can also be
 // used from the http server and the Python API, which run in a different
 // directory.
-void Assembler::createHomopolymerModel(const Options& options)
+void Assembler::createHomopolymerModel(const string& homopolymerModelName)
 {
-    const string& fileName = options.homopolymerModelName;
-    if(fileName.empty()) {
+    if(homopolymerModelName.empty()) {
         homopolymerModelPointer = 0;
+        cout << "Not using a homopolymer model." << endl;
         return;
     }
-    if(fileName[0] != '/') {
-        throw runtime_error("--homopolymer-model must be an absolute path: " + fileName);
+
+    if(homopolymerModelName[0] != '/') {
+        throw runtime_error(
+            "Options --homopolymer-model must specify an absolute path but the following was used: " +
+            homopolymerModelName);
     }
-    cout << "Reading homopolymer model " << fileName << endl;
-    homopolymerModelPointer = make_shared<const HomopolymerModel>(fileName);
+
+    cout << "Using homopolymer model " << homopolymerModelName << endl;
+    homopolymerModelPointer = make_shared<const HomopolymerModel>(homopolymerModelName);
 }
 
 

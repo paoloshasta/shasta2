@@ -309,7 +309,7 @@ void Assembler::accessAllSoft()
     // The homopolymer model, if the options specify one.
     if(httpServerData.options) {
         try {
-            createHomopolymerModel(*httpServerData.options);
+            createHomopolymerModel(httpServerData.options->homopolymerModelName);
         } catch(const exception& e) {
             cout << "The homopolymer model is not accessible: " << e.what() << endl;
             allDataAreAvailable = false;
