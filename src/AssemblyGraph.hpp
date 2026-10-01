@@ -312,11 +312,6 @@ public:
         bool attemptReadFollowing,
         const string& debugOutputBaseName);
     void localReadFollowing();
-    void splitSelfComplementaryTangles(const string& debugOutputBaseName);
-    void splitSelfComplementaryTangle(
-        uint64_t tangleId,
-        const vector<vertex_descriptor>& tangle,
-        const string& debugOutputBaseName);
     void separateStrands(const string& debugOutputBaseName);
     void separateStrands1(const string& debugOutputBaseName);
 private:
