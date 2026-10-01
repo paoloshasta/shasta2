@@ -320,13 +320,13 @@ namespace shasta2 {
 
     // A human readable phrase for what a trigger looks for, for a caller
     // explaining in a report why a repair did or did not fire.
-    string msa1TriggerDescription(MsaRepairTrigger trigger);
+    string msaRepairTriggerDescription(MsaRepairTrigger trigger);
 
 
     // One sequence. This is the primitive the others are built on. It walks the
     // runs keeping only the two previous run lengths, so it allocates nothing
     // and stops at the first hit.
-    bool msa1PatternPresent(
+    bool msaRepairPatternPresent(
         const vector<Base>& sequence,
         uint64_t threshold = defaultHomopolymerThreshold);
 
@@ -391,7 +391,7 @@ namespace shasta2 {
         uint64_t mergeDistance,
 
         // The columns each row covers, as half open intervals, one per row.
-        // See the anchoring argument of msa1(). May be empty, in which case
+        // See the anchoring argument of msaRepair(). May be empty, in which case
         // every row covers the whole alignment.
         const vector< pair<uint64_t, uint64_t> >& coverage,
 

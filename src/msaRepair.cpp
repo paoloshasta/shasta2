@@ -653,7 +653,7 @@ void shasta2::expandExtendedAlignment(
 
 
 // See msaRepair.hpp for comments.
-bool shasta2::msa1PatternPresent(
+bool shasta2::msaRepairPatternPresent(
     const vector<Base>& sequence,
     uint64_t threshold)
 {
@@ -718,7 +718,7 @@ bool shasta2::msa1TriggerPresent(
     uint64_t threshold)
 {
     if(trigger == MsaRepairTrigger::PatternOnly) {
-        return msa1PatternPresent(sequence, threshold);
+        return msaRepairPatternPresent(sequence, threshold);
     }
     return msa1LongRunPresent(sequence, threshold);
 }
@@ -752,7 +752,7 @@ bool shasta2::msa1TriggerPresent(
 
 
 // See msaRepair.hpp for comments.
-string shasta2::msa1TriggerDescription(MsaRepairTrigger trigger)
+string shasta2::msaRepairTriggerDescription(MsaRepairTrigger trigger)
 {
     return (trigger == MsaRepairTrigger::PatternOnly) ?
         "a long homopolymer run bordered by a single base" :
@@ -1048,7 +1048,7 @@ namespace shasta2 {
     // directly rather than through theseusWrapper.cpp: duplicates a small
     // amount of its plumbing (build a TheseusMSA aligner, align each
     // sequence, read the alignment back out of print_as_msa) so the whole
-    // msa1 feature stays readable and changeable from this one file, and a
+    // msaRepair feature stays readable and changeable from this one file, and a
     // change here cannot affect theseus()'s own callers or vice versa.
     // Theseus needs no change to accept the extended alphabet: it only ever
     // compares two characters with ==, so it passes through as the string
@@ -2672,7 +2672,7 @@ void shasta2::testMsa1Repair()
         // A run must be strictly longer than the threshold on BOTH sides, and
         // the separator must be exactly one base.
         const auto pattern = [&](uint64_t left, uint64_t middle, uint64_t right) {
-            return msa1PatternPresent(vectorOfBasesFromString(
+            return msaRepairPatternPresent(vectorOfBasesFromString(
                 string(left, 'A') + string(middle, 'G') + string(right, 'A')),
                 threshold);
         };
@@ -2685,16 +2685,16 @@ void shasta2::testMsa1Repair()
         // The pattern is found wherever it sits, including at the very start and
         // the very end, which a scan that keeps only two previous run lengths
         // could get wrong.
-        SHASTA2_ASSERT(msa1PatternPresent(vectorOfBasesFromString(
+        SHASTA2_ASSERT(msaRepairPatternPresent(vectorOfBasesFromString(
             string(12, 'A') + "G" + string(11, 'A') + "CGTACGT"), threshold));
-        SHASTA2_ASSERT(msa1PatternPresent(vectorOfBasesFromString(
+        SHASTA2_ASSERT(msaRepairPatternPresent(vectorOfBasesFromString(
             "CGTACGT" + string(12, 'A') + "G" + string(11, 'A')), threshold));
 
         // Degenerate inputs.
-        SHASTA2_ASSERT(not msa1PatternPresent(vector<Base>(), threshold));
-        SHASTA2_ASSERT(not msa1PatternPresent(
+        SHASTA2_ASSERT(not msaRepairPatternPresent(vector<Base>(), threshold));
+        SHASTA2_ASSERT(not msaRepairPatternPresent(
             vectorOfBasesFromString("A"), threshold));
-        SHASTA2_ASSERT(not msa1PatternPresent(
+        SHASTA2_ASSERT(not msaRepairPatternPresent(
             vector<Base>(1000, Base::fromCharacter('A')), threshold));
     }
 
