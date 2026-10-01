@@ -1326,10 +1326,10 @@ void LocalAssembly7::runAbpoa()
             }
         }
 
-        MsaRepairOptions msa1Options;
-        msa1Options.homopolymerModelPointer = homopolymerModelPointer;
+        MsaRepairOptions msaRepairOptions;
+        msaRepairOptions.homopolymerModelPointer = homopolymerModelPointer;
         repairedRegionCount = msaRepair(alignment, alignedConsensus, consensus, weights, {},
-            msa1Options, strandWeights);
+                msaRepairOptions, strandWeights);
     }
     const auto t3 = steady_clock::now();
 
@@ -1461,7 +1461,7 @@ void LocalAssembly7::runTheseus(bool useAll)
     }
 
     // Repair the bad homopolymer regions of the alignment, if requested (see
-    // Options::useMsa1).
+    // Options::useMsaRepair).
     uint64_t repairedRegionCount = 0;
     const auto t2 = steady_clock::now();
     if(options.useMsaRepair) {
@@ -1503,10 +1503,10 @@ void LocalAssembly7::runTheseus(bool useAll)
             }
         }
 
-        MsaRepairOptions msa1Options;
-        msa1Options.homopolymerModelPointer = homopolymerModelPointer;
+        MsaRepairOptions msaRepairOptions;
+        msaRepairOptions.homopolymerModelPointer = homopolymerModelPointer;
         repairedRegionCount = msaRepair(alignment, alignedConsensus, consensus, weights, anchoring,
-            msa1Options, strandWeights);
+            msaRepairOptions, strandWeights);
     }
     const auto t3 = steady_clock::now();
 

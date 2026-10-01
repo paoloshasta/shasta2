@@ -122,7 +122,7 @@ public:
     // this throws a std::runtime_error.
     // If homopolymerModelPointer is not null, msaRepair uses it to choose the length of
     // long homopolymer runs (see HomopolymerModel.hpp). Only used if
-    // Options::useMsa1 is set.
+    // Options::useMsaRepair is set.
     LocalAssembly7(
         const Options&,
         const Anchors&,

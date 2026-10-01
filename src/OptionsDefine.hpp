@@ -146,9 +146,10 @@ SHASTA2_BOOL_OPTION_DEFINE(
 
 SHASTA2_OPTION_DEFINE(
     string, homopolymerModelName, "--homopolymer-model", "",
-    "Absolute path of a csv file containing the homopolymer model msa1 uses "
-    "to choose the length of long homopolymer runs (see HomopolymerModel.hpp). "
-    "Requires --use-msa1. If not specified, msa1 uses a median.")
+    "Name of the homopolymer model used to assemble long homopolymer runs."
+    "It can be the name of a built-in homopolymer model or "
+    "the absolute path of a csv file that defines the homopolymer model. "
+    "Requires --use-msa-repair. If not specified, the median length is used.")
 
 SHASTA2_OPTION_DEFINE(
     uint64_t, bubbleCleanupMaxBubbleLength, "--bubble-cleanup-max-bubble-length", 10000,

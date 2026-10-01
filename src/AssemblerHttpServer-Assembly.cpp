@@ -984,11 +984,11 @@ void Assembler::exploreSegmentStep(
         (localAssembly7Options.useMsaRepair ? " checked=on" : "") << ">";
 
     html <<
-        "<tr><th class=left>Use the homopolymer model in msa1"
+        "<tr><th class=left>Use the homopolymer model"
         "<td class=centered>"
         "<input type=checkbox name=useHomopolymerModel" <<
         (useHomopolymerModel ? " checked=on" : "") << ">"
-        "<br>Only used when repairing with msa1.";
+        "<br>Only used when msa repairing is on.";
     if(not homopolymerModelPointer) {
         html << "<br>No homopolymer model is loaded (see --homopolymer-model).";
     }
