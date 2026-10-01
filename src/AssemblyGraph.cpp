@@ -5,7 +5,6 @@
 #include "findLinearChains.hpp"
 #include "findReachableVertices.hpp"
 #include "Journeys.hpp"
-#include "LocalAssembly6.hpp"
 #include "LocalAssembly7.hpp"
 #include "memoryInformation.hpp"
 #include "Options.hpp"
@@ -922,34 +921,23 @@ void AssemblyGraph::assembleStep(edge_descriptor e, uint64_t i)
         std::ranges::copy(anchorPair.orientedReadIds, back_inserter(orientedReadIds));
         deduplicate(orientedReadIds);
 
-        if(false) {
-            LocalAssembly6 localAssembly(
-                anchors,
-                anchorPair.anchorIdA,
-                anchorPair.anchorIdB,
-                html,
-                orientedReadIds);
-            step.sequence = localAssembly.sequence;
 
-        } else {
+        LocalAssembly7::Options localAssembly7Options;
+        localAssembly7Options.useMsaRepair = options.useMsaRepair;
+        LocalAssembly7 localAssembly(
+            localAssembly7Options,
+            anchors,
+            homopolymerModelPointer,
+            anchorPair.anchorIdA,
+            anchorPair.anchorIdB,
+            html,
+            orientedReadIds);
+        step.sequence = localAssembly.sequence;
 
-            LocalAssembly7::Options localAssembly7Options;
-            localAssembly7Options.useMsaRepair = options.useMsaRepair;
-            LocalAssembly7 localAssembly(
-                localAssembly7Options,
-                anchors,
-                homopolymerModelPointer,
-                anchorPair.anchorIdA,
-                anchorPair.anchorIdB,
-                html,
-                orientedReadIds);
-            step.sequence = localAssembly.sequence;
-
-            if(not localAssembly.success) {
-                std::lock_guard<std::mutex> lock(mutex);
-                throw runtime_error("Local assembly for segment " + to_string(edge.id) +
-                    " step " + to_string(i) + " failed.");
-            }
+        if(not localAssembly.success) {
+            std::lock_guard<std::mutex> lock(mutex);
+            throw runtime_error("Local assembly for segment " + to_string(edge.id) +
+                " step " + to_string(i) + " failed.");
         }
 
         if(step.sequence.empty()) {
