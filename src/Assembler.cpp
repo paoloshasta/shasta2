@@ -4,6 +4,7 @@
 #include "AssemblyGraph.hpp"
 #include "deduplicate.hpp"
 #include "HomopolymerModel.hpp"
+#include "HomopolymerModelTable.hpp"
 #include "Journeys.hpp"
 #include "KmerCheckerFactory.hpp"
 #include "Markers.hpp"
@@ -152,19 +153,10 @@ void Assembler::assemble(
 
 
 
-
-// Create the HomopolymerModel from the file named by --homopolymer-model.
-// - If the file name is empty, the pointer is left null, and msa1 uses the
-//   median instead of a model.
-// - Otherwise, this throws if the file name is not an absolute path, or if
-//   the file cannot be read or its format is invalid (see HomopolymerModel).
-// The file name must be an absolute path so the same Options can also be
-// used from the http server and the Python API, which run in a different
-// directory.
 void Assembler::createHomopolymerModel(const string& homopolymerModelName)
 {
-    // If the name is empty, homopolymerModelPointer is set to 0,
-    // and a median scheme used to determine homopolymer lengths
+    // If the homopolymerModelName is empty, homopolymerModelPointer is set to 0,
+    // and a median scheme is used to determine homopolymer lengths
     // instead of a homopolymer model.
     if(homopolymerModelName.empty()) {
         homopolymerModelPointer = 0;
@@ -172,7 +164,26 @@ void Assembler::createHomopolymerModel(const string& homopolymerModelName)
         return;
     }
 
-    // The name is required to be an absolute path.
+    // If homopolymerModelName is in the homopolymerModelTable, create the model from there.
+    const auto it = homopolymerModelTable.find(homopolymerModelName);
+    if(it != homopolymerModelTable.end()) {
+        const string& csvString = it->second;
+        std::istringstream csv(csvString);
+        try {
+            homopolymerModelPointer = make_shared<const HomopolymerModel>(csv);
+            cout << "Using homopolymer model " << homopolymerModelName << endl;
+        } catch(std::exception& e) {
+            cout << e.what() << endl;
+            throw runtime_error("The above error occurred while reading homopolymer model " + homopolymerModelName);
+        }
+        return;
+    }
+
+
+
+    // If getting here, the homopolymerModelName was not in homopolymerModelTable.
+    // In this case, homopolymerModelName must be an absolute path to the csv
+    // file that defines the Homopolymer model.
     if(homopolymerModelName[0] != '/') {
         throw runtime_error(
             "Options --homopolymer-model must specify an absolute path but the following was used: " +
