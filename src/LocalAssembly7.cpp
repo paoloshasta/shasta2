@@ -1328,7 +1328,7 @@ void LocalAssembly7::runAbpoa()
 
         MsaRepairOptions msa1Options;
         msa1Options.homopolymerModelPointer = homopolymerModelPointer;
-        repairedRegionCount = msa1(alignment, alignedConsensus, consensus, weights, {},
+        repairedRegionCount = msaRepair(alignment, alignedConsensus, consensus, weights, {},
             msa1Options, strandWeights);
     }
     const auto t3 = steady_clock::now();
@@ -1505,7 +1505,7 @@ void LocalAssembly7::runTheseus(bool useAll)
 
         MsaRepairOptions msa1Options;
         msa1Options.homopolymerModelPointer = homopolymerModelPointer;
-        repairedRegionCount = msa1(alignment, alignedConsensus, consensus, weights, anchoring,
+        repairedRegionCount = msaRepair(alignment, alignedConsensus, consensus, weights, anchoring,
             msa1Options, strandWeights);
     }
     const auto t3 = steady_clock::now();

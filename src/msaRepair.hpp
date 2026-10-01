@@ -483,7 +483,7 @@ namespace shasta2 {
 
         // If not null, the consensus length of a long homopolymer run is the
         // most likely one under this model, and estimator is not used. This
-        // requires the strandWeights argument of msa1().
+        // requires the strandWeights argument of msaRepair().
         shared_ptr<const HomopolymerModel> homopolymerModelPointer;
 
         // Columns of context included on each side of a bad region.
@@ -504,7 +504,7 @@ namespace shasta2 {
     //
     // alignment, alignedConsensus and consensus are all modified in place.
     // Returns the number of regions repaired, which is usually 0.
-    uint64_t msa1(
+    uint64_t msaRepair(
 
         // The alignment computed by abpoa or theseus, one row per input
         // sequence. All rows must have the same length as alignedConsensus.
