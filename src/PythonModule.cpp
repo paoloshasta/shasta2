@@ -316,14 +316,14 @@ PYBIND11_MODULE(shasta2, shasta2Module)
     shasta2Module.def("countDistinctSubkmers",
         countDistinctSubkmers
         );
-    shasta2Module.def("testMsa1ExtendedBase",
-        testMsa1ExtendedBase
+    shasta2Module.def("testMsaRepairExtendedBase",
+        testMsaRepairExtendedBase
         );
-    shasta2Module.def("testMsa1Consensus",
-        testMsa1Consensus
+    shasta2Module.def("testMsaRepairConsensus",
+        testMsaRepairConsensus
         );
-    shasta2Module.def("testMsa1Repair",
-        testMsa1Repair
+    shasta2Module.def("testMsaRepairRepair",
+        testMsaRepairRepair
         );
     shasta2Module.def("testHomopolymerModel",
         testHomopolymerModel

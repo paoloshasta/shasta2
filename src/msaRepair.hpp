@@ -550,9 +550,9 @@ namespace shasta2 {
         const vector< array<uint64_t, 2> >& strandWeights = {});
 
 
-    void testMsa1ExtendedBase();
-    void testMsa1Consensus();
-    void testMsa1Repair();
+    void testMsaRepairExtendedBase();
+    void testMsaRepairConsensus();
+    void testMsaRepairRepair();
 }
 
 

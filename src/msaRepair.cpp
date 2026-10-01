@@ -1786,7 +1786,7 @@ namespace shasta2 {
 
 
 // Test the extended alphabet and its encoding.
-void shasta2::testMsa1ExtendedBase()
+void shasta2::testMsaRepairExtendedBase()
 {
     // Check the symbol values are what the low-bits arithmetic in base() and
     // isPoly() assumes.
@@ -2146,7 +2146,7 @@ void shasta2::testMsa1ExtendedBase()
 // Theseus is not exercised here: extendedConsensus, attachRunLengths and
 // expandExtendedAlignment are pure functions, so the alignment is supplied
 // directly. That also lets the real, defective abpoa alignment be used as input.
-void shasta2::testMsa1Consensus()
+void shasta2::testMsaRepairConsensus()
 {
     // Confirm the input really is defective. If this stops being true the test
     // has lost its point.
@@ -2605,7 +2605,7 @@ void shasta2::testMsa1Consensus()
 // that sequence accuracy in the rest of the assembly is left alone, so a test
 // that the repair is a no-op where it should be is more important than a test
 // that it works where it should.
-void shasta2::testMsa1Repair()
+void shasta2::testMsaRepairRepair()
 {
     const uint64_t threshold = defaultHomopolymerThreshold;
 
