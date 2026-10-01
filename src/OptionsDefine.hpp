@@ -149,6 +149,7 @@ SHASTA2_OPTION_DEFINE(
     "Name of the homopolymer model used to assemble long homopolymer runs."
     "It can be the name of a built-in homopolymer model or "
     "the absolute path of a csv file that defines the homopolymer model. "
+    "Use \"shasta2 --command listHomopolymerModels\" for a list of built-in homopolymer models. "
     "Requires --use-msa-repair. If not specified, the median length is used.")
 
 SHASTA2_OPTION_DEFINE(

@@ -55,6 +55,7 @@ namespace shasta2 {
         void cleanupBinaryData(const Options&);
         void explore(const Options&);
         void listCommands();
+        void listHomopolymerModels();
         void createBashCompletionScript();
 
         const std::set<string> commands = {
@@ -63,6 +64,7 @@ namespace shasta2 {
             "cleanupBinaryData",
             "explore",
             "listCommands",
+            "listHomopolymerModels",
             "createBashCompletionScript"};
 
         void writeHtmlLogInitialOutput(
@@ -177,6 +179,9 @@ void shasta2::main::main(int argumentCount, char** arguments)
     } else if(options.command == "listCommands") {
         listCommands();
         return;
+    } else if(options.command == "listHomopolymerModels") {
+        listHomopolymerModels();
+        return;
     } else if(options.command == "createBashCompletionScript") {
         createBashCompletionScript();
         return;
@@ -254,11 +259,7 @@ void shasta2::main::assemble(
                 cout << "Invalid homopolymer model. Option --homopolymer-model must specify "
                     "a built-in homopolymer model or an absolute path: " +
                     options.homopolymerModelName << endl;
-                cout << "Built-in homopolymer models are:";
-                for(const auto&[name, ignore]: homopolymerModelTable) {
-                    cout << " " << name;
-                }
-                cout << endl;
+                listHomopolymerModels();
                 throw runtime_error("Invalid homopolymer model. "
                         "Option --homopolymer-model must specify "
                         "a built-in homopolymer model or an absolute path: " + options.homopolymerModelName);
@@ -634,6 +635,16 @@ void shasta2::main::listCommands()
     cout << "Valid commands are:" << endl;
     for(const string& command: commands) {
         cout << command << endl;
+    }
+}
+
+
+
+void shasta2::main::listHomopolymerModels()
+{
+    cout << "Valid built-in homopoymer models are:" << endl;
+    for(const auto&[name, ignore]: homopolymerModelTable) {
+        cout << name << endl;
     }
 }
 
