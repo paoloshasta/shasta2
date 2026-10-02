@@ -353,7 +353,11 @@ void AssemblyGraph::detangleEdges([[maybe_unused]] const string& debugOutputBase
     for(uint64_t tangleId=0; tangleId<tangles.size(); tangleId++) {
         if(tangleId < tangleRc[tangleId]) {
             const Tangle tangle(assemblyGraph, tangles[tangleId]);
+            // ofstream html("Debug-Tangle-" + to_string(tangleId) + ".html");
+            // writeHtmlBegin(html, "Tangle-" + to_string(tangleId));
             detangleTanglePairStrict(tangle, html);
+            // writeHtmlEnd(html);
+            // writeGfa("Debug-Tangle-" + to_string(tangleId) + ".gfa");
         }
     }
 
@@ -956,6 +960,7 @@ bool AssemblyGraph::detangleTanglePairStrict(
 
     if(html) {
         html << "<h2>Detangling</h2>";
+        tangle.writeHtml(html);
     }
 
     // Run the likelihood ratio test on the entire matrix,
@@ -967,6 +972,9 @@ bool AssemblyGraph::detangleTanglePairStrict(
 
     // If the likelihood ratio test failed, don't do anything.
     if(not gTest.success) {
+        if(html) {
+            html << "<br>The G-test failed. Nothing done." << endl;
+        }
         return false;
     }
 
@@ -974,9 +982,15 @@ bool AssemblyGraph::detangleTanglePairStrict(
     SHASTA2_ASSERT(not gTest.hypotheses.empty());
     const GTest::Hypothesis& topHypothesis = gTest.hypotheses.front();
     if(not GTest::isForwardInjective(topHypothesis.connectivityMatrix)) {
+        if(html) {
+            html << "<br>The top hypothesis is not a permutation. Nothing done." << endl;
+        }
         return false;
     }
     if(not GTest::isBackwardInjective(topHypothesis.connectivityMatrix)) {
+        if(html) {
+            html << "<br>The top hypothesis is not a permutation. Nothing done." << endl;
+        }
         return false;
     }
 
@@ -985,6 +999,9 @@ bool AssemblyGraph::detangleTanglePairStrict(
     if(not gTest.isPositive(
         assemblyGraph.options.detangleMaxLogP,
         assemblyGraph.options.detangleMinLogPDelta)) {
+        if(html) {
+            html << "<br>The G-test did not give a reliable result. Nothing done." << endl;
+        }
         return false;
     }
 
@@ -994,10 +1011,18 @@ bool AssemblyGraph::detangleTanglePairStrict(
         for(uint64_t j=0; j<tangle.exits.size(); j++) {
             if(topHypothesis.connectivityMatrix[i][j]) {
                 if(not canConnect(tangle.entrances[i], tangle.exits[j])) {
+                    if(html) {
+                        html << "<br>Could not connect. Nothing done." << endl;
+                    }
                     return false;
                 }
                 connectPairs.push_back(
                     {{id(tangle.entrances[i]), id(tangle.exits[j])}, false});
+                if(html) {
+                    html << "<br>Added connect pair " <<
+                        id(tangle.entrances[i]) << " " <<
+                        id(tangle.exits[j]);
+                }
             }
         }
     }
