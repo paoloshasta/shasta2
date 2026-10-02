@@ -369,6 +369,10 @@ void AssemblyGraph::simplifyAndAssemble()
 // It returns true if any changes in the AssemblyGraph were made.
 bool AssemblyGraph::simplifyIteration(uint64_t iteration)
 {
+    performanceLog << timestamp << "Begin assembly graph simplify iteration " << iteration << endl;
+    cout << num_edges(*this) <<
+        " segments are present when simplify iteration " << iteration << " begins." << endl;
+
     const string iterationString = to_string(iteration);
     const bool debug = false;
 
@@ -420,6 +424,9 @@ bool AssemblyGraph::simplifyIteration(uint64_t iteration)
     if(debug) write(iterationString + "H-Compressed");
 
     const bool changesWereMade = (nextEdgeId > oldNextEdgeId);
+
+    performanceLog << timestamp << "End assembly graph simplify iteration " << iteration << endl;
+
     return changesWereMade;
 }
 
