@@ -312,7 +312,6 @@ public:
         bool attemptReadFollowing,
         const string& debugOutputBaseName);
     void localReadFollowing();
-    void separateStrands(const string& debugOutputBaseName);
     void separateStrands1(const string& debugOutputBaseName);
 private:
     bool detangleStrandSymmetric(const Tangle&, ostream& html);
