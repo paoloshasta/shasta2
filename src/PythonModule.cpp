@@ -20,7 +20,6 @@
 #include "MultithreadedObject.hpp"
 #include "Options.hpp"
 #include "performanceLog.hpp"
-#include "ReadFollowing4.hpp"
 #include "ReadSummary.hpp"
 #include "ShortBaseSequence.hpp"
 #include "SimpleMap.hpp"
@@ -204,7 +203,6 @@ PYBIND11_MODULE(shasta2, shasta2Module)
         .def("write", &AssemblyGraph::write)
         .def("writeFasta", &AssemblyGraph::writeFasta)
         .def("computeJourneys", &AssemblyGraph::computeJourneys)
-        .def("readFollowing", &AssemblyGraph::readFollowing)
         .def("connectDanglingSegments", &AssemblyGraph::connectDanglingSegments)
         .def("removeIsolatedVertices", &AssemblyGraph::removeIsolatedVertices)
         .def("removeLowN50Components", &AssemblyGraph::removeLowN50Components)
@@ -225,13 +223,6 @@ PYBIND11_MODULE(shasta2, shasta2Module)
         ;
 
 
-
-    // Class ReadFollowing.
-    class_<ReadFollowing4::ReadFollower>(shasta2Module, "ReadFollower")
-        .def(pybind11::init<const AssemblyGraph&>())
-        .def("findAndWriteShortestPath", &ReadFollowing4::ReadFollower::findAndWriteShortestPath)
-        .def("updateAssemblyGraph", &ReadFollowing4::ReadFollower::updateAssemblyGraph)
-         ;
 
     // Class ExternalAnchors.
     class_<ExternalAnchors>(shasta2Module, "ExternalAnchors")

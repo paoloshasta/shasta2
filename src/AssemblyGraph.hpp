@@ -552,14 +552,6 @@ public:
 
 
 
-    // Read following.
-    // Note assemlbyPaths are not necessarily paths in the AssemblyGraph.
-    // There may be jumps, which are bridged using local assemblies.
-    // Each assembly path generates a new linear chain of edges,
-    // which is left in an uncompressed state.
-    void readFollowing();
-
-
     // Simple connection of two segments (edges) without using
     // the RestrictedAnchorGraph.
     void simpleConnect(edge_descriptor, edge_descriptor);

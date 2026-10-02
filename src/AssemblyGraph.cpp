@@ -9,7 +9,6 @@
 #include "memoryInformation.hpp"
 #include "Options.hpp"
 #include "performanceLog.hpp"
-#include "ReadFollowing4.hpp"
 #include "RestrictedAnchorGraph.hpp"
 #include "SegmentStepSupport.hpp"
 #include "Tangle.hpp"
@@ -2760,15 +2759,6 @@ void AssemblyGraph::setAnnotation(edge_descriptor e, const string& annotation)
 {
     AssemblyGraph& assemblyGraph = *this;
     assemblyGraph[e].annotation = annotation;
-}
-
-
-
-void AssemblyGraph::readFollowing()
-{
-    ReadFollowing4::ReadFollower readFollower(*this);
-    // readFollower.updateAssemblyGraph(*this);
-    readFollower.updateAssemblyGraphStrandSymmetric(*this);
 }
 
 
