@@ -436,11 +436,15 @@ uint64_t AssemblyGraph::bubblePairCleanupIterationMultithreaded(
 
     performanceLog << timestamp << "Bubble cleanup iteration begins." << endl;
     AssemblyGraph& assemblyGraph = *this;
+    const bool debug = false;
 
     // Find all the bubble pairs.
     vector<BubblePair> allBubblePairs;
     findBubblePairs(allBubblePairs);
-    cout << "Found " << 2 * allBubblePairs.size() << " bubbles." << endl;
+
+    if(debug) {
+        cout << "Found " << 2 * allBubblePairs.size() << " bubbles." << endl;
+    }
     performanceLog << timestamp << "Found " << 2 * allBubblePairs.size() << " bubbles." << endl;
 
 
@@ -471,7 +475,10 @@ uint64_t AssemblyGraph::bubblePairCleanupIterationMultithreaded(
             candidateBubblePairs.push_back(BubblePair(bubbleA, bubbleB));
         }
     }
-    cout << 2 * candidateBubblePairs.size() << " bubbles are candidate for clean up." << endl;
+
+    if(debug) {
+        cout << 2 * candidateBubblePairs.size() << " bubbles are candidate for clean up." << endl;
+    }
     performanceLog << timestamp << 2 * candidateBubblePairs.size() << " bubbles are candidate for clean up." << endl;
 
 
@@ -496,7 +503,10 @@ uint64_t AssemblyGraph::bubblePairCleanupIterationMultithreaded(
     performanceLog << timestamp << "Begin processing bubble pairs." << endl;
     setupLoadBalancing(candidateBubblePairs.size(), batchSize);
     runThreads(&AssemblyGraph::bubblePairCleanupIterationThreadFunction, options.actualThreadCount());
-    cout << "Bubble cleanup modified " << bubblePairCleanupIterationData.modifiedCount << " bubbles." << endl;
+
+    if(debug) {
+        cout << "Bubble cleanup modified " << bubblePairCleanupIterationData.modifiedCount << " bubbles." << endl;
+    }
 
     // Update the excludeList.
     for(const auto&[bubbleA, bubbleB]: candidateBubblePairs) {
