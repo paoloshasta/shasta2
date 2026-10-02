@@ -311,7 +311,6 @@ public:
         const vector<uint64_t>& tangleRc,
         bool attemptReadFollowing,
         const string& debugOutputBaseName);
-    void localReadFollowing();
     void separateStrands1(const string& debugOutputBaseName);
 private:
     bool detangleStrandSymmetric(const Tangle&, ostream& html);
