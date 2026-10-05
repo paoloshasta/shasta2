@@ -468,6 +468,16 @@ public:
     void connectDanglingSegments();
 
 
+
+    // This turns the AssemblyGraph into a "pseudo" Assembly graph
+    // containing Segments that are are as long as possible,
+    // but that generally contain haplotype switches and
+    // other assembl errors (so-called "pseudo-haplotypes").
+    // This should be called after the AssemblyGraph has
+    // already been made single-stranded.
+    void makePseudo();
+
+
 public:
 
     // Compute compressed journeys in the AssemblyGraph.
