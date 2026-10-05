@@ -30,7 +30,7 @@ StrandContact::StrandContact(
     debugOutputBaseName(debugOutputBaseName),
     strandContactId(strandContactId)
 {
-    const bool debug = true;
+    const bool debug = false;
     if(debug) {
         html.open(debugOutputBaseName + "-StrandContact-" + to_string(strandContactId) + ".html");
         cout << "Working on strand contact " << strandContactId << endl;
