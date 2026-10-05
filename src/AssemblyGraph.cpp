@@ -360,6 +360,16 @@ void AssemblyGraph::simplifyAndAssemble()
     write("Final");
     writeFasta("Final");
 
+    // Pseudo-assembly, if requested.
+    if(options.createPseudoAssembly) {
+        makePseudo();
+        compress();
+        removeIsolatedVertices();
+        write("Pseudo");
+        writeFasta("Pseudo");
+        writePseudoAssemblyDisclaimer();
+    }
+
     writeMemoryStatistics("AssemblyGraph::simplifyAndAssemble ends");
 }
 

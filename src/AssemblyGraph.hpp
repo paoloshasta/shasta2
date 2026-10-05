@@ -476,6 +476,7 @@ public:
     // This should be called after the AssemblyGraph has
     // already been made single-stranded.
     void makePseudo();
+    static void writePseudoAssemblyDisclaimer();
 
 
 public:

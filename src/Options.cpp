@@ -15,7 +15,7 @@ Options::Options(int argc, char** argv) :
     allow_config_extras(false);
     set_config("--config", "", "Specify a configuration file.");
 
-    get_formatter()->column_width(20);
+    get_formatter()->column_width(10);
 
     addOptions();
 

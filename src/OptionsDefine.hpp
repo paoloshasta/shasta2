@@ -137,6 +137,15 @@ SHASTA2_BOOL_OPTION_DEFINE(
     "Write intermediate assembly stages.")
 
 SHASTA2_BOOL_OPTION_DEFINE(
+    createPseudoAssembly, "--create-pseudo-assembly", false,
+    "Create a pseudo-assembly, in addition to the standard assembly. "
+    "A pseudo-assembly has better contiguity (higher N50), "
+    "but this is achieved at the price of reduced accuracy. "
+    "The pseudo-assembly can contain haplotype switches and other "
+    "assembly errors. IT SHOULD NOT BE USED TO EVALUATE ASSEMBLY QUALITY."
+    "")
+
+SHASTA2_BOOL_OPTION_DEFINE(
     writeAssemblyDetails, "--write-assembly-details", false,
     "Write assembly details in csv format.")
 

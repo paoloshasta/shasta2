@@ -1,7 +1,7 @@
 #include "AssemblyGraph.hpp"
 #include "deduplicate.hpp"
 #include "GTest.hpp"
-#include "html.hpp"
+#include "htmlLog.hpp"
 #include "Options.hpp"
 #include "performanceLog.hpp"
 #include "Tangle.hpp"
@@ -25,7 +25,7 @@ void AssemblyGraph::makePseudo()
     AssemblyGraph& assemblyGraph = *this;
     ostream noOutput(0);
     performanceLog << timestamp << "AssemblyGraph::makePseudo begins." << endl;
-    const bool debug = true;
+    const bool debug = false;
     if(debug) {
         cout << "AssemblyGraph::makePseudo begins." << endl;
     }
@@ -141,3 +141,30 @@ void AssemblyGraph::makePseudo()
     }
 }
 
+
+
+void AssemblyGraph::writePseudoAssemblyDisclaimer()
+{
+
+    const string text1 =
+    "In addition to the standard assembly, a pseudo-assembly was created. "
+    "A pseudo-assembly has better contiguity (higher N50), "
+    "but this is achieved at the price of reduced accuracy. "
+    "The pseudo-assembly can contain haplotype switches and other "
+    "assembly errors. "
+    "It is provided as an option because it can be useful in some applications. "
+    "More reliable output is provided  by the standard assembly output. ";
+
+    const string text2 =
+        "THE PSEUDO-ASSEMBLY SHOULD NOT BE USED TO EVALUATE ASSEMBLY QUALITY.";
+
+    cout <<
+        endl << "*** PSEUDO-ASSEMBLY DISCLAIMER ***" << endl <<
+        text1 << text2 << endl <<
+        "*** END OF PSEUDO-ASSEMBLY DISCLAIMER" << endl << endl;
+
+    htmlLog <<
+        "<h2>Pseudo-assembly disclaimer</h2>" << text1 <<
+        "<span style='color:Purple;font-weight:bold'>" << text2 << "</span>";
+
+}
