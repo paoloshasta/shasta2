@@ -45,6 +45,18 @@ void Assembler::addReads(
     computeReadIdsSortedByName();
     histogramReadLength("ReadLengthHistogram.csv");
 
+    // Check that no reads are too long.
+    // This limitation is because Marker::position is Uint24.
+    const uint64_t maxReadLength = (2 << 24) - 1;
+    for(ReadId readId=0; readId<reads().readCount(); readId++) {
+        if(reads().getReadSequenceLength(readId) > maxReadLength ) {
+            std::ostringstream message;
+            message << "Read " << to_string(readId) << " " << reads().getReadName(readId) <<
+                " is too long. Maximum length allowed is " << maxReadLength << endl;
+            throw runtime_error(message.str());
+        }
+    }
+
     const auto t1 = steady_clock::now();
     performanceLog << "Read loading took " << seconds(t1-t0) << "s." << endl;
 

@@ -218,12 +218,6 @@ void ReadLoader::processFastaFileThreadFunction(size_t threadId)
             continue;
         }
 
-        // Check if the read is too long.
-        // If this starts happening, change Marker::position from Uint24 to uint32_t.
-        if(read.size() >= (2 << 24)) {
-            throw runtime_error("Read " + readName + " is too long.");
-        }
-
         // Store the read bases.
         thisThreadReadNames.appendVector(readName.begin(), readName.end());
         thisThreadReads.append(read);
