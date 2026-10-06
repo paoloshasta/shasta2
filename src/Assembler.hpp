@@ -206,6 +206,8 @@ public:
     // Access existing Anchors.
     void accessAnchors();
 
+    void analyzeAnchors(const Options&) const;
+
 
 
     // Journeys.

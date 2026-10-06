@@ -13,12 +13,14 @@
 #include "MurmurHash2.hpp"
 #include "Options.hpp"
 #include "performanceLog.hpp"
+#include "ReadLoader.hpp"
 #include "Reads.hpp"
 #include "ReadSummary.hpp"
 using namespace shasta2;
 
 #include "MultithreadedObject.tpp"
 template class MultithreadedObject<Assembler>;
+
 
 
 // Construct a new Assembler.
@@ -477,4 +479,177 @@ void Assembler::writeReadSummaries(bool partial) const
         }
         csv << "\n";
     }
+}
+
+
+
+void Assembler::analyzeAnchors(const Options& options) const
+{
+    SHASTA2_ASSERT(anchorsPointer);
+    SHASTA2_ASSERT(journeysPointer);
+    const uint64_t k = assemblerInfo->k;
+
+    const Anchors& anchors = *anchorsPointer;
+    const Journeys& journeys = *journeysPointer;
+
+    cout << "Assembler::analyzeAnchors begins." << endl;
+
+
+
+    // Read a reference to be used for this analysis.
+    cout << "Loading the reference." << endl;
+    Reads reference;
+    reference.createNew(
+        largeDataName("Reference"),
+        largeDataName("ReferenceNames"),
+        largeDataName("ReferenceIdsSortedByName"),
+        largeDataPageSize
+    );
+    ReadLoader readLoader(
+        "reference.fasta", 0, options.actualThreadCount(),
+        largeDataFileNamePrefix, largeDataPageSize,
+        reference);
+
+
+
+    // Gather all k-mers present in the reference.
+    // Store both strands.
+    vector<Kmer> referenceKmers;
+    cout << "Gathering reference k-mers." << endl;
+    for(uint32_t i=0; i<reference.readCount(); i++) {
+        const LongBaseSequenceView referenceContig = reference.getRead(i);
+        if(referenceContig.baseCount < k) {
+            continue;
+        }
+
+        // Loop over k-mers of this reference contig.
+        Kmer kmer;
+        for(size_t position=0; position<k; position++) {
+            kmer.set(position, referenceContig[position]);
+        }
+        for(uint32_t position=0; position+k < referenceContig.baseCount; position++) {
+            referenceKmers.push_back(kmer);
+            referenceKmers.push_back(kmer.reverseComplement(k));
+
+            // Update the k-mer.
+            kmer.shiftLeft();
+            kmer.set(k-1, referenceContig[position+k]);
+        }
+    }
+
+    cout << "Deduplicating reference k-mers." << endl;
+    vector<uint64_t> kmerFrequency;
+    deduplicateAndCount(referenceKmers, kmerFrequency);
+
+
+    class Key {
+    public:
+        uint64_t maxForwardCoverage;
+        uint64_t maxBackwardCoverage;
+        auto operator<=>(const Key&) const = default;
+    };
+    class Value {
+    public:
+        uint64_t inReferenceCount = 0;
+        uint64_t notInReferenceCount = 0;
+        auto operator<=>(const Value&) const = default;
+    };
+    std::map<Key, Value> m;
+
+
+
+    // Loop over positive (even) anchors.
+    cout << "Analyzing anchors." << endl;
+    vector<AnchorId> nextOrPrevious;
+    vector<uint64_t> count;
+    ofstream csv("AnalyzeAnchors.csv");
+    csv << "AnchorId,Coverage,K-mer,Frequency in reference,Max forward coverage,Max backward coverage,\n";
+    for(AnchorId anchorId=0; anchorId<anchors.size(); anchorId+=2) {
+        const Anchor anchor = anchors[anchorId];
+
+        // Find the next anchors in Journeys.
+        nextOrPrevious.clear();
+        for(const auto& markerInfo: anchor) {
+            const OrientedReadId orientedReadId = markerInfo.orientedReadId;
+            const auto journey = journeys[orientedReadId];
+            const uint64_t position = markerInfo.positionInJourney;
+            const uint64_t nextPosition = position + 1;
+            if(nextPosition < journey.size()) {
+                const AnchorId nextAnchorId = journey[nextPosition];
+                nextOrPrevious.push_back(nextAnchorId);
+            }
+        }
+        // Count how many times each of them appears.
+        deduplicateAndCount(nextOrPrevious, count);
+        const uint64_t maxForwardCoverage = (count.empty() ? 0 : std::ranges::max(count));
+
+        // Do the same, backward.
+        nextOrPrevious.clear();
+        for(const auto& markerInfo: anchor) {
+            const OrientedReadId orientedReadId = markerInfo.orientedReadId;
+            const auto journey = journeys[orientedReadId];
+            const uint64_t position = markerInfo.positionInJourney;
+            if(position > 0) {
+                const uint64_t previousPosition = position - 1;
+                const AnchorId previousAnchorId = journey[previousPosition];
+                nextOrPrevious.push_back(previousAnchorId);
+            }
+        }
+        // Count how many times each of them appears.
+        deduplicateAndCount(nextOrPrevious, count);
+        const uint64_t maxBackwardCoverage = (count.empty() ? 0 : std::ranges::max(count));
+
+        // Get the Kmer and find out how many times it is present in the reference (both strands).
+        const Kmer kmer = anchors.anchorKmer(anchorId);
+        const auto it = std::lower_bound(referenceKmers.begin(), referenceKmers.end(), kmer);
+        uint64_t frequency = 0;
+        if(it != referenceKmers.end()) {
+            if(*it == kmer) {
+                frequency = kmerFrequency[it - referenceKmers.begin()];
+            }
+        }
+
+        // Update our map.
+        const Key key = Key({maxForwardCoverage, maxBackwardCoverage});
+        auto jt = m.find(key);
+        if(jt == m.end()) {
+            tie(jt, ignore) = m.insert({key, Value()});
+        }
+        Value& value = jt->second;
+        if(frequency == 0) {
+            ++value.notInReferenceCount;
+        } else {
+            ++value.inReferenceCount;
+        }
+
+
+        csv << anchorIdToString(anchorId) << ",";
+        csv << anchor.size() << ",";
+        kmer.write(csv, k);
+        csv << ",";
+        csv << frequency << ",";
+        csv << maxForwardCoverage << ",";
+        csv << maxBackwardCoverage << ",";
+        csv << "\n";
+    }
+    reference.remove();
+
+
+
+    // Write out the map.
+    {
+        ofstream csv("AnalyzeAnchors-Summary.csv");
+        csv << "Max forward coverage,Max backward coverage,"
+            "In reference,Not in reference,Not in reference ratio\n";
+        for(const auto&[key, value]: m) {
+            csv << key.maxForwardCoverage << ",";
+            csv << key.maxBackwardCoverage << ",";
+            csv << value.inReferenceCount << ",";
+            csv << value.notInReferenceCount << ",";
+            csv << double(value.notInReferenceCount) / double(value.inReferenceCount + value.notInReferenceCount) << ",";
+            csv << "\n";
+        }
+    }
+
+    cout << "Assembler::analyzeAnchors ends." << endl;
 }
