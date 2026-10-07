@@ -7,6 +7,7 @@ assembler = shasta2.Assembler()
 assembler.accessMarkers()
 assembler.accessMarkerKmers()
 assembler.accessAnchors(True)
+assembler.accessReadSummaries()
 assembler.createJourneys()
 assembler.storeAnchorGaps()
 
