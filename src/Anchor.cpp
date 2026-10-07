@@ -1151,10 +1151,10 @@ void Anchors::remove()
 
 
 
-void Anchors::flagBadAnchors(const Journeys& journeys)
+uint64_t Anchors::flagBadAnchors(
+    const Journeys& journeys,
+    uint64_t coverageThreshold)
 {
-    // EXPOSE WHEN CODE STABILIZES.
-    const uint64_t coverageThreshold = 6;
 
     Anchors& anchors = *this;
     vector<AnchorId> nextOrPrevious;
@@ -1210,8 +1210,11 @@ void Anchors::flagBadAnchors(const Journeys& journeys)
             continue;
         }
 
-        // If maxForwardCoverage or maxForwardCoverage is too low, flag this Anchor as bad.
-        if((maxForwardCoverage < coverageThreshold) or (maxBackwardCoverage < coverageThreshold)) {
+        // The minimum of maxForwardCoverage and maxBackwardCoverage
+        // must must be at least equal to coverageThreshold.
+        // If that is not the case, the anchor is flagged as bad.
+        const uint64_t n = min(maxForwardCoverage, maxBackwardCoverage);
+        if((n < coverageThreshold)) {
             anchorData[anchorId].isBad = true;
             anchorData[anchorId + 1].isBad = true;
             flaggedCount += 2;
@@ -1222,4 +1225,5 @@ void Anchors::flagBadAnchors(const Journeys& journeys)
     cout << "Flagged " << flaggedCount << " anchors as bad out of " <<
         anchors.size() << " total." << endl;
 
+    return flaggedCount;
 }

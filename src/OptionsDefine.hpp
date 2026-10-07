@@ -110,6 +110,13 @@ that the k-mer sequence must contain all 4 bases,at least 12 of the 16
 possible sub-2-mers, and at least 24 of the 64 possible sub-3-mers.
 )zzz")
 
+SHASTA2_OPTION_DEFINE(
+    uint64_t, anchorFilteringMaxIterationCount, "--anchor-filtering-max-iteration-count", 0,
+    "Maximum number of iterations for anchor filtering.")
+
+SHASTA2_OPTION_DEFINE(
+    uint64_t, anchorFilteringCoverageThreshold, "--anchor-filtering-coverage-threshold", 0,
+    "Coverage threshold for anchor filtering.")
 
 
 // Anchor graph.

@@ -125,7 +125,8 @@ void Assembler::assemble(
         readExternalAnchors(externalAnchorsNameAbsolutePath);
     }
 
-
+    // Anchor filtering.
+    flagBadAnchors(options);
 
     // Create the Journeys.
     createJourneys(options.threadCount);
@@ -659,10 +660,24 @@ void Assembler::analyzeAnchors(const Options& options) const
 
 
 
-void Assembler::flagBadAnchors()
+void Assembler::flagBadAnchors(const Options& options)
+{
+    const uint64_t threadCount = options.actualThreadCount();
+
+    for(uint64_t iteration=0; iteration<options.anchorFilteringMaxIterationCount; iteration++) {
+        createJourneys(threadCount);
+        if(flagBadAnchorsIteration(options.anchorFilteringCoverageThreshold) == 0) {
+            break;
+        }
+    }
+}
+
+
+
+uint64_t Assembler::flagBadAnchorsIteration(uint64_t coverageThreshold)
 {
     SHASTA2_ASSERT(anchorsPointer);
     SHASTA2_ASSERT(anchorsPointer->anchorData.isOpenWithWriteAccess);
 
-    anchorsPointer->flagBadAnchors(journeys());
+    return anchorsPointer->flagBadAnchors(journeys(), coverageThreshold);
 }

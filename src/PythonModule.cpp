@@ -52,15 +52,7 @@ PYBIND11_MODULE(shasta2, shasta2Module)
         // Constructor from the name of a configuration file.
         .def(pybind11::init<const string&>(),
             arg("configurationFileName") = "shasta2.conf")
-        .def_readwrite("threadCount", &Options::threadCount)
-        .def_readwrite("k", &Options::k)
-        .def_readwrite("markerDensity", &Options::markerDensity)
-        .def_readwrite("maxMarkerErrorRate", &Options::maxMarkerErrorRate)
-        .def_readwrite("externalAnchorsName", &Options::externalAnchorsName)
-        .def_readwrite("minAnchorCoverage", &Options::minAnchorCoverage)
-        .def_readwrite("maxAnchorCoverage", &Options::maxAnchorCoverage)
-        .def_readwrite("maxAnchorRepeatLength", &Options::maxAnchorRepeatLength)
-        .def_readwrite("minAnchorGraphEdgeCoverage", &Options::minAnchorGraphEdgeCoverage)
+        .def("actualThreadCount", &Options::actualThreadCount)
 
 		// Options defined in OptionsDefine.hpp
 		#define SHASTA2_OPTION_DEFINE(type, name, optionName, defaultValue, description) \
@@ -128,6 +120,7 @@ PYBIND11_MODULE(shasta2, shasta2Module)
        .def("readExternalAnchors", &Assembler::readExternalAnchors)
        .def("analyzeAnchors", &Assembler::analyzeAnchors)
        .def("flagBadAnchors", &Assembler::flagBadAnchors)
+       .def("flagBadAnchorsIteration", &Assembler::flagBadAnchorsIteration)
        .def("accessAnchors", &Assembler::accessAnchors, arg("writeAccess") = false)
 
        // Journeys.

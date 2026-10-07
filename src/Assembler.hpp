@@ -207,7 +207,8 @@ public:
     void accessAnchors(bool writeAccess = false);
 
     void analyzeAnchors(const Options&) const;
-    void flagBadAnchors();
+    void flagBadAnchors(const Options&);
+    uint64_t flagBadAnchorsIteration(uint64_t coverageThreshold);
 
 
 
