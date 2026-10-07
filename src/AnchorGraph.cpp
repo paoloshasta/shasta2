@@ -79,19 +79,18 @@ AnchorGraph::AnchorGraph(
         AnchorPair::createChildren(anchors, journeys, anchorIdA, 0, anchorPairs);
 
         for(const AnchorPair& anchorPair: anchorPairs) {
+            const AnchorId anchorIdB = anchorPair.anchorIdB;
+            const uint64_t coverageB = anchors[anchorIdB].coverage();
             const uint64_t edgeCoverage = anchorPair.size();
 
-            // The edge must satisfy both minEdgeCoverage and minEdgeCoverageFraction.
-            if(edgeCoverage >= minEdgeCoverage) {
-                // minEdgeCoverage is satisfied.
-                // We must check if minEdgeCoverageFraction is also satisfied.
+            // The edge must satisfy either minEdgeCoverage or minEdgeCoverageFraction.
+            const bool absoluteCriterionIsSatisfied = (edgeCoverage >= minEdgeCoverage);
+            const bool relativeCriterionIsSatisfied =
+                (double(edgeCoverage) >= minEdgeCoverageFraction * double(min(coverageA, coverageB)));
+            const bool createEdge = (absoluteCriterionIsSatisfied or relativeCriterionIsSatisfied);
 
-                const AnchorId anchorIdB = anchorPair.anchorIdB;
-                const uint64_t coverageB = anchors[anchorIdB].coverage();
-
-                if(double(edgeCoverage) >= minEdgeCoverageFraction * double(min(coverageA, coverageB))) {
-                    addEdge(anchorIdA, anchorIdB, anchorPair.orientedReadIds, true);
-                }
+            if(createEdge) {
+                addEdge(anchorIdA, anchorIdB, anchorPair.orientedReadIds, true);
             }
         }
     }
