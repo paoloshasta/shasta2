@@ -41,7 +41,8 @@ Anchors::Anchors(
     const string& baseName,
     const MappedMemoryOwner& mappedMemoryOwner,
     const Reads& reads,
-    uint64_t k) :
+    uint64_t k,
+    bool writeAccess) :
     MultithreadedObject<Anchors>(*this),
     MappedMemoryOwner(mappedMemoryOwner),
     baseName(baseName),
@@ -49,7 +50,8 @@ Anchors::Anchors(
     k(k),
     kHalf(k/2)
 {
-    anchorMarkerInfos.accessExistingReadOnly(largeDataName(baseName + "-AnchorMarkerInfos"));
+    anchorMarkerInfos.accessExisting(largeDataName(baseName + "-AnchorMarkerInfos"), writeAccess);
+    anchorData.accessExisting(largeDataName(baseName + "-AnchorData"), writeAccess);
 }
 
 
@@ -827,6 +829,11 @@ Anchors::Anchors(
 
     anchorInfos.remove();
 
+    // Initialize the AnchorData.
+    anchorData.createNew(largeDataName(baseName + "-AnchorData"), largeDataPageSize);
+    anchorData.resize(anchorCount);
+    std::ranges::fill(anchorData, AnchorData());    // Probably superfluous.
+
     cout << "Number of anchors per strand: " << anchorCount / 2 << endl;
     performanceLog << timestamp << "Anchor creation from marker kmers ends." << endl;
 
@@ -1124,6 +1131,11 @@ Anchors::Anchors(
         anchorMarkerInfos.appendVector(markerInfos);
     }
 
+    // Initialize the AnchorData.
+    anchorData.createNew(largeDataName(baseName + "-AnchorData"), largeDataPageSize);
+    anchorData.resize(anchorMarkerInfos.size());
+    std::ranges::fill(anchorData, AnchorData());    // Probably superfluous.
+
     cout << "Generated " << anchorMarkerInfos.size() << " anchors from " <<
         externalAnchors.data.size() << " external anchors." << endl;
 }
@@ -1134,4 +1146,80 @@ void Anchors::remove()
 {
     anchorMarkerInfos.remove();
     anchorInfos.remove();
+}
+
+
+
+
+void Anchors::flagBadAnchors(const Journeys& journeys)
+{
+    // EXPOSE WHEN CODE STABILIZES.
+    const uint64_t coverageThreshold = 6;
+
+    Anchors& anchors = *this;
+    vector<AnchorId> nextOrPrevious;
+    vector<uint64_t> count;
+
+    ofstream csv("BadAnchors.csv");
+
+    // Loop over positive (even) anchors.
+    uint64_t flaggedCount = 0;
+    for(AnchorId anchorId=0; anchorId<anchors.size(); anchorId+=2) {
+        if(anchorData[anchorId].isBad) {
+            continue;
+        }
+        const Anchor anchor = anchors[anchorId];
+
+        // Find the next anchors in Journeys.
+        nextOrPrevious.clear();
+        for(const auto& markerInfo: anchor) {
+            const OrientedReadId orientedReadId = markerInfo.orientedReadId;
+            const auto journey = journeys[orientedReadId];
+            const uint64_t position = markerInfo.positionInJourney;
+            const uint64_t nextPosition = position + 1;
+            if(nextPosition < journey.size()) {
+                const AnchorId nextAnchorId = journey[nextPosition];
+                nextOrPrevious.push_back(nextAnchorId);
+            }
+        }
+        // Count how many times each of them appears.
+        deduplicateAndCount(nextOrPrevious, count);
+        const uint64_t maxForwardCoverage = (count.empty() ? 0 : std::ranges::max(count));
+
+        // Do the same, backward.
+        nextOrPrevious.clear();
+        for(const auto& markerInfo: anchor) {
+            const OrientedReadId orientedReadId = markerInfo.orientedReadId;
+            const auto journey = journeys[orientedReadId];
+            const uint64_t position = markerInfo.positionInJourney;
+            if(position > 0) {
+                const uint64_t previousPosition = position - 1;
+                const AnchorId previousAnchorId = journey[previousPosition];
+                nextOrPrevious.push_back(previousAnchorId);
+            }
+        }
+        // Count how many times each of them appears.
+        deduplicateAndCount(nextOrPrevious, count);
+        const uint64_t maxBackwardCoverage = (count.empty() ? 0 : std::ranges::max(count));
+
+        // If this is a terminal Anchor, don't flag it it as bad.
+        if(maxForwardCoverage == 0) {
+            continue;
+        }
+        if(maxBackwardCoverage == 0) {
+            continue;
+        }
+
+        // If maxForwardCoverage or maxForwardCoverage is too low, flag this Anchor as bad.
+        if((maxForwardCoverage < coverageThreshold) or (maxBackwardCoverage < coverageThreshold)) {
+            anchorData[anchorId].isBad = true;
+            anchorData[anchorId + 1].isBad = true;
+            flaggedCount += 2;
+            csv << anchorIdToString(anchorId) << "," << anchorIdToString(anchorId + 1) << "\n";
+        }
+    }
+
+    cout << "Flagged " << flaggedCount << " anchors as bad out of " <<
+        anchors.size() << " total." << endl;
+
 }

@@ -29,6 +29,7 @@ namespace shasta2 {
     class AnchorMarkerInfo;
     class Anchors;
     class AnchorInfo;
+    class AnchorData;
     class AnchorPairInfo;
 
     using AnchorBaseClass = span<const AnchorMarkerInfo>;
@@ -89,6 +90,13 @@ public:
 
 
 
+class shasta2::AnchorData {
+public:
+    bool isBad = false;
+};
+
+
+
 // An Anchor is a set of AnchorMarkerInfos.
 class shasta2::Anchor : public AnchorBaseClass {
 public:
@@ -136,7 +144,8 @@ public:
         const string& baseName,
         const MappedMemoryOwner&,
         const Reads& reads,
-        uint64_t k);
+        uint64_t k,
+        bool writeAccess = false);
 
     void remove();
 
@@ -185,6 +194,8 @@ public:
     // Find out if the given AnchorId contains the specified OrientedReadId.
     bool anchorContains(AnchorId, OrientedReadId) const;
 
+    void flagBadAnchors(const Journeys&);
+
     const string baseName;
     const Reads& reads;
     const uint64_t k;
@@ -213,6 +224,7 @@ public:
 
 
     MemoryMapped::Vector<AnchorInfo> anchorInfos;
+    MemoryMapped::Vector<AnchorData> anchorData;
 private:
 
 

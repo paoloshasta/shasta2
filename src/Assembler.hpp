@@ -204,9 +204,10 @@ public:
     void readExternalAnchors(const string& name);
 
     // Access existing Anchors.
-    void accessAnchors();
+    void accessAnchors(bool writeAccess = false);
 
     void analyzeAnchors(const Options&) const;
+    void flagBadAnchors();
 
 
 

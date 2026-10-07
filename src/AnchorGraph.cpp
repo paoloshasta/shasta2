@@ -72,6 +72,9 @@ AnchorGraph::AnchorGraph(
     nextEdgeId = 0;
     vector<AnchorPair> anchorPairs;
     for(AnchorId anchorIdA=0; anchorIdA<anchorCount; anchorIdA++) {
+        if(anchors.anchorData[anchorIdA].isBad) {
+            continue;
+        }
         const uint64_t coverageA = anchors[anchorIdA].coverage();
         AnchorPair::createChildren(anchors, journeys, anchorIdA, 0, anchorPairs);
 

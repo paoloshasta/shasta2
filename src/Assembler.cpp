@@ -260,10 +260,10 @@ void Assembler::readExternalAnchors(const string& externalAnchorsName)
 
 
 // Access existing Anchors.
-void Assembler::accessAnchors()
+void Assembler::accessAnchors(bool writeAccess)
 {
      anchorsPointer = make_shared<Anchors>("Anchors",
-         MappedMemoryOwner(*this), reads(), assemblerInfo->k);
+         MappedMemoryOwner(*this), reads(), assemblerInfo->k, writeAccess);
 }
 
 
@@ -565,6 +565,9 @@ void Assembler::analyzeAnchors(const Options& options) const
     ofstream csv("AnalyzeAnchors.csv");
     csv << "AnchorId,Coverage,K-mer,Frequency in reference,Max forward coverage,Max backward coverage,\n";
     for(AnchorId anchorId=0; anchorId<anchors.size(); anchorId+=2) {
+        if(anchors.anchorData[anchorId].isBad) {
+            continue;
+        }
         const Anchor anchor = anchors[anchorId];
 
         // Find the next anchors in Journeys.
@@ -652,4 +655,14 @@ void Assembler::analyzeAnchors(const Options& options) const
     }
 
     cout << "Assembler::analyzeAnchors ends." << endl;
+}
+
+
+
+void Assembler::flagBadAnchors()
+{
+    SHASTA2_ASSERT(anchorsPointer);
+    SHASTA2_ASSERT(anchorsPointer->anchorData.isOpenWithWriteAccess);
+
+    anchorsPointer->flagBadAnchors(journeys());
 }

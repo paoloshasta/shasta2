@@ -65,6 +65,22 @@ Journeys::Journeys(
 
     journeysWithPositions.remove();
 
+
+    // Finally, set to invalid<uint32_t> the positions in journeys
+    // of all the anchorMarkerInfos of the bad anchors.
+    Anchors& anchors = *anchorsPointer;
+    uint64_t badCount = 0;
+    for(AnchorId anchorId=0; anchorId<anchorCount; anchorId++) {
+        if(anchors.anchorData[anchorId].isBad) {
+            ++badCount;
+            const auto anchor = anchors.anchorMarkerInfos[anchorId];
+            for(AnchorMarkerInfo& anchorMarkerInfo: anchor) {
+                anchorMarkerInfo.positionInJourney = invalid<uint32_t>;
+            }
+        }
+    }
+    cout << badCount << " Bad anchors were ignored when creating Journeys." << endl;
+
     performanceLog << timestamp << "Journeys creation ends." << endl;
 }
 
@@ -93,7 +109,11 @@ void Journeys::threadFunction12(uint64_t pass)
     while(getNextBatch(begin, end)) {
 
         // Loop over all AnchorIds in this batch.
+        // Skip anchors flagged as bad.
         for(AnchorId anchorId=begin; anchorId!=end; anchorId++) {
+            if(anchors.anchorData[anchorId].isBad) {
+                continue;
+            }
             Anchor anchor = anchors[anchorId];
 
             // Loop over the marker intervals of this Anchor.
