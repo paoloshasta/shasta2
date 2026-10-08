@@ -1173,6 +1173,7 @@ void StrandContact::updateAssemblyGraph()
 
 
     // Replicate Segments as described at the beginning of this function.
+    std::map<Segment, Segment> newSegmentMap;
     for(const SegmentPair& segmentPair: segmentPairs) {
         const bool isAmbiguous = (segmentPair.crossStrandEdgeFrequencyRatio > maxCrossStrandFrequencyRatio);
         for(const SegmentInfo& segmentInfo: segmentPair.segmentInfos) {
@@ -1218,10 +1219,60 @@ void StrandContact::updateAssemblyGraph()
                 // oriented reads that don't belong to the same evenly number component.
                 auto[newSegment, wasAdded] = add_edge(v0New, v1New, assemblyGraph[segment], assemblyGraph);
                 SHASTA2_ASSERT(wasAdded);
+                newSegmentMap.insert({segment, newSegment});
 
                 // Also create the reverse complement edge.
                 assemblyGraph.createReverseComplementEdge(newSegment);
             }
+        }
+    }
+
+
+
+    // Recursively prune new segments that are dangling and that are a copy of an ambiguous segment.
+    while(true) {
+        vector<Segment> originalCopiesOfSegmentsToBeRemoved;
+        for(const SegmentPair& segmentPair: segmentPairs) {
+            const bool isAmbiguous = (segmentPair.crossStrandEdgeFrequencyRatio > maxCrossStrandFrequencyRatio);
+            for(const SegmentInfo& segmentInfo: segmentPair.segmentInfos) {
+                if(segmentInfo.isEntrance) {
+                    continue;
+                }
+                if(segmentInfo.isExit) {
+                    continue;
+                }
+                if(not isAmbiguous) {
+                    continue;
+                }
+                const Segment segment = segmentInfo.segment;
+                const auto it = newSegmentMap.find(segment);
+                if(it == newSegmentMap.end()) {
+                    // We already removed it.
+                    continue;
+                }
+                const Segment newSegment = it->second;
+                const vertex_descriptor v0 = source(newSegment, assemblyGraph);
+                const vertex_descriptor v1 = target(newSegment, assemblyGraph);
+                const bool isDangling = ((in_degree(v0, assemblyGraph) == 0) or(out_degree(v1, assemblyGraph) == 0));
+                if(isDangling) {
+                    originalCopiesOfSegmentsToBeRemoved.push_back(segment);
+                }
+            }
+        }
+
+        if(originalCopiesOfSegmentsToBeRemoved.empty()) {
+            break;
+        }
+
+        for(const Segment segment: originalCopiesOfSegmentsToBeRemoved) {
+            const Segment newSegment = newSegmentMap.at(segment);
+            const Segment newSegmentRc = assemblyGraph[newSegment].eRc;
+            if(html) {
+                html << "<br>Removing dangling ambiguous segment " << id(newSegment) << flush;
+            }
+            boost::remove_edge(newSegment, assemblyGraph);
+            boost::remove_edge(newSegmentRc, assemblyGraph);
+            newSegmentMap.erase(segment);
         }
     }
 
