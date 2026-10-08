@@ -1183,7 +1183,8 @@ void StrandContact::updateAssemblyGraph()
             if(segmentInfo.isExit) {
                 continue;
             }
-            if(isAmbiguous or (segmentInfo.componentId %2)) {
+            const bool isEvenComponent = (segmentInfo.componentId & 1) == 0;
+            if(isAmbiguous or isEvenComponent) {
 
                 // Ok, we are going to make a copy of this Segment.
                 const Segment segment = segmentInfo.segment;
