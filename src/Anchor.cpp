@@ -1150,7 +1150,9 @@ void Anchors::remove()
 
 
 
-
+#if 0
+// This is the old version that requires the Journeys to be updated
+// at each iteration by removing the bad anchors from the Journeys.
 uint64_t Anchors::flagBadAnchors(
     const Journeys& journeys,
     uint64_t coverageThreshold)
@@ -1227,3 +1229,89 @@ uint64_t Anchors::flagBadAnchors(
 
     return flaggedCount;
 }
+#endif
+
+
+
+// This is the new version that works on the initial Jurneys
+// created using all of the Anchors.
+uint64_t Anchors::flagBadAnchors(
+    const Journeys& journeys,
+    uint64_t coverageThreshold)
+{
+
+    Anchors& anchors = *this;
+    vector<AnchorId> nextOrPrevious;
+    vector<uint64_t> count;
+
+    // Loop over positive (even) anchors.
+    uint64_t flaggedCount = 0;
+    for(AnchorId anchorId=0; anchorId<anchors.size(); anchorId+=2) {
+        if(anchorData[anchorId].isBad) {
+            continue;
+        }
+        const Anchor anchor = anchors[anchorId];
+
+        // Find the next anchors in Journeys, excluding bad anchors.
+        nextOrPrevious.clear();
+        for(const auto& markerInfo: anchor) {
+            const OrientedReadId orientedReadId = markerInfo.orientedReadId;
+            const auto journey = journeys[orientedReadId];
+            const uint64_t position = markerInfo.positionInJourney;
+            for(uint64_t nextPosition=position+1; nextPosition<journey.size(); nextPosition++) {
+                const AnchorId nextAnchorId = journey[nextPosition];
+                if(not anchorData[nextAnchorId].isBad) {
+                    nextOrPrevious.push_back(nextAnchorId);
+                    break;
+                }
+            }
+        }
+        // Count how many times each of them appears.
+        deduplicateAndCount(nextOrPrevious, count);
+        const uint64_t maxForwardCoverage = (count.empty() ? 0 : std::ranges::max(count));
+
+        // Do the same, backward.
+        nextOrPrevious.clear();
+        for(const auto& markerInfo: anchor) {
+            const OrientedReadId orientedReadId = markerInfo.orientedReadId;
+            const auto journey = journeys[orientedReadId];
+            const uint64_t position = markerInfo.positionInJourney;
+            if(position > 0) {
+                for(uint64_t previousPosition=position-1; /* Check later */ ; previousPosition--) {
+                    const AnchorId previousAnchorId = journey[previousPosition];
+                    if(not anchorData[previousAnchorId].isBad) {
+                        nextOrPrevious.push_back(previousAnchorId);
+                        break;
+                    }
+                    if(previousPosition == 0) {
+                        break;
+                    }
+                }
+            }
+        }
+        // Count how many times each of them appears.
+        deduplicateAndCount(nextOrPrevious, count);
+        const uint64_t maxBackwardCoverage = (count.empty() ? 0 : std::ranges::max(count));
+
+        // If this is a terminal Anchor, don't flag it it as bad.
+        if(maxForwardCoverage == 0) {
+            continue;
+        }
+        if(maxBackwardCoverage == 0) {
+            continue;
+        }
+
+        // The minimum of maxForwardCoverage and maxBackwardCoverage
+        // must must be at least equal to coverageThreshold.
+        // If that is not the case, the anchor is flagged as bad.
+        const uint64_t n = min(maxForwardCoverage, maxBackwardCoverage);
+        if((n < coverageThreshold)) {
+            anchorData[anchorId].isBad = true;
+            anchorData[anchorId + 1].isBad = true;
+            flaggedCount += 2;
+        }
+    }
+
+    return flaggedCount;
+}
+

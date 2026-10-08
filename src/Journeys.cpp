@@ -79,7 +79,9 @@ Journeys::Journeys(
             }
         }
     }
-    cout << badCount << " Bad anchors were ignored when creating Journeys." << endl;
+    if(badCount > 0) {
+        cout << badCount << " bad anchors were ignored when creating Journeys." << endl;
+    }
 
     performanceLog << timestamp << "Journeys creation ends." << endl;
 }

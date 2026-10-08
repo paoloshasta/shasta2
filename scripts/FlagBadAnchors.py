@@ -9,5 +9,5 @@ assembler.accessMarkers()
 assembler.accessMarkerKmers()
 assembler.accessAnchors(True)
 assembler.accessJourneys()
-assembler.flagBadAnchors(options.actualThreadCount())
+assembler.flagBadAnchors(options)
 

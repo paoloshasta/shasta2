@@ -126,9 +126,10 @@ void Assembler::assemble(
     }
 
     // Anchor filtering.
+    createJourneys(options.threadCount);
     flagBadAnchors(options);
 
-    // Create the Journeys.
+    // Create the Journeys. These new Journeys exclude anchors flagged as bad.
     createJourneys(options.threadCount);
     storeAnchorGaps();
 
@@ -662,11 +663,15 @@ void Assembler::analyzeAnchors(const Options& options) const
 
 void Assembler::flagBadAnchors(const Options& options)
 {
-    const uint64_t threadCount = options.actualThreadCount();
+    // const uint64_t threadCount = options.actualThreadCount();
 
+    uint64_t totalBadAnchorCount = 0;
     for(uint64_t iteration=0; iteration<options.anchorFilteringMaxIterationCount; iteration++) {
-        createJourneys(threadCount);
-        if(flagBadAnchorsIteration(options.anchorFilteringCoverageThreshold) == 0) {
+        const uint64_t newBadAnchorCount = flagBadAnchorsIteration(options.anchorFilteringCoverageThreshold);
+        totalBadAnchorCount += newBadAnchorCount;
+        cout << "Anchor filtering iteration " << iteration << ": " <<
+            newBadAnchorCount<< " bad anchors, " << totalBadAnchorCount << " so far." << endl;
+        if(newBadAnchorCount == 0) {
             break;
         }
     }
