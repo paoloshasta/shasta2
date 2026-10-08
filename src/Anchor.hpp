@@ -194,10 +194,6 @@ public:
     // Find out if the given AnchorId contains the specified OrientedReadId.
     bool anchorContains(AnchorId, OrientedReadId) const;
 
-    uint64_t flagBadAnchors(
-        const Journeys&,
-        uint64_t coverageThreshold);
-
     const string baseName;
     const Reads& reads;
     const uint64_t k;
