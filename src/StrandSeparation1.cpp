@@ -13,6 +13,7 @@ using namespace StrandSeparation1;
 
 // Standard library.
 #include <iomanip>
+#include <queue>
 #include <random>
 
 
@@ -1274,6 +1275,161 @@ void StrandContact::updateAssemblyGraph()
             boost::remove_edge(newSegment, assemblyGraph);
             boost::remove_edge(newSegmentRc, assemblyGraph);
             newSegmentMap.erase(segment);
+        }
+    }
+
+
+
+    // If we generate any dangling segments, try to connect them.
+    for(const SegmentPair& segmentPair: segmentPairs) {
+        const bool isAmbiguous = (segmentPair.crossStrandEdgeFrequencyRatio > maxCrossStrandFrequencyRatio);
+        for(const SegmentInfo& segmentInfo: segmentPair.segmentInfos) {
+            if(segmentInfo.isEntrance) {
+                continue;
+            }
+            if(segmentInfo.isExit) {
+                continue;
+            }
+            const Segment oldSegment0 = segmentInfo.segment;
+            const auto it = newSegmentMap.find(oldSegment0);
+            if(it == newSegmentMap.end()) {
+                // We already removed it.
+                continue;
+            }
+            const Segment newSegment0 = it->second;
+            const vertex_descriptor newSource0 = source(newSegment0, assemblyGraph);
+            const vertex_descriptor newTarget0 = target(newSegment0, assemblyGraph);
+            const bool isDanglingForward = (out_degree(newTarget0, assemblyGraph) == 0);
+            const bool isDanglingBackward = (in_degree(newSource0, assemblyGraph) == 0);
+
+
+            // Try and connect a newly created Segment that is dangling forward.
+            if(isDanglingForward and (not std::binary_search(interfaceVertices.begin(), interfaceVertices.end(), newTarget0))) {
+                SHASTA2_ASSERT(not isAmbiguous);    // Because we already removed dangling ambiguous segments.
+                SHASTA2_ASSERT(id(newSegment0) == id(oldSegment0));
+                if(html) {
+                    html << "<h4>Working on forward dangling segment " << id(newSegment0) << "</h4>" << endl;
+                }
+
+                // Do a forward BFS in the original strand contact (not the copy we created).
+                const vertex_descriptor oldTarget0 = target(oldSegment0, assemblyGraph);
+                std::queue<vertex_descriptor> q;
+                q.push(oldTarget0);
+                std::set<vertex_descriptor> visitedVertices;
+                visitedVertices.insert(oldTarget0);
+                while(not q.empty()) {
+                    const vertex_descriptor oldSource1 = q.front();
+                    q.pop();
+                    BGL_FORALL_OUTEDGES(oldSource1, oldSegment1, assemblyGraph, AssemblyGraph) {
+                        const vertex_descriptor oldTarget1 = target(oldSegment1, assemblyGraph);
+                        if(html) {
+                            html << "<br>Forward BFS found " << id(oldSegment1);
+                        }
+
+                        // See if there is a corresponding new segment.
+                        const auto it = newSegmentMap.find(oldSegment1);
+                        if(it == newSegmentMap.end()) {
+                            if(html) {
+                                html << "<br>There is no corresponding new segment.";
+                            }
+                        } else {
+                            const Segment newSegment1 = it->second;
+                            if(html) {
+                                html << "<br>Candidate segment for connection " << id(newSegment1);
+                            }
+                            const bool canConnect = assemblyGraph.canConnect(newSegment0, newSegment1);
+                            if(canConnect) {
+                                if(html) {
+                                    html << "<br>Can connect " << id(newSegment0) << " to " << id(newSegment1) <<
+                                        ". Ending BFS.";
+                                }
+                                const Segment connectingSegment = assemblyGraph.connect(newSegment0, newSegment1);
+                                assemblyGraph.createReverseComplementEdge(connectingSegment);
+                                break;
+                            } else {
+                                if(html) {
+                                    html << "<br>Can't connect " << id(newSegment0) << " to " << id(newSegment1);
+                                }
+                            }
+
+                        }
+
+                        if(std::binary_search(interfaceVertices.begin(), interfaceVertices.end(), oldTarget1)) {
+                            continue;
+                        }
+                        if(visitedVertices.contains(oldTarget1)) {
+                            continue;
+                        }
+                        q.push(oldTarget1);
+                        visitedVertices.insert(oldTarget1);
+                    }
+                }
+            }
+
+
+
+            // Try and connect a newly created Segment that is dangling backward.
+            if(isDanglingBackward and (not std::binary_search(interfaceVertices.begin(), interfaceVertices.end(), newTarget0))) {
+                SHASTA2_ASSERT(not isAmbiguous);    // Because we already removed dangling ambiguous segments.
+                SHASTA2_ASSERT(id(newSegment0) == id(oldSegment0));
+                if(html) {
+                    html << "<h4>Working on backward dangling segment " << id(newSegment0) << "</h4>" << endl;
+                }
+
+                // Do a backward BFS in the original strand contact (not the copy we created).
+                const vertex_descriptor oldSource0 = source(oldSegment0, assemblyGraph);
+                std::queue<vertex_descriptor> q;
+                q.push(oldSource0);
+                std::set<vertex_descriptor> visitedVertices;
+                visitedVertices.insert(oldSource0);
+                while(not q.empty()) {
+                    const vertex_descriptor oldTarget1 = q.front();
+                    q.pop();
+                    BGL_FORALL_INEDGES(oldTarget1, oldSegment1, assemblyGraph, AssemblyGraph) {
+                        const vertex_descriptor oldSource1 = source(oldSegment1, assemblyGraph);
+                        if(html) {
+                            html << "<br>Backward BFS found " << id(oldSegment1);
+                        }
+
+                        // See if there is a corresponding new segment.
+                        const auto it = newSegmentMap.find(oldSegment1);
+                        if(it == newSegmentMap.end()) {
+                            if(html) {
+                                html << "<br>There is no corresponding new segment.";
+                            }
+                        } else {
+                            const Segment newSegment1 = it->second;
+                            if(html) {
+                                html << "<br>Candidate segment for connection " << id(newSegment1);
+                            }
+                            const bool canConnect = assemblyGraph.canConnect(newSegment1, newSegment0);
+                            if(canConnect) {
+                                if(html) {
+                                    html << "<br>Can connect " << id(newSegment1) << " to " << id(newSegment0) <<
+                                        ". Ending BFS.";
+                                }
+                                const Segment connectingSegment = assemblyGraph.connect(newSegment1, newSegment0);
+                                assemblyGraph.createReverseComplementEdge(connectingSegment);
+                                break;
+                            } else {
+                                if(html) {
+                                    html << "<br>Can't connect " << id(newSegment1) << " to " << id(newSegment0);
+                                }
+                            }
+
+                        }
+
+                        if(std::binary_search(interfaceVertices.begin(), interfaceVertices.end(), oldSource1)) {
+                            continue;
+                        }
+                        if(visitedVertices.contains(oldSource1)) {
+                            continue;
+                        }
+                        q.push(oldSource1);
+                        visitedVertices.insert(oldSource1);
+                    }
+                }
+            }
         }
     }
 
