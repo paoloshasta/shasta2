@@ -663,11 +663,12 @@ void Assembler::analyzeAnchors(const Options& options) const
 
 void Assembler::flagBadAnchors(const Options& options)
 {
-    // const uint64_t threadCount = options.actualThreadCount();
+    const uint64_t threadCount = options.actualThreadCount();
 
     uint64_t totalBadAnchorCount = 0;
     for(uint64_t iteration=0; iteration<options.anchorFilteringMaxIterationCount; iteration++) {
-        const uint64_t newBadAnchorCount = flagBadAnchorsIteration(options.anchorFilteringCoverageThreshold);
+        const uint64_t newBadAnchorCount = flagBadAnchorsIteration(
+            options.anchorFilteringCoverageThreshold, threadCount);
         totalBadAnchorCount += newBadAnchorCount;
         cout << "Anchor filtering iteration " << iteration << ": " <<
             newBadAnchorCount<< " bad anchors, " << totalBadAnchorCount << " so far." << endl;
@@ -679,86 +680,123 @@ void Assembler::flagBadAnchors(const Options& options)
 
 
 
-uint64_t Assembler::flagBadAnchorsIteration(uint64_t coverageThreshold)
+uint64_t Assembler::flagBadAnchorsIteration(
+    uint64_t coverageThreshold,
+    uint64_t threadCount)
 {
     SHASTA2_ASSERT(anchorsPointer);
     SHASTA2_ASSERT(anchorsPointer->anchorData.isOpenWithWriteAccess);
     SHASTA2_ASSERT(journeysPointer);
 
     Anchors& anchors = *anchorsPointer;
-    const Journeys& journeys = *journeysPointer;
     auto& anchorData = anchors.anchorData;
+    flagBadAnchorsIterationData.coverageThreshold = coverageThreshold;
+
+    // For reproducibility, flag the bad anchors at the end of the iteration,
+    // even if this slows down convergence a bit.
+    vector<AnchorId>& newBadAnchors = flagBadAnchorsIterationData.newBadAnchors;
+    newBadAnchors.clear();
+
+    const uint64_t batchSize = 1000;
+    setupLoadBalancing(anchors.size(), batchSize);
+    runThreads(&Assembler::flagBadAnchorsIterationThreadFunction, threadCount);
+
+    // Flag the new bad anchors.
+    for(const AnchorId anchorId: newBadAnchors) {
+        anchorData[anchorId].isBad = true;
+    }
+
+    return newBadAnchors.size();
+}
+
+
+
+void Assembler::flagBadAnchorsIterationThreadFunction([[maybe_unused]] uint64_t threadId)
+{
+    Anchors& anchors = *anchorsPointer;
+    const Journeys& journeys = *journeysPointer;
+
+    auto& anchorData = anchors.anchorData;
+    const uint64_t coverageThreshold = flagBadAnchorsIterationData.coverageThreshold;
+    vector<AnchorId>& newBadAnchors = flagBadAnchorsIterationData.newBadAnchors;
 
     vector<AnchorId> nextOrPrevious;
     vector<uint64_t> count;
 
-    // Loop over positive (even) anchors.
-    uint64_t flaggedCount = 0;
-    for(AnchorId anchorId=0; anchorId<anchors.size(); anchorId+=2) {
-        if(anchorData[anchorId].isBad) {
-            continue;
-        }
-        const Anchor anchor = anchors[anchorId];
+    // Loop over batches assigned to this thread.
+    uint64_t begin;
+    uint64_t end;
+    while(getNextBatch(begin, end)) {
 
-        // Find the next anchors in Journeys, excluding bad anchors.
-        nextOrPrevious.clear();
-        for(const auto& markerInfo: anchor) {
-            const OrientedReadId orientedReadId = markerInfo.orientedReadId;
-            const auto journey = journeys[orientedReadId];
-            const uint64_t position = markerInfo.positionInJourney;
-            for(uint64_t nextPosition=position+1; nextPosition<journey.size(); nextPosition++) {
-                const AnchorId nextAnchorId = journey[nextPosition];
-                if(not anchorData[nextAnchorId].isBad) {
-                    nextOrPrevious.push_back(nextAnchorId);
-                    break;
-                }
+        // Loop over positive (even) anchors in this batch.
+        for(AnchorId anchorId=begin; anchorId!=end; anchorId++) {
+            if(anchorId & 1) {
+                continue;
             }
-        }
-        // Count how many times each of them appears.
-        deduplicateAndCount(nextOrPrevious, count);
-        const uint64_t maxForwardCoverage = (count.empty() ? 0 : std::ranges::max(count));
 
-        // Do the same, backward.
-        nextOrPrevious.clear();
-        for(const auto& markerInfo: anchor) {
-            const OrientedReadId orientedReadId = markerInfo.orientedReadId;
-            const auto journey = journeys[orientedReadId];
-            const uint64_t position = markerInfo.positionInJourney;
-            if(position > 0) {
-                for(uint64_t previousPosition=position-1; /* Check later */ ; previousPosition--) {
-                    const AnchorId previousAnchorId = journey[previousPosition];
-                    if(not anchorData[previousAnchorId].isBad) {
-                        nextOrPrevious.push_back(previousAnchorId);
-                        break;
-                    }
-                    if(previousPosition == 0) {
+            if(anchorData[anchorId].isBad) {
+                continue;
+            }
+            const Anchor anchor = anchors[anchorId];
+
+            // Find the next anchors in Journeys, excluding bad anchors.
+            nextOrPrevious.clear();
+            for(const auto& markerInfo: anchor) {
+                const OrientedReadId orientedReadId = markerInfo.orientedReadId;
+                const auto journey = journeys[orientedReadId];
+                const uint64_t position = markerInfo.positionInJourney;
+                for(uint64_t nextPosition=position+1; nextPosition<journey.size(); nextPosition++) {
+                    const AnchorId nextAnchorId = journey[nextPosition];
+                    if(not anchorData[nextAnchorId].isBad) {
+                        nextOrPrevious.push_back(nextAnchorId);
                         break;
                     }
                 }
             }
-        }
-        // Count how many times each of them appears.
-        deduplicateAndCount(nextOrPrevious, count);
-        const uint64_t maxBackwardCoverage = (count.empty() ? 0 : std::ranges::max(count));
+            // Count how many times each of them appears.
+            deduplicateAndCount(nextOrPrevious, count);
+            const uint64_t maxForwardCoverage = (count.empty() ? 0 : std::ranges::max(count));
 
-        // If this is a terminal Anchor, don't flag it it as bad.
-        if(maxForwardCoverage == 0) {
-            continue;
-        }
-        if(maxBackwardCoverage == 0) {
-            continue;
-        }
+            // Do the same, backward.
+            nextOrPrevious.clear();
+            for(const auto& markerInfo: anchor) {
+                const OrientedReadId orientedReadId = markerInfo.orientedReadId;
+                const auto journey = journeys[orientedReadId];
+                const uint64_t position = markerInfo.positionInJourney;
+                if(position > 0) {
+                    for(uint64_t previousPosition=position-1; /* Check later */ ; previousPosition--) {
+                        const AnchorId previousAnchorId = journey[previousPosition];
+                        if(not anchorData[previousAnchorId].isBad) {
+                            nextOrPrevious.push_back(previousAnchorId);
+                            break;
+                        }
+                        if(previousPosition == 0) {
+                            break;
+                        }
+                    }
+                }
+            }
+            // Count how many times each of them appears.
+            deduplicateAndCount(nextOrPrevious, count);
+            const uint64_t maxBackwardCoverage = (count.empty() ? 0 : std::ranges::max(count));
 
-        // The minimum of maxForwardCoverage and maxBackwardCoverage
-        // must must be at least equal to coverageThreshold.
-        // If that is not the case, the anchor is flagged as bad.
-        const uint64_t n = min(maxForwardCoverage, maxBackwardCoverage);
-        if((n < coverageThreshold)) {
-            anchorData[anchorId].isBad = true;
-            anchorData[anchorId + 1].isBad = true;
-            flaggedCount += 2;
+            // If this is a terminal Anchor, don't flag it it as bad.
+            if(maxForwardCoverage == 0) {
+                continue;
+            }
+            if(maxBackwardCoverage == 0) {
+                continue;
+            }
+
+            // The minimum of maxForwardCoverage and maxBackwardCoverage
+            // must must be at least equal to coverageThreshold.
+            // If that is not the case, the anchor is flagged as bad.
+            const uint64_t n = min(maxForwardCoverage, maxBackwardCoverage);
+            if((n < coverageThreshold)) {
+                std::lock_guard<std::mutex> lock(mutex);
+                newBadAnchors.push_back(anchorId);
+                newBadAnchors.push_back(anchorId + 1);
+            }
         }
     }
-
-    return flaggedCount;
 }

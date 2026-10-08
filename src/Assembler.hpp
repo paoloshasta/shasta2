@@ -206,9 +206,17 @@ public:
     // Access existing Anchors.
     void accessAnchors(bool writeAccess = false);
 
+    // Anchor filtering.
     void analyzeAnchors(const Options&) const;
     void flagBadAnchors(const Options&);
-    uint64_t flagBadAnchorsIteration(uint64_t coverageThreshold);
+    uint64_t flagBadAnchorsIteration(uint64_t coverageThreshold, uint64_t threadCount);
+    void flagBadAnchorsIterationThreadFunction(uint64_t threadId);
+    class FlagBadAnchorsIterationData {
+    public:
+        uint64_t coverageThreshold;
+        vector<AnchorId> newBadAnchors;
+    };
+    FlagBadAnchorsIterationData flagBadAnchorsIterationData;
 
 
 
