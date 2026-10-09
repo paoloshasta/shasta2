@@ -39,7 +39,9 @@ Graph::Graph(
         html << "The read following graph for this tangle has " <<
             num_vertices(graph) << " vertices and " <<
             num_edges(graph) << " edges." << endl;
-        writeGraphviz("ReadFollowingGraph-Tangle-" + to_string(tangleId) + ".dot");
+        const string fileName = "ReadFollowingGraph-Tangle-" + to_string(tangleId) + ".dot";
+        writeGraphviz(fileName);
+        html << "<br>See " << fileName;
     }
 
     findShortestPaths();
