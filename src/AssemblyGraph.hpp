@@ -317,7 +317,12 @@ private:
     bool detangleTanglePair(const Tangle&, ostream& html);
     bool detangleTanglePairStrict(const Tangle&, ostream& html);
     bool detangleSelfComplementaryTangle2By2(const Tangle&, ostream& html);
-    bool readFollowingStrandSymmetric(uint64_t tangleId, const Tangle&, ostream& html);
+
+    // This uses ReadFollowing5 code.
+    bool readFollowingStrandSymmetric5(uint64_t tangleId, const Tangle&, ostream& html);
+
+    // This uses ReadFollowing6 code.
+    bool readFollowingStrandSymmetric6(uint64_t tangleId, const Tangle&, ostream& html);
 
 
     // Make connections for detangling a detangle.

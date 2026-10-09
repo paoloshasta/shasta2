@@ -460,7 +460,7 @@ bool AssemblyGraph::detangleAndReadFollowing(
                 if(debug) {
                     cout << "Attempting read following." << endl;
                 }
-                if(readFollowingStrandSymmetric(tangleId, tangle, html)) {
+                if(readFollowingStrandSymmetric5(tangleId, tangle, html)) {
                     if(debug) {
                         cout << "Read following was successful on this tangle." << endl;
                     }

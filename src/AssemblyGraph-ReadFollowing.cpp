@@ -3,16 +3,19 @@
 #include "Options.hpp"
 #include "performanceLog.hpp"
 #include "ReadFollowing5.hpp"
+#include "ReadFollowing6.hpp"
 #include "StrandSeparation1.hpp"
 #include "SegmentGraph.hpp"
 #include "Tangle.hpp"
 #include "timestamp.hpp"
 using namespace shasta2;
 using namespace ReadFollowing5;
+using namespace ReadFollowing6;
 
 
 
-bool AssemblyGraph::readFollowingStrandSymmetric(
+// This uses ReadFollowing5 code.
+bool AssemblyGraph::readFollowingStrandSymmetric5(
     uint64_t tangleId,
     const Tangle& tangle,
     ostream& html)
@@ -33,7 +36,7 @@ bool AssemblyGraph::readFollowingStrandSymmetric(
     }
 
     // Create the ReadFollowing5::Graph.
-    const Graph graph(*this, tangleId, tangle, html);
+    const ReadFollowing5::Graph graph(*this, tangleId, tangle, html);
 
     // For now, require a one-on-one matching of the entrances
     // and exits.
@@ -222,4 +225,22 @@ void AssemblyGraph::separateStrands1(const string& debugOutputBaseName)
 
     performanceLog << timestamp << "AssemblyGraph::separateStrands1 ends: " <<
         debugOutputBaseName << endl;
+}
+
+
+
+// This uses ReadFollowing6 code.
+bool AssemblyGraph::readFollowingStrandSymmetric6(
+    [[maybe_unused]] uint64_t tangleId,
+    [[maybe_unused]] const shasta2::Tangle& shasta2Tangle,
+    [[maybe_unused]] ostream& html)
+{
+    SHASTA2_ASSERT(not shasta2Tangle.isSelfComplementary());
+
+    ReadFollowing6::Tangle tangle(
+        *this,
+        shasta2Tangle.tangleVertices,
+        html);
+
+    return false;
 }
