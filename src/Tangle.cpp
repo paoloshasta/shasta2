@@ -413,26 +413,18 @@ bool Tangle::isDegenerate() const
 
     // Check for duplicates.
     if(std::ranges::adjacent_find(allSegments) != allSegments.end()) {
-
-        for(uint64_t i=1; i<allSegments.size(); i++) {
-            if(allSegments[i-1] == allSegments[i]) {
-                cout << "Duplicate " << assemblyGraph.id(allSegments[i]) << endl;
-            }
-        }
         return true;
     }
 
-#if 0
-    // TURN THIS OFF BECAUSE IT CAUSES ALL SELF-COMPLEMENTARY TANGLES
-    // TO BE CONSIDERED DEGENERATE.
-    // Check for the presence of reverse complement Segments.
-    for(const Segment segment: allSegments) {
-        const Segment segmentRc = assemblyGraph[segment].eRc;
-        if(std::binary_search(allSegments.begin(), allSegments.end(),segmentRc, assemblyGraph.orderById)) {
-            return true;
+    if(not isSelfComplementary()) {
+        // Check for the presence of reverse complement Segments.
+        for(const Segment segment: allSegments) {
+            const Segment segmentRc = assemblyGraph[segment].eRc;
+            if(std::binary_search(allSegments.begin(), allSegments.end(),segmentRc, assemblyGraph.orderById)) {
+                return true;
+            }
         }
     }
-#endif
 
     return false;
 }
