@@ -311,7 +311,8 @@ public:
         const vector<uint64_t>& tangleRc,
         bool attemptReadFollowing,
         const string& debugOutputBaseName);
-    void separateStrands1(const string& debugOutputBaseName);
+    void separateStrands1(uint64_t maxLength, const string& debugOutputBaseName);
+    void separateStrands1Global(const string& debugOutputBaseName);
     void findStrandContactsInteractive();
 private:
     bool detangleStrandSymmetric(const Tangle&, ostream& html);

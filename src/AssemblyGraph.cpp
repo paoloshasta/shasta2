@@ -117,6 +117,7 @@ AssemblyGraph::AssemblyGraph(
             chainVertices.push_back(source(e, anchorGraph));
         }
 
+#if 0
         // This happens rarely and is pathological, so let's write out the chain.
         cout << "Found the following isolated circular anchor chain." << endl;
         cout << "Before normalization:" << endl;
@@ -124,6 +125,7 @@ AssemblyGraph::AssemblyGraph(
             cout << anchorIdToString(anchorId) << " ";
         }
         cout << endl;
+#endif
 
         // Find the position of the lowest numbered vertex_descriptor
         // (which is also an AnchorId).
@@ -133,11 +135,13 @@ AssemblyGraph::AssemblyGraph(
         // (which is also an AnchorId) is at the beginning.
         std::rotate(chainVertices.begin(), it, chainVertices.end());
 
+#if 0
         cout << "After normalization:" << endl;
         for(const AnchorId anchorId: chainVertices) {
             cout << anchorIdToString(anchorId) << " ";
         }
         cout << endl;
+#endif
 
         // Use the rotated vertices to created the normalized (rotated) chain.
         chainVertices.push_back(chainVertices.front());
@@ -352,6 +356,7 @@ void AssemblyGraph::simplifyAndAssemble()
     writeIntermediateStageIfRequested("B", 1);
 
     // Make the AssemblyGraph single-stranded.
+    separateStrands1Global("Global");
     makeSingleStranded();
     write("Final-NoSequence");
 
@@ -379,6 +384,9 @@ void AssemblyGraph::simplifyAndAssemble()
 // It returns true if any changes in the AssemblyGraph were made.
 bool AssemblyGraph::simplifyIteration(uint64_t iteration)
 {
+    // EXPOSE WHEN CODE STABILIZES.
+    const uint64_t strandSeparationMaxLength = 100000;
+
     performanceLog << timestamp << "Begin assembly graph simplify iteration " << iteration << endl;
     cout << num_edges(*this) <<
         " segments are present when simplify iteration " << iteration << " begins." << endl;
@@ -427,7 +435,7 @@ bool AssemblyGraph::simplifyIteration(uint64_t iteration)
     writeIntermediateStageIfRequested(iterationString + "G-Compressed", 2);
 
     // Strand separation for self-complementary tangles.
-    separateStrands1(iterationString);
+    separateStrands1(strandSeparationMaxLength, iterationString);
     writeIntermediateStageIfRequested(iterationString + "H", 3);
     strandSymmetricCompress();
     writeIntermediateStageIfRequested(iterationString + "H-Compressed", 2);

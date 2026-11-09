@@ -36,14 +36,18 @@ bool AssemblyGraph::readFollowingStrandSymmetric5(
 
 
 
-
-
-
-void AssemblyGraph::separateStrands1(const string& debugOutputBaseName)
+void AssemblyGraph::separateStrands1Global(const string& debugOutputBaseName)
 {
-    // EXPOSE WHEN CODE STABILIZES.
-    const uint64_t maxLength = 100000;
+    const uint64_t maxLength = std::numeric_limits<uint64_t>::max();
+    separateStrands1(maxLength, debugOutputBaseName);    
+}
 
+
+
+void AssemblyGraph::separateStrands1(
+    uint64_t maxLength, 
+    const string& debugOutputBaseName)
+{
     AssemblyGraph& assemblyGraph = *this;
 
     SHASTA2_ASSERT(countZeroLengthSegments() == 0);
