@@ -19,7 +19,6 @@ namespace shasta2 {
         class SegmentInfo;
         class StrandContact;
         class SegmentPair;
-        class Split;
 
         class BipartiteGraphVertex;
         class BipartiteGraphEdge;
@@ -31,7 +30,29 @@ namespace shasta2 {
             BipartiteGraphEdge>;
         class BipartiteGraph;
         class BipartiteGraphVertexStatistics;
+        class BipartiteGraphSplit;
 
+        class SegmentPairGraphVertex;
+        class SegmentPairGraphEdge;
+        using SegmentPairGraphBaseClass = boost::adjacency_list<
+            boost::listS,
+            boost::vecS,
+            boost::undirectedS,
+            SegmentPairGraphVertex,
+            SegmentPairGraphEdge>;
+        class SegmentPairGraph;
+        class SegmentGraphSplit;
+ 
+        class SegmentGraphVertex;
+        class SegmentGraphEdge;
+        using SegmentGraphBaseClass = boost::adjacency_list<
+            boost::listS,
+            boost::listS,
+            boost::undirectedS,
+            SegmentGraphVertex,
+            SegmentGraphEdge>;
+        class SegmentGraph;
+ 
         class ConnectGraphVertex;
         class ConnectGraphEdge;
         class ConnectGraph;
@@ -178,22 +199,130 @@ public:
     };
     vector<EdgePair> edgePairs;
 
-    // This creates a Split obtained by processing the EdgePairs
+    // This creates a BipartiteGraphSplit obtained by processing the EdgePairs
     // in the order described by the edgePairsIndexes.
     void computeSplit(
         const vector<uint64_t>& edgePairsIndexes,
-        Split&) const;
+        BipartiteGraphSplit&) const;
 
     BipartiteGraphVertexStatistics getVertexStatistics(
-        const Split&,
+        const BipartiteGraphSplit&,
         vertex_descriptor) const;
 
     void writeGraphviz(
         const string& dotFileName,
         const vector<SegmentPair>&,
         const AssemblyGraph&,
-        const Split&) const;
+        const BipartiteGraphSplit&) const;
 };
+
+
+
+// In the SegmentPairGraph, each vertex corresponds to a SegmentPair.
+// The edges keep track of reads that support a pair of SegmentPairs
+// in the same or opposite strands.
+// The vertex_descriptor of the SegmentPairGraph is the segmentPairId
+// (index in the segmentPairs vector).
+class shasta2::StrandSeparation1::SegmentPairGraphVertex {
+public:
+};
+class shasta2::StrandSeparation1::SegmentPairGraphEdge {
+public:
+    class Data {
+    public:
+        ReadId readId;
+        bool isSameStrand;
+        uint64_t frequencyProduct;
+    };
+    vector<Data> data;
+    uint64_t coverage() const;
+    uint64_t sameStrandCoverage() const;
+    uint64_t oppositeStrandCoverage() const;
+
+    // Orientation is +1 is all Data::isSameStrand are true,
+    // -1 is all Data::isSameStrand are false,
+    double orientation() const;
+};
+class shasta2::StrandSeparation1::SegmentPairGraph : public SegmentPairGraphBaseClass {
+public:
+    void writeGraphviz(const string& fileName) const;
+    void writeGraphviz(ostream&) const;
+    void writeCsv(const string& fileName, const AssemblyGraph&, const vector<SegmentPair>&) const;
+    void writeCsv(ostream&, const AssemblyGraph&, const vector<SegmentPair>&) const;
+};
+
+
+
+// Each vertex of the SegmentPairGraph generates two vertices of the SegmentGraph.
+class shasta2::StrandSeparation1::SegmentGraphVertex {
+public:
+    uint64_t segmentPairId;
+    uint64_t segmentIndexInPair;
+};
+class shasta2::StrandSeparation1::SegmentGraphEdge {
+public:
+    uint64_t coverage;
+};
+class shasta2::StrandSeparation1::SegmentGraph : public SegmentGraphBaseClass {
+public:
+
+    // The vertexTable is indexed by [segmentPairId][segmentIndexInPair]
+    vector< array<vertex_descriptor, 2> > vertexTable;
+
+    // Return the vertex index.
+    uint64_t vertexIndex(vertex_descriptor v) const
+    {
+        const auto& vertex = (*this)[v];
+        return 2 * vertex.segmentPairId + vertex.segmentIndexInPair;
+    }
+
+    vertex_descriptor reverseComplement(vertex_descriptor v) const
+    {
+        const auto& vertex = (*this)[v];
+        return vertexTable[vertex.segmentPairId][vertex.segmentIndexInPair ^ 1];
+    }
+
+    // The pairs of reverse complemented edges.
+    // Sorted by decreasing frequency.
+    class EdgePair {
+    public:
+        edge_descriptor e;
+        edge_descriptor eRc;
+        uint64_t coverage;
+    };
+    vector<EdgePair> edgePairs;
+
+    void computeSplit(
+        const vector<uint64_t>& edgePairsIndexes,
+        SegmentGraphSplit&) const;
+
+    void writeGraphviz(const string& fileName) const;
+    void writeGraphviz(ostream&) const;
+};
+
+
+
+class shasta2::StrandSeparation1::SegmentGraphSplit {
+public:
+    vector< vector<SegmentGraph::vertex_descriptor> > components;
+
+    // This gives the componentId (index in the components vector)
+    // that each vertex belongs to.
+    std::map<SegmentGraphBaseClass::vertex_descriptor, uint64_t> vertexComponent;
+
+    // The cross-strand edge pairs that generated this SegmentGraphSplit.
+    // These are indexes in the SegmentGraph::edgePairs vector.
+    // They are sorted so we can do binary searches in them.
+    vector<uint64_t> crossStrandEdgePairIndexes;
+    bool isCrossStrandEdgePair(uint64_t) const;
+
+    // The sum of the coverages of the crossStrandEdgePairs.
+    // An optimal SegmentGraphSplit minimizes this.
+    uint64_t crossStrandCoverage = 0;
+
+    void clear();
+};
+
 
 
 
@@ -201,16 +330,16 @@ public:
 // Here, the connected components are computed without using
 // the cross-strand edges. The Segment and each OrientedReadId
 // are guaranteed not to be in the same component.
-// If the BipartiteGraph has n components, a Split will have 2*n.
-// If the BipartiteGraph is connected, a Split will have two components.
+// If the BipartiteGraph has n components, a BipartiteGraphSplit will have 2*n.
+// If the BipartiteGraph is connected, a BipartiteGraphSplit will have two components.
 // The components are ordered by decreasing side, and with
 // reverse complemented components consecutively numbered.
 // Each component corresponds to a strand.
 // The vertex_descriptors in each component are sorted.
-// The Split of a BipartiteGraph is not unique.
-// An optimal Split minimizes the sum of the frequencies
+// The BipartiteGraphSplit of a BipartiteGraph is not unique.
+// An optimal BipartiteGraphSplit minimizes the sum of the frequencies
 // of the cross-strand edges.
-class shasta2::StrandSeparation1::Split {
+class shasta2::StrandSeparation1::BipartiteGraphSplit {
 public:
     vector< vector<BipartiteGraph::vertex_descriptor> > components;
 
@@ -219,14 +348,14 @@ public:
     // vertex_descriptor, which for the BipartiteGraph is simply uint64_t.
     vector<uint64_t> vertexComponent;
 
-    // The cross-strand edge pairs that generated this Split.
+    // The cross-strand edge pairs that generated this BipartiteGraphSplit.
     // These are indexes in the BipartiteGraph::edgePairs vector.
     // They are sorted so we can do binary searches in them.
     vector<uint64_t> crossStrandEdgePairIndexes;
     bool isCrossStrandEdgePair(uint64_t) const;
 
     // The sum of the frequencies of the crossStrandEdgePairs.
-    // An optimal Split minimizes this.
+    // An optimal BipartiteGraphSplit minimizes this.
     uint64_t crossStrandFrequency = 0;
 
     void clear();
@@ -279,6 +408,8 @@ public:
 
     // EXPOSE WHEN CODE STABILIZES.
     const double maxCrossStrandFrequencyRatio = 0.2;
+    const double segmentGraphOrientationThreshold = 0.8;
+    const uint64_t segmentGraphCoverageThreshold = 10;
 
     // StrandContact constructor.
     // The strandContactVerticesmust be sorted by id.
@@ -329,14 +460,23 @@ private:
     BipartiteGraph bipartiteGraph;
     std::map<OrientedReadId, BipartiteGraph::vertex_descriptor> orientedReadIdVertexMap;
     void createBipartiteGraph();
-    void writeBipartiteGraphGraphviz(const Split&);
-    void writeBipartiteGraphCustom(const Split&);
-    void computeSplit(Split&) const;
-    void writeSplitSummary(const Split&) const;
-    void writeSplitDetails(const Split&) const;
+    void writeBipartiteGraphGraphviz(const BipartiteGraphSplit&);
+    void writeBipartiteGraphCustom(const BipartiteGraphSplit&);
+    void computeSplit(BipartiteGraphSplit&) const;
+    void writeSplitSummary(const BipartiteGraphSplit&) const;
+    void writeSplitDetails(const BipartiteGraphSplit&) const;
 
     // Store component information in the SegmentPairs.
-    void storeSegmentInformation(const Split&);
+    void storeSegmentInformation(const BipartiteGraphSplit&);
+
+    // SegmentPairGraph.
+    void createSegmentPairGraph();
+    SegmentPairGraph segmentPairGraph;
+
+    // The SegmentGraph is created using the SegmentPairGraph.
+    void createSegmentGraph();
+    SegmentGraph segmentGraph;
+    void computeSplit(SegmentGraphSplit&) const;
 
     // The ConnectGraph describes trhe connections between Segments that
     // exist in the AssemblyGraph and/or should be removed

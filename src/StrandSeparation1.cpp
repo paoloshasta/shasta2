@@ -32,7 +32,7 @@ StrandContact::StrandContact(
     strandContactId(strandContactId)
 {
   
-    const bool debug = false;
+    const bool debug = true;
     if(debug) {
         html.open(debugOutputBaseName + "-StrandContact-" + to_string(strandContactId) + ".html");
         cout << "Working on strand contact " << strandContactId << endl;
@@ -44,13 +44,30 @@ StrandContact::StrandContact(
         html << "<h1>Strand contact " << strandContactId << "</h1>";
     }
 
-    // Create the BipartiteGraph.
+    // Segment pairs and read occurrences.
     gatherSegmentPairs();
     countReadOccurrences();
+
+
+
+    // SegmentGraph and SegmentPairGraph.
+    const bool useSegmentGraph = false;
+    if(useSegmentGraph)
+    {
+        createSegmentPairGraph();
+        createSegmentGraph();
+        SegmentGraphSplit split;
+        computeSplit(split);
+        return; // ******************* FOR NOW
+    }
+
+
+
+    // BipartiteGraph.
     createBipartiteGraph();
 
      // Strand separation in the BipartiteGraph.
-    Split split;
+    BipartiteGraphSplit split;
     computeSplit(split);
 
     if(html) {
@@ -89,7 +106,7 @@ uint64_t StrandContact::id(AssemblyGraphBaseClass::vertex_descriptor v) const
 
 
 // Store component information in the SegmentPairs.
-void StrandContact::storeSegmentInformation(const Split& split)
+void StrandContact::storeSegmentInformation(const BipartiteGraphSplit& split)
 {
     for(uint64_t segmentPairId=0; segmentPairId<segmentPairs.size(); segmentPairId++) {
         SegmentPair& segmentPair = segmentPairs[segmentPairId];
@@ -148,8 +165,8 @@ void StrandContact::storeSegmentInformation(const Split& split)
 
 
 
-    // Write a csv file that can be loaded in Bandage to show the Split.
-    const string fileName = debugOutputBaseName + "-StrandContact-" + to_string(strandContactId) + "-Split-Bandage.csv";
+    // Write a csv file that can be loaded in Bandage to show the BipartiteGraphSplit.
+    const string fileName = debugOutputBaseName + "-StrandContact-" + to_string(strandContactId) + "-BipartiteGraphSplit-Bandage.csv";
     ofstream csv(fileName);
     csv << "Segment,Component,Color\n";
     for(const SegmentPair& segmentPair: segmentPairs) {
@@ -195,7 +212,7 @@ void StrandContact::storeSegmentInformation(const Split& split)
     }
     std::ranges::sort(segmentsForOutput, assemblyGraph.orderById);
 
-    const string gfaFileName = debugOutputBaseName + "-StrandContact-" + to_string(strandContactId) + "-Split-Bandage.gfa";
+    const string gfaFileName = debugOutputBaseName + "-StrandContact-" + to_string(strandContactId) + "-BipartiteGraphSplit-Bandage.gfa";
     assemblyGraph.writeGfa(gfaFileName, segmentsForOutput);
 
 }
@@ -518,7 +535,7 @@ BipartiteGraph::vertex_descriptor BipartiteGraph::addVertex(uint64_t segmentPair
 
 
 
-void StrandContact::writeBipartiteGraphGraphviz(const Split& split)
+void StrandContact::writeBipartiteGraphGraphviz(const BipartiteGraphSplit& split)
 {
     if(not html) {
         return;
@@ -552,7 +569,7 @@ void StrandContact::writeBipartiteGraphGraphviz(const Split& split)
 
 
 
-void StrandContact::writeBipartiteGraphCustom(const Split& split)
+void StrandContact::writeBipartiteGraphCustom(const BipartiteGraphSplit& split)
 {
     if(not html) {
         return;
@@ -686,7 +703,7 @@ void BipartiteGraph::writeGraphviz(
     const string& fileName,
     const vector<SegmentPair>& segmentPairs,
     const AssemblyGraph& assemblyGraph,
-    const Split& split) const
+    const BipartiteGraphSplit& split) const
 {
     const BipartiteGraph& bipartiteGraph = *this;
 
@@ -791,7 +808,7 @@ BipartiteGraph::vertex_descriptor BipartiteGraph::addVertex(OrientedReadId orien
 // At the first iteration, use the EdgePairs sorted by decreasing
 // frequency. At subsequent iterations, use random shuffles of
 // the EdgePairs, weighted by their frequency.
-void StrandContact::computeSplit(Split& bestSplit) const
+void StrandContact::computeSplit(BipartiteGraphSplit& bestSplit) const
 {
     // EXPOSE WHEN CODE STABILIZES.
     const uint64_t iterationCount = 1000;
@@ -812,7 +829,7 @@ void StrandContact::computeSplit(Split& bestSplit) const
             "<table><tr><th>Iteration<th>Cross-strand<br>frequency";
     }
 
-    Split split;
+    BipartiteGraphSplit split;
     for(uint64_t iteration=0; iteration<iterationCount; iteration++) {
         split.clear();
         if(iteration == 0) {
@@ -863,7 +880,7 @@ BipartiteGraph::vertex_descriptor BipartiteGraph::reverseComplement(vertex_descr
 // Reverse complemented components are numbered consecutively.
 void BipartiteGraph::computeSplit(
     const vector<uint64_t>& edgePairsIndexes,
-    Split& split) const
+    BipartiteGraphSplit& split) const
 {
     const BipartiteGraph& bipartiteGraph = *this;
     split.clear();
@@ -937,7 +954,7 @@ void BipartiteGraph::computeSplit(
 
 
 
-void StrandContact::writeSplitSummary(const Split& split) const
+void StrandContact::writeSplitSummary(const BipartiteGraphSplit& split) const
 {
     if(not html) {
         return;
@@ -979,7 +996,7 @@ void StrandContact::writeSplitSummary(const Split& split) const
 
 
 BipartiteGraphVertexStatistics BipartiteGraph::getVertexStatistics(
-    const Split& split,
+    const BipartiteGraphSplit& split,
     vertex_descriptor v0) const
 {
     const BipartiteGraph& bipartiteGraph = *this;
@@ -1036,7 +1053,7 @@ int64_t BipartiteGraphVertexStatistics::crossStrandEdgeFrequencyExcess() const
 
 
 
-void StrandContact::writeSplitDetails(const Split& split) const
+void StrandContact::writeSplitDetails(const BipartiteGraphSplit& split) const
 {
     if(not html) {
         return;
@@ -1108,7 +1125,7 @@ void StrandContact::writeSplitDetails(const Split& split) const
 
 
 
-void Split::clear()
+void BipartiteGraphSplit::clear()
 {
     components.clear();
     vertexComponent.clear();
@@ -1118,7 +1135,7 @@ void Split::clear()
 
 
 
-bool Split::isCrossStrandEdgePair(uint64_t i) const
+bool BipartiteGraphSplit::isCrossStrandEdgePair(uint64_t i) const
 {
     return std::ranges::binary_search(crossStrandEdgePairIndexes, i);
 }
@@ -1715,4 +1732,486 @@ void ConnectGraph::keepStrand0()
         boost::remove_vertex(v, connectGraph);
     }
 
+}
+
+
+
+void StrandContact::createSegmentPairGraph()
+{
+    // Create the vertices.
+    for(uint64_t segmentPairId=0; segmentPairId<segmentPairs.size(); segmentPairId++) {
+        add_vertex(segmentPairGraph);
+    }
+
+
+
+    // Create the edges.
+
+    // Loop over ReadIds.
+    for(const auto&[readId, readOccurrences]: readOccurrenceMap) {
+
+        // Loop over pairs of occurrences of this ReadId.
+        for(const ReadOccurrence& readOccurrence0: readOccurrences) {
+            const SegmentPairGraph::vertex_descriptor v0 = readOccurrence0.segmentPairId;
+            const uint64_t frequency0 = readOccurrence0.frequency;
+            for(const ReadOccurrence& readOccurrence1: readOccurrences) {
+                const SegmentPairGraph::vertex_descriptor v1 = readOccurrence1.segmentPairId;
+                const uint64_t frequency1 = readOccurrence1.frequency;
+                if(v1 == v0) {
+                    continue;
+                }
+
+                // Get the edge, creating it is necessary.
+                SegmentPairGraph::edge_descriptor e;
+                bool edgeExists = false;
+                tie(e, edgeExists) = boost::edge(v0, v1, segmentPairGraph);
+                if(not edgeExists) {
+                    tie(e, edgeExists) = boost::add_edge(v0, v1, segmentPairGraph);
+                }
+                SegmentPairGraphEdge& edge = segmentPairGraph[e];
+
+                const bool isSameStrand = (readOccurrence0.strand == readOccurrence1.strand);
+                edge.data.push_back({readId, isSameStrand, frequency0 * frequency1});
+            }
+        }
+    }
+
+    if(html) {
+        html << "<h2>SegmentPairGraph</h2>"
+            "The SegmentPairGraph has " << num_vertices(segmentPairGraph) <<
+            " vertices and " << num_edges(segmentPairGraph) << " edges.";
+
+        const string dotFileName = debugOutputBaseName + "-StrandContact-" +
+            to_string(strandContactId) + "-SegmentPairGraph.dot";
+        html << "<br>" << dotFileName;
+        segmentPairGraph.writeGraphviz(dotFileName);
+
+        const string csvFileName = debugOutputBaseName + "-StrandContact-" +
+            to_string(strandContactId) + "-SegmentPairGraph.csv";
+        html << "<br>" << csvFileName;
+        segmentPairGraph.writeCsv(csvFileName, assemblyGraph, segmentPairs);
+    }
+}
+
+
+
+void SegmentPairGraph::writeGraphviz(const string& fileName) const
+{
+    ofstream dot(fileName);
+    writeGraphviz(dot);
+}
+
+
+
+void SegmentPairGraph::writeGraphviz(ostream& dot) const
+{
+    const SegmentPairGraph& segmentPairGraph = *this;
+
+    dot << "graph G {\n";
+
+    BGL_FORALL_VERTICES(v, segmentPairGraph, SegmentPairGraph) {
+        dot << v << ";\n";
+    }
+
+    BGL_FORALL_EDGES(e, segmentPairGraph, SegmentPairGraph) {
+        const SegmentPairGraphEdge& edge = segmentPairGraph[e];
+        const vertex_descriptor v0 = source(e, segmentPairGraph);
+        const vertex_descriptor v1 = target(e, segmentPairGraph);
+
+        const uint64_t coverage = edge.coverage();
+        const double thickness = 1. + sqrt(double(coverage));
+
+        const double orientation = edge.orientation();
+        const double hue = (orientation + 1.) / 6.;
+        const string color = to_string(hue) + " 1. 1.";
+
+        dot << v0 << "--" << v1 << "["
+            "color=\"" << color << "\""
+            " penwidth=" << thickness <<
+            "];\n";
+    }
+
+    dot << "}\n";
+}
+
+
+
+void SegmentPairGraph::writeCsv(
+    const string& fileName, 
+    const AssemblyGraph& assemblyGraph,
+    const vector<SegmentPair>& segmentPairs) const
+{
+    ofstream csv(fileName);
+    writeCsv(csv, assemblyGraph, segmentPairs);
+}
+
+
+
+void SegmentPairGraph::writeCsv(
+    ostream& csv, 
+    const AssemblyGraph& assemblyGraph,
+    const vector<SegmentPair>& segmentPairs) const
+{
+    const SegmentPairGraph& segmentPairGraph = *this;
+
+    csv << "SegmentPairId0,SegmentPairId1,"
+        "Segment00,Segment01,Segment10,Segment11,ReadId,SameStrand,FrequencyProduct,\n";
+
+ 
+    BGL_FORALL_EDGES(e, segmentPairGraph, SegmentPairGraph) {
+        const vertex_descriptor v0 = source(e, segmentPairGraph);
+        const vertex_descriptor v1 = target(e, segmentPairGraph);
+        const SegmentPair& segmentPair0 = segmentPairs[v0];
+        const SegmentPair& segmentPair1 = segmentPairs[v1];
+        const SegmentPairGraphEdge& edge = segmentPairGraph[e];
+        for(const auto& data: edge.data) {
+            csv << v0 << ",";
+            csv << v1 << ",";
+            csv << assemblyGraph.id(segmentPair0.segmentInfos[0].segment) << ",";
+            csv << assemblyGraph.id(segmentPair0.segmentInfos[1].segment) << ",";
+            csv << assemblyGraph.id(segmentPair1.segmentInfos[0].segment) << ",";
+            csv << assemblyGraph.id(segmentPair1.segmentInfos[1].segment) << ",";
+            csv << data.readId << ",";
+            csv << int(data.isSameStrand) << ",";
+            csv << data.frequencyProduct << ",";
+            csv << "\n";
+        }
+    }
+    
+}
+
+
+
+uint64_t SegmentPairGraphEdge::coverage() const
+{
+    return data.size();
+}
+
+
+
+uint64_t SegmentPairGraphEdge::sameStrandCoverage() const
+{
+    uint64_t coverage = 0;
+    for(const Data& d: data) {
+        if(d.isSameStrand) {
+            ++coverage;
+        }
+    }
+    return coverage;
+}
+
+
+
+uint64_t SegmentPairGraphEdge::oppositeStrandCoverage() const
+{
+    uint64_t coverage = 0;
+    for(const Data& d: data) {
+        if(not d.isSameStrand) {
+            ++coverage;
+        }
+    }
+    return coverage;
+}
+
+
+
+// Orientation is +1 is all Data::isSameStrand are true,
+// -1 if all Data::isSameStrand are false.
+double SegmentPairGraphEdge::orientation() const
+{
+    return 2.* double(sameStrandCoverage()) / double(coverage()) - 1.;
+}
+
+
+
+void StrandContact::createSegmentGraph()
+{
+    
+    // Create the vertices. 
+    segmentGraph.vertexTable.resize(segmentPairs.size());
+    for(uint64_t segmentPairId=0; segmentPairId<segmentPairs.size(); segmentPairId++) {
+        for(uint64_t segmentIndexInPair=0; segmentIndexInPair<2; segmentIndexInPair++) {
+            segmentGraph.vertexTable[segmentPairId][segmentIndexInPair] = 
+                add_vertex({segmentPairId, segmentIndexInPair}, segmentGraph); 
+        }
+    }
+
+    BGL_FORALL_EDGES(pe, segmentPairGraph, SegmentPairGraph) {
+        const SegmentPairGraphEdge& pEdge = segmentPairGraph[pe];
+        const double orientation = pEdge.orientation();
+        if(abs(orientation) < segmentGraphOrientationThreshold) {
+            continue;
+        }
+        const uint64_t segmentPairId0 = source(pe, segmentPairGraph);
+        const uint64_t segmentPairId1 = target(pe, segmentPairGraph);
+
+        if(orientation > 0.) {
+            // Positive orientation.
+            const uint64_t coverage = pEdge.sameStrandCoverage();
+            if(coverage >= segmentGraphCoverageThreshold) {
+                auto[e, _] = add_edge(
+                    segmentGraph.vertexTable[segmentPairId0][0],
+                    segmentGraph.vertexTable[segmentPairId1][0],
+                    SegmentGraphEdge({coverage}),
+                    segmentGraph);
+                auto[eRc, unused] = add_edge(       // Replace "unused" with "_" when vscode c++26 support gets fixed.
+                    segmentGraph.vertexTable[segmentPairId0][1],
+                    segmentGraph.vertexTable[segmentPairId1][1],
+                    SegmentGraphEdge({coverage}),
+                    segmentGraph);
+                segmentGraph.edgePairs.push_back({e, eRc, coverage});
+            }
+
+        } else {
+            // Negative orientation.
+            const uint64_t coverage = pEdge.oppositeStrandCoverage();
+            if(coverage >= segmentGraphCoverageThreshold) {
+                auto[e, _] = add_edge(
+                    segmentGraph.vertexTable[segmentPairId0][0],
+                    segmentGraph.vertexTable[segmentPairId1][1],
+                    SegmentGraphEdge({coverage}),
+                    segmentGraph);
+                auto[eRc, unused] = add_edge(       // Replace "unused" with "_" when vscode c++26 support gets fixed.
+                    segmentGraph.vertexTable[segmentPairId0][1],
+                    segmentGraph.vertexTable[segmentPairId1][0],
+                    SegmentGraphEdge({coverage}),
+                    segmentGraph);
+                segmentGraph.edgePairs.push_back({e, eRc, coverage});
+            }
+        }
+    }
+
+    // Sort the EdgePairs by decreasing coverage.
+    std::ranges::sort(
+        segmentGraph.edgePairs,
+        std::greater<uint64_t>(),
+        &SegmentGraph::EdgePair::coverage);
+
+    if(html) {
+        html << "<h2>SegmentGraph</h2>"
+            "The SegmentGraph has " << num_vertices(segmentGraph) <<
+            " vertices and " << num_edges(segmentGraph) << " edges.";
+
+        const string dotFileName = debugOutputBaseName + "-StrandContact-" +
+            to_string(strandContactId) + "-SegmentGraph.dot";
+        html << "<br>" << dotFileName;
+        segmentGraph.writeGraphviz(dotFileName);
+    }
+}
+
+
+
+void SegmentGraph::writeGraphviz(const string& fileName) const
+{
+    ofstream dot(fileName);
+    writeGraphviz(dot);
+}
+
+
+
+void SegmentGraph::writeGraphviz(ostream& dot) const
+{
+    const SegmentGraph& segmentGraph = *this;
+
+    dot << "graph G {\n";
+
+    BGL_FORALL_VERTICES(v, segmentGraph, SegmentGraph) {
+        const SegmentGraphVertex& vertex = segmentGraph[v];
+        dot << "\"" << vertex.segmentPairId << "/" << vertex.segmentIndexInPair  << "\";\n";
+    }
+
+    BGL_FORALL_EDGES(e, segmentGraph, SegmentGraph) {
+        const vertex_descriptor v0 = source(e, segmentGraph);
+        const vertex_descriptor v1 = target(e, segmentGraph);
+        const SegmentGraphVertex& vertex0 = segmentGraph[v0];
+        const SegmentGraphVertex& vertex1 = segmentGraph[v1];
+        const SegmentGraphEdge& edge = segmentGraph[e];
+
+        const uint64_t coverage = edge.coverage;
+        const double thickness = 0.1 * pow(double(coverage), 0.65);
+
+        dot << 
+            "\"" << vertex0.segmentPairId << "/" << vertex0.segmentIndexInPair  << "\"--\"" <<
+            vertex1.segmentPairId << "/" << vertex1.segmentIndexInPair  << "\""
+            "["
+            "penwidth=" << thickness <<
+            " tooltip=\"" <<
+            vertex0.segmentPairId << "/" << vertex0.segmentIndexInPair << " " <<
+            vertex1.segmentPairId << "/" << vertex1.segmentIndexInPair << " " <<
+            coverage <<
+            "\""
+            "]"
+            ";\n";
+    }
+
+    dot << "}\n";
+}
+
+
+
+// This processes the EdgePairs in the order described by
+// the edgePairsIndexes.
+// It stores the components in the components vector
+// and also fills in the componentIndex in all the vertices.
+// Reverse complemented components are numbered consecutively.
+void SegmentGraph::computeSplit(
+    const vector<uint64_t>& edgePairsIndexes,
+    SegmentGraphSplit& split) const
+{
+    const SegmentGraph& segmentGraph = *this;
+    split.clear();
+
+    DisjointSets disjointSets(num_vertices(segmentGraph));
+  
+    for(const uint64_t edgePairIndex: edgePairsIndexes) {
+        const auto& edgePair = edgePairs[edgePairIndex];
+        const auto eA = edgePair.e;
+        const auto eB = edgePair.eRc;
+
+        const auto v0A = vertexIndex(source(eA, segmentGraph));
+        const auto v1A = vertexIndex(target(eA, segmentGraph));
+        const auto v0B = vertexIndex(source(eB, segmentGraph));
+        const auto v1B = vertexIndex(target(eB, segmentGraph));
+
+        // Indexes of the reverse complement vertices.
+        const auto v0ARc = v0A ^ 1;
+        const auto v1ARc = v1A ^ 1;
+        const auto v0BRc = v0B ^ 1;
+        const auto v1BRc = v1B ^ 1;
+
+        const bool strandViolationA = (disjointSets.findSet(v1A) == disjointSets.findSet(v0ARc));
+        const bool strandViolationB = (disjointSets.findSet(v1B) == disjointSets.findSet(v0BRc));
+        const bool strandViolationARc = (disjointSets.findSet(v0A) == disjointSets.findSet(v1ARc));
+        const bool strandViolationBRc = (disjointSets.findSet(v0B) == disjointSets.findSet(v1BRc));
+
+        const bool strandViolation = strandViolationA;
+        SHASTA2_ASSERT(strandViolationB == strandViolation);
+        SHASTA2_ASSERT(strandViolationARc == strandViolation);
+        SHASTA2_ASSERT(strandViolationBRc == strandViolation);
+
+        if(strandViolation) {
+            split.crossStrandEdgePairIndexes.push_back(edgePairIndex);
+            split.crossStrandCoverage += edgePair.coverage;
+        } else {
+            disjointSets.unionSet(v0A, v1A);
+            disjointSets.unionSet(v0B, v1B);
+        }
+    }
+
+    std::ranges::sort(split.crossStrandEdgePairIndexes);
+
+    // Gather the components.
+    vector< vector<uint64_t> > componentsVertexIndexes;
+    disjointSets.gatherComponents(1, componentsVertexIndexes);
+
+    // Reorder the components so pairs of
+    // reverse complemented components are numbered consecutively.
+    // Because of the way vertices are created, this can be done simply by
+    // sorting by the first index of each component.
+    class SortByFirstElement {
+    public:
+    public:
+         bool operator()(const vector<uint64_t>& v0, const vector<uint64_t>& v1) const
+        {
+             SHASTA2_ASSERT(not v0.empty());
+             SHASTA2_ASSERT(not v1.empty());
+             return v0.front() < v1.front();
+        }
+    };
+    std::ranges::sort(componentsVertexIndexes, SortByFirstElement());
+
+#if 0
+    // Store the componentId of the vertices.
+    split.vertexComponent.resize(num_vertices(bipartiteGraph));
+    for(uint64_t componentId=0; componentId<split.components.size(); componentId++) {
+        const vector<vertex_descriptor>& component = split.components[componentId];
+        for(const vertex_descriptor v: component) {
+            split.vertexComponent[v] = componentId;
+        }
+    }
+#endif
+}
+
+
+
+// At the first iteration, use the EdgePairs sorted by decreasing
+// frequency. At subsequent iterations, use random shuffles of
+// the EdgePairs, weighted by their frequency.
+void StrandContact::computeSplit(SegmentGraphSplit& bestSplit) const
+{
+    // EXPOSE WHEN CODE STABILIZES.
+    const uint64_t iterationCount = 10000;
+
+    // Gather the weight of each EdgePair.
+    vector<double> weights;
+    for(const auto& edgePair: segmentGraph.edgePairs) {
+        weights.push_back(double(edgePair.coverage));
+    }
+
+    std::mt19937 generator;
+    vector<uint64_t> shuffle;
+
+    vector<uint64_t> edgePairsIndexes(segmentGraph.edgePairs.size());
+ 
+    if(html) {
+        html << "<h2>Strand separation iterations</h2>"
+            "<table><tr>"
+            "<th>Iteration"
+            "<th>Cross-strand<br>edges"
+            "<th>Cross-strand<br>coverage"
+            "<th>Cross-strand<br>edges<br>fraction"
+            "<th>Cross-strand<br>coverage<br>fraction";
+        html << std::setprecision(6);
+    }
+
+    const uint64_t totalEdgeCount = num_edges(segmentGraph);
+    uint64_t totalEdgeCoverage = 0;
+    BGL_FORALL_EDGES(e, segmentGraph, SegmentGraph) {
+        totalEdgeCoverage += segmentGraph[e].coverage;
+    }
+ 
+
+    SegmentGraphSplit split;
+    for(uint64_t iteration=0; iteration<iterationCount; iteration++) {
+        split.clear();
+        if(iteration == 0) {
+            std::ranges::iota(edgePairsIndexes, 0);
+        } else {
+            weightedShuffle(weights, generator, edgePairsIndexes);
+        }
+        segmentGraph.computeSplit(edgePairsIndexes, split);
+
+        const bool isBestSoFar = (iteration == 0) or (split.crossStrandCoverage < bestSplit.crossStrandCoverage);
+        if(isBestSoFar) {
+            bestSplit = split;
+        }
+
+        if(html) {
+            html << "<tr";
+            if(isBestSoFar) {
+                html << " style='background-color:Pink'";
+            }
+            html << ">";
+            html <<
+                "<td class=centered>" << iteration <<
+                "<td class=centered>" << 2 * split.crossStrandEdgePairIndexes.size() <<
+                "<td class=centered>" << 2 * split.crossStrandCoverage <<
+                "<td class=centered>" << double(2 * split.crossStrandEdgePairIndexes.size()) / double(totalEdgeCount) <<
+                "<td class=centered>" << double(2 * split.crossStrandCoverage) / double(totalEdgeCoverage);
+        }
+    }
+
+    if(html) {
+        html << "</table>";
+    }
+}
+
+
+
+void SegmentGraphSplit::clear()
+{
+    components.clear();
+    vertexComponent.clear();
+    crossStrandEdgePairIndexes.clear();
+    crossStrandCoverage = 0;
 }
