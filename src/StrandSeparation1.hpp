@@ -29,7 +29,6 @@ namespace shasta2 {
             BipartiteGraphVertex,
             BipartiteGraphEdge>;
         class BipartiteGraph;
-        class BipartiteGraphVertexStatistics;
         class BipartiteGraphSplit;
 
         class SegmentPairGraphVertex;
@@ -52,6 +51,8 @@ namespace shasta2 {
             SegmentGraphVertex,
             SegmentGraphEdge>;
         class SegmentGraph;
+
+        class VertexStatistics;
  
         class ConnectGraphVertex;
         class ConnectGraphEdge;
@@ -159,7 +160,7 @@ public:
 
 
 
-class shasta2::StrandSeparation1::BipartiteGraphVertexStatistics {
+class shasta2::StrandSeparation1::VertexStatistics {
 public:
     uint64_t totalEdgeCount = 0;
     uint64_t crossStrandEdgeCount = 0;
@@ -205,7 +206,7 @@ public:
         const vector<uint64_t>& edgePairsIndexes,
         BipartiteGraphSplit&) const;
 
-    BipartiteGraphVertexStatistics getVertexStatistics(
+    VertexStatistics getVertexStatistics(
         const BipartiteGraphSplit&,
         vertex_descriptor) const;
 
@@ -269,6 +270,13 @@ public:
     // The vertexTable is indexed by [segmentPairId][segmentIndexInPair]
     vector< array<vertex_descriptor, 2> > vertexTable;
 
+    vertex_descriptor vertexFromIndex(uint64_t vertexIndex) const
+    {
+        const uint64_t segmentPairId = vertexIndex >> 1;
+        const uint64_t segmentIndexInPair = vertexIndex & 1;
+        return vertexTable[segmentPairId][segmentIndexInPair];
+    }
+
     // Return the vertex index.
     uint64_t vertexIndex(vertex_descriptor v) const
     {
@@ -296,8 +304,15 @@ public:
         const vector<uint64_t>& edgePairsIndexes,
         SegmentGraphSplit&) const;
 
-    void writeGraphviz(const string& fileName) const;
-    void writeGraphviz(ostream&) const;
+        VertexStatistics getVertexStatistics(
+        const SegmentGraphSplit&,
+        vertex_descriptor) const;
+
+    void writeGraphviz(
+        const string& dotFileName,
+        const vector<SegmentPair>&,
+        const AssemblyGraph&,
+        const SegmentGraphSplit&) const;
 };
 
 
@@ -477,6 +492,10 @@ private:
     void createSegmentGraph();
     SegmentGraph segmentGraph;
     void computeSplit(SegmentGraphSplit&) const;
+    void writeSplitSummary(const SegmentGraphSplit&) const;
+    void writeSplitDetails(const SegmentGraphSplit&) const;
+    void writeSegmentGraphGraphviz(const SegmentGraphSplit&);
+    void writeSegmentGraphCustom(const SegmentGraphSplit&);
 
     // The ConnectGraph describes trhe connections between Segments that
     // exist in the AssemblyGraph and/or should be removed

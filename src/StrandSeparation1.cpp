@@ -32,7 +32,7 @@ StrandContact::StrandContact(
     strandContactId(strandContactId)
 {
   
-    const bool debug = true;
+    const bool debug = false;
     if(debug) {
         html.open(debugOutputBaseName + "-StrandContact-" + to_string(strandContactId) + ".html");
         cout << "Working on strand contact " << strandContactId << endl;
@@ -50,14 +50,37 @@ StrandContact::StrandContact(
 
 
 
-    // SegmentGraph and SegmentPairGraph.
-    const bool useSegmentGraph = false;
+    // Code that uses the SegmentGraph and SegmentPairGraph.
+    const bool useSegmentGraph = true;
     if(useSegmentGraph)
     {
         createSegmentPairGraph();
         createSegmentGraph();
         SegmentGraphSplit split;
         computeSplit(split);
+
+        if(html) {
+            html << "<h2>Best strand separation found</h2>";
+            writeSplitSummary(split);
+            writeSplitDetails(split);
+
+            html << "<h2>SegmentGraph</h2>"
+                "The SegmentGraph has " << num_vertices(segmentGraph) <<
+                " vertices and " << num_edges(segmentGraph) << " edges.";
+
+            /*
+            const string dotFileName = debugOutputBaseName + "-StrandContact-" +
+                to_string(strandContactId) + "-SegmentGraph.dot";
+            html << "<br>" << dotFileName;
+            segmentGraph.writeGraphviz(dotFileName, segmentPairs, assemblyGraph, split);
+            */
+
+            writeSegmentGraphGraphviz(split);
+            writeSegmentGraphCustom(split);
+
+            writeHtmlEnd(html);
+            cout << "Done working on strand contact " << strandContactId << endl;
+        }
         return; // ******************* FOR NOW
     }
 
@@ -117,7 +140,7 @@ void StrandContact::storeSegmentInformation(const BipartiteGraphSplit& split)
         }
         SHASTA2_ASSERT(segmentPair.segmentInfos[0].componentId == (segmentPair.segmentInfos[1].componentId ^ 1));
 
-        const BipartiteGraphVertexStatistics statistics =
+        const VertexStatistics statistics =
             bipartiteGraph.getVertexStatistics(split, segmentPair.segmentInfos[0].v);
         segmentPair.crossStrandEdgeFrequencyRatio = statistics.crossStrandEdgeFrequencyRatio();
     }
@@ -995,12 +1018,12 @@ void StrandContact::writeSplitSummary(const BipartiteGraphSplit& split) const
 
 
 
-BipartiteGraphVertexStatistics BipartiteGraph::getVertexStatistics(
+VertexStatistics BipartiteGraph::getVertexStatistics(
     const BipartiteGraphSplit& split,
     vertex_descriptor v0) const
 {
     const BipartiteGraph& bipartiteGraph = *this;
-    BipartiteGraphVertexStatistics statistics;
+    VertexStatistics statistics;
 
     BGL_FORALL_OUTEDGES(v0, e, bipartiteGraph, BipartiteGraph) {
         const BipartiteGraph::vertex_descriptor v1 = target(e, bipartiteGraph);
@@ -1018,35 +1041,35 @@ BipartiteGraphVertexStatistics BipartiteGraph::getVertexStatistics(
 
 
 
-double BipartiteGraphVertexStatistics::crossStrandEdgeRatio() const
+double VertexStatistics::crossStrandEdgeRatio() const
 {
     return double(crossStrandEdgeCount) / double(totalEdgeCount);
 }
 
 
 
-double BipartiteGraphVertexStatistics::crossStrandEdgeFrequencyRatio() const
+double VertexStatistics::crossStrandEdgeFrequencyRatio() const
 {
     return double(crossStrandEdgeFrequency) / double(totalEdgeFrequency);
 }
 
 
 
-uint64_t BipartiteGraphVertexStatistics::sameStrandEdgeCount() const
+uint64_t VertexStatistics::sameStrandEdgeCount() const
 {
     return totalEdgeCount - crossStrandEdgeCount;
 }
 
 
 
-uint64_t BipartiteGraphVertexStatistics::sameStrandEdgeFrequency() const
+uint64_t VertexStatistics::sameStrandEdgeFrequency() const
 {
     return totalEdgeFrequency - crossStrandEdgeFrequency;
 }
 
 
 
-int64_t BipartiteGraphVertexStatistics::crossStrandEdgeFrequencyExcess() const
+int64_t VertexStatistics::crossStrandEdgeFrequencyExcess() const
 {
     return int64_t(crossStrandEdgeFrequency) - int64_t(sameStrandEdgeFrequency());
 }
@@ -1072,7 +1095,7 @@ void StrandContact::writeSplitDetails(const BipartiteGraphSplit& split) const
 
     BGL_FORALL_VERTICES(v, bipartiteGraph, BipartiteGraph) {
         const BipartiteGraphVertex& vertex = bipartiteGraph[v];
-        const BipartiteGraphVertexStatistics statistics = bipartiteGraph.getVertexStatistics(split, v);
+        const VertexStatistics statistics = bipartiteGraph.getVertexStatistics(split, v);
 
         csv << v << ",";
 
@@ -1987,37 +2010,34 @@ void StrandContact::createSegmentGraph()
         std::greater<uint64_t>(),
         &SegmentGraph::EdgePair::coverage);
 
-    if(html) {
-        html << "<h2>SegmentGraph</h2>"
-            "The SegmentGraph has " << num_vertices(segmentGraph) <<
-            " vertices and " << num_edges(segmentGraph) << " edges.";
-
-        const string dotFileName = debugOutputBaseName + "-StrandContact-" +
-            to_string(strandContactId) + "-SegmentGraph.dot";
-        html << "<br>" << dotFileName;
-        segmentGraph.writeGraphviz(dotFileName);
-    }
 }
 
 
 
-void SegmentGraph::writeGraphviz(const string& fileName) const
-{
-    ofstream dot(fileName);
-    writeGraphviz(dot);
-}
-
-
-
-void SegmentGraph::writeGraphviz(ostream& dot) const
+void SegmentGraph::writeGraphviz(
+    const string& dotFileName,
+    const vector<SegmentPair>& segmentPairs,
+    const AssemblyGraph& assemblyGraph,
+    const SegmentGraphSplit& split) const
 {
     const SegmentGraph& segmentGraph = *this;
+
+    ofstream dot(dotFileName);
 
     dot << "graph G {\n";
 
     BGL_FORALL_VERTICES(v, segmentGraph, SegmentGraph) {
+        if(out_degree(v, segmentGraph) == 0) {
+            continue;
+        }
+
         const SegmentGraphVertex& vertex = segmentGraph[v];
-        dot << "\"" << vertex.segmentPairId << "/" << vertex.segmentIndexInPair  << "\";\n";
+        const Segment segment = segmentPairs[vertex.segmentPairId].segmentInfos[vertex.segmentIndexInPair].segment;
+        const string color = StrandContact::componentColor(split.vertexComponent.at(v));
+
+        dot << assemblyGraph.id(segment) <<
+            "[style=filled color=\"" << color << "\"]"
+            ";\n";
     }
 
     BGL_FORALL_EDGES(e, segmentGraph, SegmentGraph) {
@@ -2025,21 +2045,24 @@ void SegmentGraph::writeGraphviz(ostream& dot) const
         const vertex_descriptor v1 = target(e, segmentGraph);
         const SegmentGraphVertex& vertex0 = segmentGraph[v0];
         const SegmentGraphVertex& vertex1 = segmentGraph[v1];
+        const Segment segment0 = segmentPairs[vertex0.segmentPairId].segmentInfos[vertex0.segmentIndexInPair].segment;
+        const Segment segment1 = segmentPairs[vertex1.segmentPairId].segmentInfos[vertex1.segmentIndexInPair].segment;
         const SegmentGraphEdge& edge = segmentGraph[e];
 
-        const uint64_t coverage = edge.coverage;
-        const double thickness = 0.1 * pow(double(coverage), 0.65);
+        const bool isSameComponent = (split.vertexComponent.at(v0) == split.vertexComponent.at(v1));
 
         dot << 
-            "\"" << vertex0.segmentPairId << "/" << vertex0.segmentIndexInPair  << "\"--\"" <<
-            vertex1.segmentPairId << "/" << vertex1.segmentIndexInPair  << "\""
-            "["
-            "penwidth=" << thickness <<
-            " tooltip=\"" <<
-            vertex0.segmentPairId << "/" << vertex0.segmentIndexInPair << " " <<
-            vertex1.segmentPairId << "/" << vertex1.segmentIndexInPair << " " <<
-            coverage <<
-            "\""
+            assemblyGraph.id(segment0) << "--" << assemblyGraph.id(segment1) << 
+             "["
+            "tooltip=\"" << assemblyGraph.id(segment0) << " " << assemblyGraph.id(segment1) << " " <<
+            edge.coverage <<
+            "\"";
+
+        if(not isSameComponent) {
+            dot << " color=red";
+        }
+
+        dot <<
             "]"
             ";\n";
     }
@@ -2120,16 +2143,16 @@ void SegmentGraph::computeSplit(
     };
     std::ranges::sort(componentsVertexIndexes, SortByFirstElement());
 
-#if 0
+
     // Store the componentId of the vertices.
-    split.vertexComponent.resize(num_vertices(bipartiteGraph));
-    for(uint64_t componentId=0; componentId<split.components.size(); componentId++) {
-        const vector<vertex_descriptor>& component = split.components[componentId];
-        for(const vertex_descriptor v: component) {
-            split.vertexComponent[v] = componentId;
+    for(uint64_t componentId=0; componentId<componentsVertexIndexes.size(); componentId++) {
+        const vector<uint64_t>& componentVertexIndexes = componentsVertexIndexes[componentId];
+         for(const uint64_t vertexIndex: componentVertexIndexes) {
+            const vertex_descriptor v = segmentGraph.vertexFromIndex(vertexIndex);
+            split.vertexComponent.insert({v, componentId});
         }
     }
-#endif
+
 }
 
 
@@ -2214,4 +2237,281 @@ void SegmentGraphSplit::clear()
     vertexComponent.clear();
     crossStrandEdgePairIndexes.clear();
     crossStrandCoverage = 0;
+}
+
+
+
+void StrandContact::writeSplitSummary(const SegmentGraphSplit& split) const
+{
+    if(not html) {
+        return;
+    }
+
+    uint64_t totalEdgeCount = 0;
+    uint64_t totalEdgeCoverage = 0;
+    uint64_t crossStrandEdgeCount = 0;
+    uint64_t crossStrandEdgeCoverage = 0;
+    BGL_FORALL_EDGES(e, segmentGraph, SegmentGraph) {
+        const SegmentGraph::vertex_descriptor v0 = source(e, segmentGraph);
+        const SegmentGraph::vertex_descriptor v1 = target(e, segmentGraph);
+
+        const uint64_t coverage = segmentGraph[e].coverage;
+        ++totalEdgeCount;
+        totalEdgeCoverage += coverage;
+
+        if(split.vertexComponent.at(v0) != split.vertexComponent.at(v1)) {
+            ++crossStrandEdgeCount;
+            crossStrandEdgeCoverage += coverage;
+        }
+    }
+
+    html <<
+        std::setprecision(6) <<
+        "<table>"
+        "<tr><th><th>Total<th>Cross-strand<th>Ratio"
+        "<tr><th class=left>Number of edges"
+        "<td class=centered>" << totalEdgeCount <<
+        "<td class=centered>" << crossStrandEdgeCount <<
+        "<td class=centered>" << double(crossStrandEdgeCount) / double(totalEdgeCount) <<
+        "<tr><th class=left>Edge frequency"
+        "<td class=centered>" << totalEdgeCoverage <<
+        "<td class=centered>" << crossStrandEdgeCoverage <<
+        "<td class=centered>" << double(crossStrandEdgeCoverage) / double(totalEdgeCoverage) <<
+        "</table>";
+}
+
+
+
+void StrandContact::writeSplitDetails(const SegmentGraphSplit& split) const
+{
+    if(not html) {
+        return;
+    }
+
+    const string csvFileName =
+        debugOutputBaseName + "-StrandContact-" + to_string(strandContactId) + "-EvaluateStrandSeparation.csv";
+    ofstream csv(csvFileName);
+
+    csv <<
+        "SegmentPairId,SegmentIndexInPair,Segment,"
+        "Total edge count,Cross-strand edge count,Cross-strand edge ratio,"
+        "Total edge coverage,Same-strand edge coverage,Cross-strand edge coverage,"
+        "Cross-strand edge coverage excess,"
+        "Cross-strand edge coverage ratio,\n";
+
+    BGL_FORALL_VERTICES(v, segmentGraph, SegmentGraph) {
+        const SegmentGraphVertex& vertex = segmentGraph[v];
+        const VertexStatistics statistics = segmentGraph.getVertexStatistics(split, v);
+
+        csv << vertex.segmentPairId << ",";
+        csv << vertex.segmentIndexInPair << ",";
+        csv << segmentPairs[vertex.segmentPairId].segmentInfos[vertex.segmentIndexInPair].id << ",";
+
+        csv << statistics.totalEdgeCount << ",";
+        csv << statistics.crossStrandEdgeCount << ",";
+        csv << statistics.crossStrandEdgeRatio() << ",";
+
+        csv << statistics.totalEdgeFrequency << ",";
+        csv << statistics.sameStrandEdgeFrequency() << ",";
+        csv << statistics.crossStrandEdgeFrequency << ",";
+
+        csv << statistics.crossStrandEdgeFrequencyExcess() << ",";
+        csv << statistics.crossStrandEdgeFrequencyRatio() << ",";
+
+        csv << "\n";
+
+    }
+    html << "<br>See <a href='" << csvFileName << "'>" << csvFileName <<
+        "</a> for detailed evaluation of strand separation.";
+
+
+}
+
+
+
+VertexStatistics SegmentGraph::getVertexStatistics(
+    const SegmentGraphSplit& split,
+    vertex_descriptor v0) const
+{
+    const SegmentGraph& segmentGraph = *this;
+    VertexStatistics statistics;
+
+    BGL_FORALL_OUTEDGES(v0, e, segmentGraph, SegmentGraph) {
+        const SegmentGraph::vertex_descriptor v1 = target(e, segmentGraph);
+        const uint64_t coverage = segmentGraph[e].coverage;
+        ++statistics.totalEdgeCount;
+        statistics.totalEdgeFrequency += coverage;
+        if(split.vertexComponent.at(v0) != split.vertexComponent.at(v1)) {
+            ++statistics.crossStrandEdgeCount;
+            statistics.crossStrandEdgeFrequency += coverage;
+        }
+    }
+
+    return statistics;
+}
+
+
+
+void StrandContact::writeSegmentGraphGraphviz(const SegmentGraphSplit& split)
+{
+    if(not html) {
+        return;
+    }
+
+    const string dotFileName = debugOutputBaseName + "-StrandContact-" +
+        to_string(strandContactId) + ".dot";
+    segmentGraph.writeGraphviz(dotFileName, segmentPairs, assemblyGraph, split);
+
+    const double timeout = 30.;
+    const string options = "-Nshape=point -Epenwidth=0.4 -Gratio=expand -Gsize=15";
+    html << "<h2>Segment graph</h2>";
+
+    html << "<br><br><table>"
+        "<tr><th class=left>Total number of vertices<td class=centered>" << num_vertices(segmentGraph) <<
+        "<tr><th class=left>Total number of edges<td class=centered>" << num_edges(segmentGraph) <<
+        "</table>";
+
+    html << "<br>The following Segments are isolated in the SegmentGraph:<br>";
+    BGL_FORALL_VERTICES(v, segmentGraph, SegmentGraph) {
+        if(out_degree(v, segmentGraph) == 0) {
+            const SegmentGraphVertex& vertex = segmentGraph[v];
+            const Segment segment = segmentPairs[vertex.segmentPairId].segmentInfos[vertex.segmentIndexInPair].segment;
+            html << assemblyGraph.id(segment) << ",";
+        }
+    }
+
+    html << "<br>" << dotFileName << "<br>";
+
+    try {
+        graphvizToHtml(dotFileName, "sfdp", timeout, options, html, true);
+    } catch (std::exception&) {
+        html << "The SegmentGraph is too complex to display.";
+    }
+}
+
+
+
+void StrandContact::writeSegmentGraphCustom(const SegmentGraphSplit& split)
+{
+    if(not html) {
+        return;
+    }
+
+    // If command "customLayout" is not available, don't do anything.
+    const int commandStatus = std::system("which customLayout > /dev/null");
+    SHASTA2_ASSERT(WIFEXITED(commandStatus));
+    const int returnCode = WEXITSTATUS(commandStatus);
+    if(returnCode != 0) {
+        return;
+    }
+
+    // Create a map containing the desired length for each edge.
+    std::map<SegmentGraph::edge_descriptor, double> edgeLengthMap;
+    BGL_FORALL_EDGES(e, segmentGraph, SegmentGraph) {
+        const SegmentGraph::vertex_descriptor v0 = source(e, segmentGraph);
+        const SegmentGraph::vertex_descriptor v1 = target(e, segmentGraph);
+        const bool isSameComponent = (split.vertexComponent.at(v0) == split.vertexComponent.at(v1));
+        const double length = (isSameComponent ? 1. : 10.);
+        edgeLengthMap.insert({e, length});
+    }
+
+
+    // Compute the layout.
+    std::map<SegmentGraph::vertex_descriptor, array<double, 2> > positionMap;
+    const int quality = 2;
+    const double timeout = 30.;
+    const auto layoutReturnCode = computeLayoutCustom(segmentGraph, edgeLengthMap, positionMap, quality, timeout);
+    if(layoutReturnCode != ComputeLayoutReturnCode::Success) {
+        html << "<br>The custom layout of the bipartite graph cannot be displayed.";
+        return;
+    }
+
+    // Compute the bounding box of the layout.
+    double xMin = std::numeric_limits<double>::max();
+    double xMax = std::numeric_limits<double>::min();
+    double yMin = xMin;
+    double yMax = xMax;
+    for(const auto& p: positionMap) {
+        const array<double, 2>& xy = p.second;
+        const double x = xy[0];
+        const double y = xy[1];
+        xMin = min(xMin, x);
+        xMax = max(xMax, x);
+        yMin = min(yMin, y);
+        yMax = max(yMax, y);
+    }
+
+    // Enlarge the bounding box a bit.
+    const double extend = 0.05 * max(xMax-xMin, yMax-yMin);
+    xMin -= extend;
+    xMax += extend;
+    yMin -= extend;
+    yMax += extend;
+
+    // Make it square,
+    if((xMax - xMin) > (yMax - yMin)) {
+        const double delta = ((xMax - xMin) - (yMax - yMin)) / 2.;
+        yMin -= delta;
+        yMax += delta;
+    } else {
+        const double delta = ((yMax - yMin) - (xMax - xMin)) / 2.;;
+        xMin -= delta;
+        xMax += delta;
+    }
+
+
+    // Begin the svg.
+    // Use scientific notation because svg does not accept floating points
+    // ending with a decimal point.
+    const uint64_t sizePixels = 900;
+    html << std::scientific;
+    const string svgId = "BipartiteGraph";
+    html <<
+        "\n<br><div style='display:inline-block;vertical-align:top;'>"
+        "<svg id='" << svgId <<
+        "' width='" <<  sizePixels <<
+        "' height='" << sizePixels <<
+        "' viewbox='" << xMin << " " << yMin << " " <<
+        xMax-xMin << " " <<
+        yMax-yMin << "'"
+        " style='background-color:#f0f0f0'"
+        ">\n";
+
+
+    // Write the edges first so they don't obscure the vertices.
+    const double edgeThickness = (xMax - xMin) * 0.0005;
+    BGL_FORALL_EDGES(e, segmentGraph, SegmentGraph) {
+        const SegmentGraph::vertex_descriptor v0 = source(e, bipartiteGraph);
+        const SegmentGraph::vertex_descriptor v1 = target(e, bipartiteGraph);
+        const auto&[x0, y0] = positionMap.at(v0);
+        const auto&[x1, y1] = positionMap.at(v1);
+        const bool isSameComponent = (split.vertexComponent.at(v0) == split.vertexComponent.at(v1));
+        const string color = (isSameComponent ? "Black" : "Red");
+
+        html <<
+            "<line x1='" << x0 << "' y1='" << y0 <<
+            "' x2='" << x1 << "' y2='" << y1 <<
+            "' stroke='" << color <<
+            "' stroke-width='" << edgeThickness <<
+            "' />";
+    }
+
+    // Write the vertices.
+    const double radius = (xMax - xMin) * 0.003;
+     BGL_FORALL_VERTICES(v, segmentGraph, SegmentGraph) {
+        if(out_degree(v, segmentGraph) == 0) {
+            continue;
+        }
+        const string color = componentColor(split.vertexComponent.at(v));
+        const auto&[x, y] = positionMap.at(v);
+        html << "<circle cx='" << x << "' cy='" << y <<
+            "' fill='" << color <<
+            "' r='" << radius <<
+            "' />";
+    }
+
+
+    // Finish the svg.
+    html << "</svg></div>";
+
 }
