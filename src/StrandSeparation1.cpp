@@ -50,10 +50,11 @@ StrandContact::StrandContact(
 
 
 
-    // Code that uses the SegmentGraph and SegmentPairGraph.
     const bool useSegmentGraph = true;
     if(useSegmentGraph)
     {
+        // Code that uses the SegmentGraph.
+
         createSegmentPairGraph();
         createSegmentGraph();
         SegmentGraphSplit split;
@@ -68,44 +69,38 @@ StrandContact::StrandContact(
                 "The SegmentGraph has " << num_vertices(segmentGraph) <<
                 " vertices and " << num_edges(segmentGraph) << " edges.";
 
-            /*
-            const string dotFileName = debugOutputBaseName + "-StrandContact-" +
-                to_string(strandContactId) + "-SegmentGraph.dot";
-            html << "<br>" << dotFileName;
-            segmentGraph.writeGraphviz(dotFileName, segmentPairs, assemblyGraph, split);
-            */
-
             writeSegmentGraphGraphviz(split);
             writeSegmentGraphCustom(split);
-
-            writeHtmlEnd(html);
-            cout << "Done working on strand contact " << strandContactId << endl;
         }
-        return; // ******************* FOR NOW
+
+        storeSegmentInformation(split);
+    } else {
+
+        // Code that uses the BipartiteGraph.
+
+        // BipartiteGraph.
+        createBipartiteGraph();
+
+        // Strand separation in the BipartiteGraph.
+        BipartiteGraphSplit split;
+        computeSplit(split);
+
+        if(html) {
+            html << "<h2>Best strand separation found</h2>";
+            writeSplitSummary(split);
+            writeSplitDetails(split);
+            writeBipartiteGraphGraphviz(split);
+            writeBipartiteGraphCustom(split);
+        }
+
+        storeSegmentInformation(split);
     }
 
 
-
-    // BipartiteGraph.
-    createBipartiteGraph();
-
-     // Strand separation in the BipartiteGraph.
-    BipartiteGraphSplit split;
-    computeSplit(split);
-
-    if(html) {
-        html << "<h2>Best strand separation found</h2>";
-        writeSplitSummary(split);
-        writeSplitDetails(split);
-        writeBipartiteGraphGraphviz(split);
-        writeBipartiteGraphCustom(split);
-    }
-
-    storeSegmentInformation(split);
 
 #if 1
     // To use updateAssemblyGraph1 we need the ConnectGraph.
-     createConnectGraph();
+    createConnectGraph();
     writeConnectGraph("A");
     connectGraph.keepStrand0();
     writeConnectGraph("B");
@@ -2514,4 +2509,123 @@ void StrandContact::writeSegmentGraphCustom(const SegmentGraphSplit& split)
     // Finish the svg.
     html << "</svg></div>";
 
+}
+
+
+
+// Store component information in the SegmentPairs.
+void StrandContact::storeSegmentInformation(const SegmentGraphSplit& split)
+{
+    for(uint64_t segmentPairId=0; segmentPairId<segmentPairs.size(); segmentPairId++) {
+        SegmentPair& segmentPair = segmentPairs[segmentPairId];
+        for(uint64_t segmentIndexInPair=0; segmentIndexInPair<2; segmentIndexInPair++) {
+            SegmentInfo& segmentInfo = segmentPair.segmentInfos[segmentIndexInPair];
+            const SegmentGraph::vertex_descriptor v = segmentGraph.vertexTable[segmentPairId][segmentIndexInPair];
+            segmentInfo.componentId = split.vertexComponent.at(v);
+
+            if(segmentIndexInPair == 0) {
+                const VertexStatistics statistics =
+                    segmentGraph.getVertexStatistics(split, v);
+                if(out_degree(v, segmentGraph) == 0) {
+                    segmentPair.crossStrandEdgeFrequencyRatio = 1.;
+                } else {
+                    segmentPair.crossStrandEdgeFrequencyRatio = statistics.crossStrandEdgeFrequencyRatio();
+                }
+            }
+        }
+        SHASTA2_ASSERT(segmentPair.segmentInfos[0].componentId == (segmentPair.segmentInfos[1].componentId ^ 1));
+
+    }
+
+    if(not html) {
+        return;
+    }
+
+    html <<
+        std::fixed << std::setprecision(3) <<
+        "<h2>Segment information for the best strand separation found</h2>"
+        "<table>"
+        "<tr>"
+        "<th>Segment<br>pair id"
+        "<th>Segment 0"
+        "<th>Component 0"
+        "<th>Segment 1"
+        "<th>Component 1"
+        "<th>Cross-strand<br>edge<br>frequency<br>ratio"
+        "<th>Ambiguous";
+    for(uint64_t segmentPairId=0; segmentPairId<segmentPairs.size(); segmentPairId++) {
+        const SegmentPair& segmentPair = segmentPairs[segmentPairId];
+        const bool isAmbiguous = (segmentPair.crossStrandEdgeFrequencyRatio > maxCrossStrandFrequencyRatio);
+        const string color0 = (isAmbiguous ? ambiguousColor() : componentColor(segmentPair.segmentInfos[0].componentId));
+        const string color1 = (isAmbiguous ? ambiguousColor() : componentColor(segmentPair.segmentInfos[1].componentId));
+        html <<
+            "<tr>"
+            "<td class=centered>" << segmentPairId <<
+            "<td class=centered style='background-color:" << color0 << "'>" << segmentPair.segmentInfos[0].id <<
+            "<td class=centered>" << segmentPair.segmentInfos[0].componentId <<
+            "<td class=centered style='background-color:" << color1 << "'>" << segmentPair.segmentInfos[1].id <<
+            "<td class=centered>" << segmentPair.segmentInfos[1].componentId <<
+            "<td class=centered>";
+        if(segmentPair.crossStrandEdgeFrequencyRatio > 0.) {
+            html << segmentPair.crossStrandEdgeFrequencyRatio;
+        }
+        html << "<td class=centered>";
+        if(isAmbiguous) {
+            html << "&check;";
+        }
+    }
+
+    html << "</table>";
+
+
+
+    // Write a csv file that can be loaded in Bandage to show the SegmentGraphSplit.
+    const string fileName = debugOutputBaseName + "-StrandContact-" + to_string(strandContactId) + "-SegmentGraphSplit-Bandage.csv";
+    ofstream csv(fileName);
+    csv << "Segment,Component,Color\n";
+    for(const SegmentPair& segmentPair: segmentPairs) {
+        const bool isAmbiguous = (segmentPair.crossStrandEdgeFrequencyRatio > maxCrossStrandFrequencyRatio);
+        for(const SegmentInfo& segmentInfo: segmentPair.segmentInfos) {
+            const uint64_t componentId = segmentInfo.componentId;
+            csv << segmentInfo.id << ",";
+
+            if(isAmbiguous) {
+                csv << "?";
+            } else {
+                csv << componentId;
+            }
+            csv << ",";
+
+            if(isAmbiguous) {
+                csv << ambiguousColor();
+            } else {
+                csv << componentColor(componentId);
+            }
+            csv << ",";
+
+            csv << "\n";
+        }
+    }
+
+
+
+    // Write a gfa file containing only the segments that will
+    // be used in the rest of the strand separation process
+    // for this StrandContact.
+    // These are segments that belong to an even number component
+    // or are flagged as ambiguous.
+    vector<Segment> segmentsForOutput;
+    for(const SegmentPair& segmentPair: segmentPairs) {
+        const bool isAmbiguous = (segmentPair.crossStrandEdgeFrequencyRatio > maxCrossStrandFrequencyRatio);
+        for(const SegmentInfo& segmentInfo: segmentPair.segmentInfos) {
+            const uint64_t componentId = segmentInfo.componentId;
+            if(isAmbiguous or ((componentId % 2) == 0)) {
+                segmentsForOutput.push_back(segmentInfo.segment);
+            }
+        }
+    }
+    std::ranges::sort(segmentsForOutput, assemblyGraph.orderById);
+
+    const string gfaFileName = debugOutputBaseName + "-StrandContact-" + to_string(strandContactId) + "-SegmentGraphSplit-Bandage.gfa";
+    assemblyGraph.writeGfa(gfaFileName, segmentsForOutput);
 }

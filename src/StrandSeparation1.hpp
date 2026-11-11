@@ -497,6 +497,9 @@ private:
     void writeSegmentGraphGraphviz(const SegmentGraphSplit&);
     void writeSegmentGraphCustom(const SegmentGraphSplit&);
 
+    // Store component information in the SegmentPairs.
+    void storeSegmentInformation(const SegmentGraphSplit&);
+
     // The ConnectGraph describes trhe connections between Segments that
     // exist in the AssemblyGraph and/or should be removed
     // for strand separation.
