@@ -384,8 +384,6 @@ void AssemblyGraph::simplifyAndAssemble()
 // It returns true if any changes in the AssemblyGraph were made.
 bool AssemblyGraph::simplifyIteration(uint64_t iteration)
 {
-    // EXPOSE WHEN CODE STABILIZES.
-    const uint64_t strandSeparationMaxLength = 100000;
 
     performanceLog << timestamp << "Begin assembly graph simplify iteration " << iteration << endl;
     cout << num_edges(*this) <<
@@ -435,10 +433,12 @@ bool AssemblyGraph::simplifyIteration(uint64_t iteration)
     writeIntermediateStageIfRequested(iterationString + "G-Compressed", 2);
 
     // Strand separation for self-complementary tangles.
-    separateStrands1(strandSeparationMaxLength, iterationString);
-    writeIntermediateStageIfRequested(iterationString + "H", 3);
-    strandSymmetricCompress();
-    writeIntermediateStageIfRequested(iterationString + "H-Compressed", 2);
+    if(iteration == 0) {
+        separateStrands(iterationString);
+        writeIntermediateStageIfRequested(iterationString + "H", 3);
+        strandSymmetricCompress();
+        writeIntermediateStageIfRequested(iterationString + "H-Compressed", 2);
+    }
 
     const bool changesWereMade = (nextEdgeId > oldNextEdgeId);
 

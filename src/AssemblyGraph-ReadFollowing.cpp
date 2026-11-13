@@ -36,6 +36,21 @@ bool AssemblyGraph::readFollowingStrandSymmetric5(
 
 
 
+void AssemblyGraph::separateStrands(const string& debugOutputBaseName)
+{
+    // EXPOSE WHEN CODE STABILIZES.
+    const uint64_t maxLengthStart = 10000;
+    const uint64_t maxLengthEnd = 100000000;
+
+    for(uint64_t maxLength=maxLengthStart; maxLength<=maxLengthEnd; maxLength*=2) {
+        separateStrands1(maxLength, debugOutputBaseName);    
+    }
+
+    separateStrands1Global(debugOutputBaseName);
+}
+
+
+
 void AssemblyGraph::separateStrands1Global(const string& debugOutputBaseName)
 {
     const uint64_t maxLength = std::numeric_limits<uint64_t>::max();
@@ -71,6 +86,14 @@ void AssemblyGraph::separateStrands1(
         }
     }
 
+    if(maxLength == std::numeric_limits<uint64_t>::max()) {
+        cout << "Strand separation at infinite maxLength " 
+            " found " << strandContacts.size() << " strand contacts." << endl;
+    } else {
+        cout << "Strand separation at maxLength " << maxLength << 
+            " found " << strandContacts.size() << " strand contacts." << endl;
+    }
+
     // Write a csv file that can be imported into Bandage to see
     // the tangles.
     vector<uint64_t> strandContactsRc(strandContacts.size());
@@ -87,7 +110,6 @@ void AssemblyGraph::separateStrands1(
             strandContactId);
     }
 
-    check();
     removeZeroLengthSegmentsStrandSymmetric();
     removeIsolatedVertices();
 
