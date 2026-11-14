@@ -386,6 +386,22 @@ void Assembler::createAssemblyGraph(const Options& options, bool removeAnchorGra
 
 
 
+void Assembler::createCompleteAssemblyGraph(const Options& options) const
+{
+    SHASTA2_ASSERT(completeAnchorGraphPointer);
+
+    AssemblyGraph assemblyGraph(
+        anchors(),
+        journeys(),
+        *completeAnchorGraphPointer,
+        options,
+        homopolymerModelPointer);
+    
+    assemblyGraph.write("Complete");
+}
+
+
+
 void Assembler::accessAnchorGraph(string name)
 {
     const MappedMemoryOwner& mappedMemoryOwner = *this;
