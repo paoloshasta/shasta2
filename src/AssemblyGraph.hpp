@@ -587,7 +587,11 @@ public:
     // Return the newly created edge.
     edge_descriptor connect(edge_descriptor, edge_descriptor, bool deep=false);
 
+    // Renumber the segments (edges), and possibly the vertices, for better readability.
+    void renumber();
 
+
+    
     // Output.
     void write(const string& stage);
     void writeIntermediateStageIfRequested(const string& name, uint64_t outputLevel);

@@ -1,6 +1,7 @@
 // Shasta.
 #include "AssemblyGraph.hpp"
 #include "AnchorGraph.hpp"
+#include "approximateTopologicalSort.hpp"
 #include "DisjointSets.hpp"
 #include "findLinearChains.hpp"
 #include "findReachableVertices.hpp"
@@ -10,6 +11,7 @@
 #include "Options.hpp"
 #include "performanceLog.hpp"
 #include "RestrictedAnchorGraph.hpp"
+#include "SegmentGraph.hpp"
 #include "SegmentStepSupport.hpp"
 #include "Tangle.hpp"
 #include "TangleMatrix.hpp"
@@ -358,6 +360,7 @@ void AssemblyGraph::simplifyAndAssemble()
     // Make the AssemblyGraph single-stranded.
     separateStrands1Global("Global");
     makeSingleStranded();
+    renumber();
     write("Final-NoSequence");
 
     // Sequence assembly.
@@ -370,6 +373,7 @@ void AssemblyGraph::simplifyAndAssemble()
         makePseudo();
         compress();
         removeIsolatedVertices();
+        renumber();
         write("Pseudo");
         writeFasta("Pseudo");
         writePseudoAssemblyDisclaimer();
@@ -4230,4 +4234,156 @@ void AssemblyGraph::backwardBfs(
     }
 
     sort(reachableStopSegments.begin(), reachableStopSegments.end(), orderById);
+}
+
+
+
+// Renumber the segments (edges), and possibly the vertices, for better readability.
+void AssemblyGraph::renumber()
+{
+    AssemblyGraph& assemblyGraph = *this;
+    const uint32_t representativeRegionStepCount =  uint32_t(options.representativeRegionStepCount);
+
+
+
+    // Create the SegmentGraph, which is the line graph of the AssemblyGraph.
+    // We can't use the SegmentGraph defined in SegmentGraph.hpp
+    // because it does not have the fields required by approximateTopologicalSort.
+
+    class SegmentGraphVertex {
+    public:
+        Segment segment = assemblyGraphNullEdge;
+        uint64_t length = invalid<uint64_t>;
+        uint64_t color = invalid<uint64_t>;
+        uint64_t rank = invalid<uint64_t>;
+        uint64_t componentId = invalid<uint64_t>;
+        SegmentGraphVertex(Segment segment, uint64_t length) : segment(segment), length(length) {}
+        SegmentGraphVertex() {}
+
+        // To assign new ids,  sort the Segments using this key.
+        pair<uint64_t, uint64_t> key() const 
+        {
+            return {componentId, rank};
+        }
+    };
+
+    class SegmentGraphEdge {
+    public:
+        uint64_t commonCount = invalid<uint64_t>;
+        bool isDagEdge = false;
+        SegmentGraphEdge(uint64_t commonCount) : commonCount(commonCount) {}
+    };
+
+    using SegmentGraph = boost::adjacency_list<
+        boost::listS,
+        boost::vecS,
+        boost::bidirectionalS,
+        SegmentGraphVertex,
+        SegmentGraphEdge>;
+    SegmentGraph segmentGraph;
+
+    // Create SegmentGraph vertices.
+    std::map<Segment, SegmentGraph::vertex_descriptor> segmentGraphVertexMap;
+    BGL_FORALL_EDGES(segment, assemblyGraph, AssemblyGraph) {
+        const SegmentGraph::vertex_descriptor v = add_vertex(SegmentGraphVertex(segment, assemblyGraph[segment].length()), segmentGraph);
+        segmentGraphVertexMap.insert({segment, v});
+    }
+
+    // Create SegmentGraph edges.
+    ostream html(0);
+    BGL_FORALL_VERTICES(av, assemblyGraph, AssemblyGraph) {
+        BGL_FORALL_INEDGES(av, segment0, assemblyGraph, AssemblyGraph) {
+            BGL_FORALL_OUTEDGES(av, segment1, assemblyGraph, AssemblyGraph) {
+                const SegmentPairInformation segmentPairInformation = SegmentStepSupport::analyzeSegmentPair(
+                    html, assemblyGraph, segment0, segment1, representativeRegionStepCount);  
+                boost::add_edge(
+                    segmentGraphVertexMap.at(segment0),
+                    segmentGraphVertexMap.at(segment1),  
+                    SegmentGraphEdge(segmentPairInformation.commonCount),
+                    segmentGraph);  
+            }
+        }
+    }
+
+
+
+     // Approximate topological sort of the SegmentGraph, ordering the edges
+    // by commonCount.
+    vector< pair<SegmentGraph::edge_descriptor, uint64_t> > segmentGraphEdgesWithCommonCount;
+    BGL_FORALL_EDGES(e, segmentGraph, SegmentGraph) {
+        segmentGraphEdgesWithCommonCount.push_back({e, segmentGraph[e].commonCount});    
+    }
+    std::ranges::sort(segmentGraphEdgesWithCommonCount, 
+        std::greater<uint64_t>(),
+        &pair<SegmentGraph::edge_descriptor, uint64_t>::second);
+    vector<SegmentGraph::edge_descriptor> segmentGraphEdges;
+    for(const auto&[e, _]: segmentGraphEdgesWithCommonCount) {
+        segmentGraphEdges.push_back(e);
+    }
+    approximateTopologicalSort(segmentGraph, segmentGraphEdges);
+
+
+
+    // We want to order the new Segment ids by connected component
+    // and then by rank in the topological sort, so we also need to
+    // connected components of the SegmentGraph.
+    DisjointSets disjointSets(num_vertices(segmentGraph));
+    BGL_FORALL_EDGES(e, segmentGraph, SegmentGraph) {
+        const SegmentGraph::vertex_descriptor v0 = source(e, segmentGraph);
+        const SegmentGraph::vertex_descriptor v1 = target(e, segmentGraph);
+        disjointSets.unionSet(v0, v1);
+    }
+
+    // Get the connected comnponents, ordered by decreasing number of Segments.
+    vector< vector<SegmentGraph::vertex_descriptor> > componentsA;
+    disjointSets.gatherComponents(1, componentsA);
+
+    // We want connected components sorted by decreasing total length.
+    class ComponentInfo {
+    public:
+        uint64_t componentIdA;
+        uint64_t totalLength;
+    };
+    vector<ComponentInfo> componentInfos;
+    for(uint64_t componentIdA=0; componentIdA<componentsA.size(); componentIdA++) {
+        const vector<SegmentGraph::vertex_descriptor>& componentA = componentsA[componentIdA];
+        uint64_t totalLength = 0;
+        for(const SegmentGraph::vertex_descriptor v: componentA) {
+            totalLength += segmentGraph[v].length;
+        }
+        componentInfos.push_back({componentIdA, totalLength});
+    }
+    std::ranges::sort(componentInfos, std::greater<uint64_t>(), &ComponentInfo::totalLength);
+
+    // Store the index of the sorted components in each vertex.
+    for(uint64_t componentIdB=0; componentIdB<componentInfos.size(); componentIdB++) {
+        const ComponentInfo& componentInfo = componentInfos[componentIdB];
+        const uint64_t componentIdA = componentInfo.componentIdA;
+        const vector<SegmentGraph::vertex_descriptor>& componentA = componentsA[componentIdA];
+        for(const SegmentGraph::vertex_descriptor v: componentA) {
+            segmentGraph[v].componentId = componentIdB;
+        }
+    }
+
+    // Sort the Segments by their key = (componentId, rank).
+    class SegmentWithKey {
+    public:
+        Segment segment;
+        pair<uint64_t, uint64_t> key;
+    };
+    vector<SegmentWithKey> segmentsWithKeys;
+    BGL_FORALL_VERTICES(v, segmentGraph, SegmentGraph) {
+        const SegmentGraphVertex& vertex = segmentGraph[v];
+        segmentsWithKeys.push_back({vertex.segment, vertex.key()});
+    }
+    std::ranges::sort(
+        segmentsWithKeys, 
+        std::less< pair<uint64_t, uint64_t> >(), 
+        &SegmentWithKey::key);
+
+    // Assign new segment ids in this order.
+    for(uint64_t id=0; id<segmentsWithKeys.size(); id++) {
+        const Segment segment = segmentsWithKeys[id].segment;
+        assemblyGraph[segment].id = id;
+    }
 }

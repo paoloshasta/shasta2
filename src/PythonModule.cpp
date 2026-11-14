@@ -204,6 +204,7 @@ PYBIND11_MODULE(shasta2, shasta2Module)
         .def("removeIsolatedVertices", &AssemblyGraph::removeIsolatedVertices)
         .def("makeSingleStranded", &AssemblyGraph::makeSingleStranded)
         .def("makePseudo", &AssemblyGraph::makePseudo)
+        .def("renumber", &AssemblyGraph::renumber)
         ;
 
     // Expose AssemblyGraph vertex_descriptor and edge_descriptor.
