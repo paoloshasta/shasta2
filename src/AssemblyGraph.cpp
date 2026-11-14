@@ -1,8 +1,9 @@
 // Shasta.
+#include "DisjointSets.hpp"
 #include "AssemblyGraph.hpp"
 #include "AnchorGraph.hpp"
 #include "approximateTopologicalSort.hpp"
-#include "DisjointSets.hpp"
+#include "CondensedGraph.hpp"
 #include "findLinearChains.hpp"
 #include "findReachableVertices.hpp"
 #include "Journeys.hpp"
@@ -22,6 +23,7 @@ using namespace shasta2;
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/graph/adj_list_serialize.hpp>
 #include <boost/graph/filtered_graph.hpp>
+#include <boost/graph/topological_sort.hpp>
 #include <boost/graph/strong_components.hpp>
 #include <boost/pending/disjoint_sets.hpp>
 
@@ -4255,15 +4257,16 @@ void AssemblyGraph::renumber()
         Segment segment = assemblyGraphNullEdge;
         uint64_t length = invalid<uint64_t>;
         uint64_t color = invalid<uint64_t>;
-        uint64_t rank = invalid<uint64_t>;
         uint64_t componentId = invalid<uint64_t>;
+        uint64_t condensedRank = invalid<uint64_t>;     // Topological rank in the CondensedSegmentGraph.
+        uint64_t rank = invalid<uint64_t>;              // Approximate topological rank in the SegmentGraph.
         SegmentGraphVertex(Segment segment, uint64_t length) : segment(segment), length(length) {}
         SegmentGraphVertex() {}
 
         // To assign new ids,  sort the Segments using this key.
-        pair<uint64_t, uint64_t> key() const 
+        tuple<uint64_t, uint64_t, uint64_t> key() const 
         {
-            return {componentId, rank};
+            return {componentId, condensedRank, rank};
         }
     };
 
@@ -4324,6 +4327,38 @@ void AssemblyGraph::renumber()
 
 
 
+    // Topological sort of the CondensedSegmentGraph.
+    class CondensedSegmentGraphVertex {
+    public:
+        vector<SegmentGraph::vertex_descriptor> vertices;
+    };
+    class CondensedSegmentGraphEdge {
+    public:
+        SegmentGraph::edge_descriptor e;
+    };
+    using CondensedSegmentGraph = 
+        boost::adjacency_list<
+        boost::listS,
+        boost::vecS,
+        boost::bidirectionalS,
+        CondensedSegmentGraphVertex,
+        CondensedSegmentGraphEdge>;
+    std::map<SegmentGraph::vertex_descriptor, CondensedSegmentGraph::vertex_descriptor> condensedVertexMap;
+    const CondensedSegmentGraph condensedSegmentGraph = 
+        createCondensedGraph<SegmentGraph, CondensedSegmentGraph>(segmentGraph, condensedVertexMap);
+    vector<CondensedSegmentGraph::vertex_descriptor> condensedGraphTopologicalSort;
+    boost::topological_sort(condensedSegmentGraph, back_inserter(condensedGraphTopologicalSort));
+    std::ranges::reverse(condensedGraphTopologicalSort);
+    for(uint64_t condensedRank=0; condensedRank<condensedGraphTopologicalSort.size(); condensedRank++) {
+        const CondensedSegmentGraph::vertex_descriptor cv = condensedGraphTopologicalSort[condensedRank];
+        const CondensedSegmentGraphVertex& cVertex = condensedSegmentGraph[cv];
+        for(const SegmentGraph::vertex_descriptor v: cVertex.vertices) {
+            segmentGraph[v].condensedRank = condensedRank;
+        }
+    }
+
+
+
     // We want to order the new Segment ids by connected component
     // and then by rank in the topological sort, so we also need to
     // connected components of the SegmentGraph.
@@ -4369,7 +4404,7 @@ void AssemblyGraph::renumber()
     class SegmentWithKey {
     public:
         Segment segment;
-        pair<uint64_t, uint64_t> key;
+        tuple<uint64_t, uint64_t, uint64_t> key;
     };
     vector<SegmentWithKey> segmentsWithKeys;
     BGL_FORALL_VERTICES(v, segmentGraph, SegmentGraph) {
@@ -4378,7 +4413,7 @@ void AssemblyGraph::renumber()
     }
     std::ranges::sort(
         segmentsWithKeys, 
-        std::less< pair<uint64_t, uint64_t> >(), 
+        std::less< tuple<uint64_t, uint64_t, uint64_t> >(), 
         &SegmentWithKey::key);
 
     // Assign new segment ids in this order.
