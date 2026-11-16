@@ -157,6 +157,13 @@ SHASTA2_BOOL_OPTION_DEFINE(
     writeAssemblyDetails, "--write-assembly-details", false,
     "Write assembly details in csv format.")
 
+SHASTA2_OPTION_DEFINE(
+    string, localAssemblyMethod, "--local-assembly-method", "Adaptive",
+    "Method used to assemble sequence between anchors. "
+    "Specify Adaptive, Abpoa, TheseusOnly, TheseusAll, DeBruijn, or Plegma. "
+    "Plegma requires a build with plegma (see scripts/BuildPlegma.py). "
+    "It does not use --use-msa-repair.")
+
 SHASTA2_BOOL_OPTION_DEFINE(
     useMsaRepair, "--use-msa-repair,--use-msa1", false,
     "Repair multiple sequence alignments during local assemblies.")
@@ -167,7 +174,8 @@ SHASTA2_OPTION_DEFINE(
     "It can be the name of a built-in homopolymer model or "
     "the absolute path of a csv file that defines the homopolymer model. "
     "Use \"shasta2 --command listHomopolymerModels\" for a list of built-in homopolymer models. "
-    "Requires --use-msa-repair. If not specified, the median length is used.")
+    "Used by --use-msa-repair and by --local-assembly-method Plegma. "
+    "If not specified, the median length is used.")
 
 SHASTA2_OPTION_DEFINE(
     uint64_t, bubbleCleanupMaxBubbleLength, "--bubble-cleanup-max-bubble-length", 10000,

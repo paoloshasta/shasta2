@@ -30,12 +30,22 @@ include_directories(~/.shasta2Build/theseus/theseus-lib/include)
 link_directories(~/.shasta2Build/abpoa/abPOA/lib)
 link_directories(~/.shasta2Build/theseus/theseus-lib/staticBuild)
 
+# Include and link directories for plegma, if requested.
+if(BUILD_WITH_PLEGMA)
+    add_definitions(-DSHASTA2_PLEGMA)
+    include_directories(~/.shasta2Build/plegma/include)
+    link_directories(~/.shasta2Build/plegma/lib)
+endif(BUILD_WITH_PLEGMA)
+
 # Define our executable.
 add_executable(shasta2Executable ${SOURCES})
 set_target_properties(shasta2Executable PROPERTIES OUTPUT_NAME "shasta2")
 
 # Request a static executable.
-set_target_properties(shasta2Executable PROPERTIES LINK_FLAGS "-static" )
+# This is not possible with plegma, which is only available as a shared library.
+if(NOT BUILD_WITH_PLEGMA)
+    set_target_properties(shasta2Executable PROPERTIES LINK_FLAGS "-static" )
+endif(NOT BUILD_WITH_PLEGMA)
 
 # Libraries to link with.
 target_link_libraries(
@@ -43,8 +53,16 @@ target_link_libraries(
     atomic boost_program_options boost_chrono boost_serialization png z
     abpoa theseus z m pthread)
 
+# With plegma, the executable finds libplegma.so and the Mojo runtime
+# libraries it needs in its own directory, where they are installed.
+if(BUILD_WITH_PLEGMA)
+    target_link_libraries(shasta2Executable plegma)
+    set_target_properties(shasta2Executable PROPERTIES INSTALL_RPATH "$ORIGIN")
+    install(DIRECTORY ~/.shasta2Build/plegma/lib/ DESTINATION shasta2-install/bin)
+endif(BUILD_WITH_PLEGMA)
+
   
-# The static executable goes to the bin directory.
+# The executable goes to the bin directory.
 install(TARGETS shasta2Executable DESTINATION shasta2-install/bin)
 
 

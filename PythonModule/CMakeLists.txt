@@ -34,6 +34,13 @@ include_directories(~/.shasta2Build/theseus/theseus-lib/include)
 link_directories(~/.shasta2Build/abpoa/abPOA/lib)
 link_directories(~/.shasta2Build/theseus/theseus-lib/sharedBuild)
 
+# Include and link directories for plegma, if requested.
+if(BUILD_WITH_PLEGMA)
+    add_definitions(-DSHASTA2_PLEGMA)
+    include_directories(~/.shasta2Build/plegma/include)
+    link_directories(~/.shasta2Build/plegma/lib)
+endif(BUILD_WITH_PLEGMA)
+
 # Define our library.
 add_library(shasta2PythonModule SHARED ${SOURCES})
 
@@ -64,6 +71,13 @@ target_link_libraries(
 install(TARGETS shasta2PythonModule DESTINATION shasta2-install/bin)
 install(FILES ~/.shasta2Build/abpoa/abPOA/lib/libabpoa.so DESTINATION shasta2-install/bin)
 install(FILES ~/.shasta2Build/theseus/theseus-lib/sharedBuild/libtheseus.so DESTINATION shasta2-install/bin)
+
+# With plegma, also link with libplegma.so and install it,
+# together with the Mojo runtime libraries it needs, into the bin directory.
+if(BUILD_WITH_PLEGMA)
+    target_link_libraries(shasta2PythonModule plegma)
+    install(DIRECTORY ~/.shasta2Build/plegma/lib/ DESTINATION shasta2-install/bin)
+endif(BUILD_WITH_PLEGMA)
 
 
 

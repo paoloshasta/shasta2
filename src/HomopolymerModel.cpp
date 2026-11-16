@@ -14,6 +14,7 @@ using namespace shasta2;
 #include "stdexcept.hpp"
 #include <cmath>
 #include <filesystem>
+#include <iterator>
 #include <limits>
 #include <sstream>
 #include <unistd.h>
@@ -22,9 +23,13 @@ const uint64_t HomopolymerModel::unknownFlank = 4;
 
 
 // See HomopolymerModel.hpp for the file format.
-HomopolymerModel::HomopolymerModel(istream& file)
+HomopolymerModel::HomopolymerModel(istream& input)
 {
-    SHASTA2_ASSERT(file);
+    SHASTA2_ASSERT(input);
+
+    // Keep the csv text (see csv()), then read the model from it.
+    csvText.assign(std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>());
+    std::istringstream file(csvText);
 
     const string expectedHeader = "base,strand,left,right,n,m,count,probability,logProbabilityDb";
     string line;

@@ -1,5 +1,7 @@
 // Shasta.
 #include "Options.hpp"
+#include "LocalAssembly7.hpp"
+#include "plegmaWrapper.hpp"
 using namespace shasta2;
 
 // Standard library.
@@ -98,6 +100,18 @@ void Options::validate()
     // Adjust the numbers of threads, if necessary.
     if(threadCount == 0) {
         threadCount = std::thread::hardware_concurrency();
+    }
+
+    // Check the local assembly method now rather than when the
+    // first local assembly runs.
+    LocalAssembly7::Options localAssembly7Options;
+    localAssembly7Options.setMethod(localAssemblyMethod);
+    if(localAssembly7Options.method == LocalAssembly7::Method::Invalid) {
+        throw runtime_error("Invalid --local-assembly-method " + localAssemblyMethod);
+    }
+    if(localAssembly7Options.method == LocalAssembly7::Method::Plegma and not plegmaIsAvailable()) {
+        throw runtime_error("--local-assembly-method Plegma requires a build of shasta2 with plegma. "
+            "Run scripts/BuildPlegma.py, then build shasta2 with cmake option -DBUILD_WITH_PLEGMA=ON.");
     }
 }
 
