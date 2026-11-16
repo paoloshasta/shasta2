@@ -4,14 +4,12 @@
 #include "Options.hpp"
 #include "performanceLog.hpp"
 #include "ReadFollowing5.hpp"
-#include "ReadFollowing6.hpp"
 #include "StrandSeparation1.hpp"
 #include "SegmentGraph.hpp"
 #include "Tangle.hpp"
 #include "timestamp.hpp"
 using namespace shasta2;
 using namespace ReadFollowing5;
-using namespace ReadFollowing6;
 
 
 
@@ -117,26 +115,6 @@ void AssemblyGraph::separateStrands1(
         debugOutputBaseName << endl;
 }
 
-
-
-// This uses ReadFollowing6 code.
-bool AssemblyGraph::readFollowingStrandSymmetric6(
-    [[maybe_unused]] uint64_t tangleId,
-    [[maybe_unused]] const shasta2::Tangle& shasta2Tangle,
-    [[maybe_unused]] ostream& html,
-    const string& debugOutputBaseName)
-{
-    SHASTA2_ASSERT(not shasta2Tangle.isSelfComplementary());
-
-    ReadFollowing6::Tangle tangle(
-        *this,
-        shasta2Tangle.tangleVertices,
-        html,
-        tangleId,
-        debugOutputBaseName);
-
-    return false;
-}
 
 
 #if 0

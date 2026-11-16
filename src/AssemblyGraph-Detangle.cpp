@@ -469,11 +469,7 @@ bool AssemblyGraph::detangleAndReadFollowing(
                     continue;
                 }
 
-#if 1
                 const bool success = readFollowingStrandSymmetric5(tangleId, tangle, html, debugOutputBaseName);
-#else
-                const bool success = readFollowingStrandSymmetric6(tangleId, tangle, html, debugOutputBaseName);
-#endif
 
                 if(success) {
                     if(debug) {
