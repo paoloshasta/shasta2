@@ -56,6 +56,7 @@ void AssemblyGraph::separateStrands(
     const string& debugOutputBaseName)
 {
     AssemblyGraph& assemblyGraph = *this;
+    const bool debug = false;
 
     SHASTA2_ASSERT(countZeroLengthSegments() == 0);
 
@@ -86,12 +87,14 @@ void AssemblyGraph::separateStrands(
             " found " << strandContacts.size() << " strand contacts." << endl;
     }
 
-    // Write a csv file that can be imported into Bandage to see
-    // the tangles.
-    vector<uint64_t> strandContactsRc(strandContacts.size());
-    std::iota(strandContactsRc.begin(), strandContactsRc.end(), 0);
-    writeTangles(strandContacts, strandContactsRc,
-        debugOutputBaseName + "-StrandContacts-Bandage.csv");
+    if(debug) {
+        // Write a csv file that can be imported into Bandage to see
+        // the tangles.
+        vector<uint64_t> strandContactsRc(strandContacts.size());
+        std::iota(strandContactsRc.begin(), strandContactsRc.end(), 0);
+        writeTangles(strandContacts, strandContactsRc,
+            debugOutputBaseName + "-StrandContacts-Bandage.csv");
+    }
 
     // Process each strand contact separately.
     for(uint64_t strandContactId=0; strandContactId<strandContacts.size(); strandContactId++) {

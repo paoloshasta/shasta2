@@ -371,6 +371,8 @@ bool AssemblyGraph::detangleAndReadFollowingSuperbubbles(const string& debugOutp
     // EXPOSE WHEN CODE STABILIZES.
     const uint64_t lengthThreshold = 100000;
 
+    const bool debug = false;
+
     performanceLog << timestamp << "AssemblyGraph::detangleAndReadFollowingSuperbubbles begins: " <<
         debugOutputBaseName << endl;
 
@@ -379,9 +381,11 @@ bool AssemblyGraph::detangleAndReadFollowingSuperbubbles(const string& debugOutp
     vector<uint64_t> tangleRc;
     createTanglesBySegmentLength(lengthThreshold, tangles, tangleRc);
 
-    // Write a csv file that can be imported into Bandage to see
-    // the tangles.
-    writeTangles(tangles, tangleRc, debugOutputBaseName + "-Tangles-Bandage.csv");
+    if(debug) {
+        // Write a csv file that can be imported into Bandage to see
+        // the tangles.
+        writeTangles(tangles, tangleRc, debugOutputBaseName + "-Tangles-Bandage.csv");
+    }
 
     // Detangling and read following.
     const bool attemptReadFollowing = true;
