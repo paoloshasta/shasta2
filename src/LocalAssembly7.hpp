@@ -33,6 +33,8 @@ public:
         TheseusOnly,    // Only use oriented reads that are on both anchors
         TheseusAll,     // Also use oriented reads that are om just one anchor.
         DeBruijn,
+        Plegma,         // plegma, with all oriented reads, including those on just one anchor.
+                        // Only available if shasta2 was built with plegma (see plegmaWrapper.hpp).
         Invalid
     };
 
@@ -54,6 +56,8 @@ public:
         // Independent of Method, so any Method that produces a row alignment
         // (Adaptive, Abpoa, TheseusOnly, TheseusAll) can be repaired
         // or not. Mirrors the global Options::useMsaRepair - see OptionsDefine.hpp.
+        // Not used by Method::Plegma, which chooses homopolymer
+        // lengths itself, using the homopolymer model if there is one.
         bool useMsaRepair = false;
 
         // If the number of oriented reads on both anchors is at least
@@ -120,9 +124,9 @@ public:
     // When this completes successfully, the assembled sequence is stored
     // in the sequence vector below. If an error occurs,
     // this throws a std::runtime_error.
-    // If homopolymerModelPointer is not null, msaRepair uses it to choose the length of
-    // long homopolymer runs (see HomopolymerModel.hpp). Only used if
-    // Options::useMsaRepair is set.
+    // If homopolymerModelPointer is not null, it is used to choose the length of
+    // long homopolymer runs (see HomopolymerModel.hpp): by msaRepair, if
+    // Options::useMsaRepair is set, and by plegma, for Method::Plegma.
     LocalAssembly7(
         const Options&,
         const Anchors&,
@@ -268,6 +272,7 @@ private:
     void runAdaptive();
     void runAbpoa();
     void runTheseus(bool useAll);
+    void runPlegma();
 
 
     // Functions and data to find the consensus using a De Bruijn graph

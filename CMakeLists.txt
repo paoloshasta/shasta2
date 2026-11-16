@@ -21,6 +21,15 @@ message(STATUS "BUILD_STATIC_LIBRARY is " ${BUILD_STATIC_LIBRARY})
 option(BUILD_DEBUG "Make a debuggable build." OFF)
 message(STATUS "BUILD_DEBUG is " ${BUILD_DEBUG})
 
+# Option to build with plegma, for local assembly method Plegma.
+# Requires running scripts/BuildPlegma.py first.
+option(BUILD_WITH_PLEGMA "Build with plegma." OFF)
+message(STATUS "BUILD_WITH_PLEGMA is " ${BUILD_WITH_PLEGMA})
+if(BUILD_WITH_PLEGMA AND NOT EXISTS $ENV{HOME}/.shasta2Build/plegma/lib/libplegma.a)
+    message(FATAL_ERROR "BUILD_WITH_PLEGMA requires ~/.shasta2Build/plegma/lib/libplegma.a. "
+        "Run scripts/BuildPlegma.py to create it.")
+endif(BUILD_WITH_PLEGMA AND NOT EXISTS $ENV{HOME}/.shasta2Build/plegma/lib/libplegma.a)
+
 # Add the subdirectories we need.
 if(BUILD_EXECUTABLE)
     add_subdirectory(Executable)

@@ -34,6 +34,15 @@ include_directories(~/.shasta2Build/theseus/theseus-lib/include)
 link_directories(~/.shasta2Build/abpoa/abPOA/lib)
 link_directories(~/.shasta2Build/theseus/theseus-lib/sharedBuild)
 
+# Include and link directories for plegma, if requested.
+# plegma is a static library, libplegma.a, of position independent code.
+if(BUILD_WITH_PLEGMA)
+    add_definitions(-DSHASTA2_PLEGMA)
+    include_directories(~/.shasta2Build/plegma/include)
+    link_directories(~/.shasta2Build/plegma/lib)
+    set(SHASTA2_PLEGMA_LIBRARY plegma)
+endif(BUILD_WITH_PLEGMA)
+
 # Define our library.
 add_library(shasta2PythonModule SHARED ${SOURCES})
 
@@ -58,7 +67,7 @@ SET(CMAKE_LINKER_FLAGS  "${CMAKE_LINKER_FLAGS} ${SHASTA2_PYTHON_LIBRARIES}")
 target_link_libraries(
     shasta2PythonModule 
     atomic png boost_program_options boost_serialization boost_chrono pthread 
-    abpoa theseus z m ${SHASTA2_PYTHON_LIBRARIES})
+    abpoa theseus ${SHASTA2_PLEGMA_LIBRARY} z m ${SHASTA2_PYTHON_LIBRARIES})
 
 # Install the shared library and the abpoa, and theseus libraries it needs into the bin directory.
 install(TARGETS shasta2PythonModule DESTINATION shasta2-install/bin)

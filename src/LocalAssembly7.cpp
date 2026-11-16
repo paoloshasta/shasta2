@@ -6,6 +6,7 @@
 #include "findReachableVertices.hpp"
 #include "graphvizToHtml.hpp"
 #include "msaRepair.hpp"
+#include "plegmaWrapper.hpp"
 #include "Reads.hpp"
 #include "theseusWrapper.hpp"
 #include "tmpDirectory.hpp"
@@ -101,6 +102,9 @@ void LocalAssembly7::run()
         break;
     case Method::DeBruijn:
         runDeBruijn();
+        break;
+    case Method::Plegma:
+        runPlegma();
         break;
     default:
         throw runtime_error("Invalid LocalAssembly7 Method.");
@@ -1566,6 +1570,69 @@ void LocalAssembly7::runAdaptive()
 
 
 
+// Local assembly with plegma, using all oriented reads, including those that
+// are on just one anchor. Each oriented read is entered once, with its strand,
+// fixed on the anchors it is on. plegma computes the consensus and chooses
+// homopolymer lengths itself (using the homopolymer model, if there is one),
+// so msaRepair is not used.
+void LocalAssembly7::runPlegma()
+{
+    vector<PlegmaRead> reads;
+    for(const SequenceInfo& sequenceInfo: sequences) {
+        PlegmaAnchor anchor = PlegmaAnchor::Both;
+        if(not sequenceInfo.isOnAnchorB) {
+            anchor = PlegmaAnchor::Left;
+        } else if(not sequenceInfo.isOnAnchorA) {
+            anchor = PlegmaAnchor::Right;
+        }
+        for(const OrientedReadId orientedReadId: sequenceInfo.orientedReadIds) {
+            reads.push_back({&sequenceInfo.sequence, anchor, orientedReadId.getStrand()});
+        }
+    }
+
+    if(html) {
+        html <<
+            "<h3>Local assembly with plegma</h3>"
+            "The local assembly will use the following sequences, "
+            "presented to plegma in this order. "
+            "Each sequence is presented to plegma once for each oriented read "
+            "that has it, with that oriented read's strand."
+            "<br><br><table>"
+            "<tr><th>Sequence<br>id<th>Anchors<th>Coverage<th>Length";
+        for(uint64_t sequenceId=0; sequenceId<sequences.size(); sequenceId++) {
+            const SequenceInfo& sequenceInfo = sequences[sequenceId];
+            html <<
+                "<tr>"
+                "<td class=centered>" << sequenceId <<
+                "<td class=centered>" <<
+                ((sequenceInfo.isOnAnchorA and sequenceInfo.isOnAnchorB) ? "Both" :
+                (sequenceInfo.isOnAnchorA ? "A only" : "B only")) <<
+                "<td class=centered>" << sequenceInfo.coverage() <<
+                "<td class=centered>" << sequenceInfo.sequence.size();
+        }
+        html << "</table>";
+        html << "<br>Total coverage for plegma is " << reads.size() << ".";
+        if(homopolymerModelPointer) {
+            html << "<br>plegma uses the homopolymer model.";
+        } else {
+            html << "<br>No homopolymer model is available.";
+        }
+    }
+
+    const auto t0 = steady_clock::now();
+    success = plegma(reads, homopolymerModelPointer, sequence);
+    const auto t1 = steady_clock::now();
+
+    if(html) {
+        html << "<br>Plegma completed in " << seconds(t1-t0) << " seconds.";
+        if(not success) {
+            html << "<br>Plegma could not join the two anchors.";
+        }
+    }
+}
+
+
+
 void LocalAssembly7::Options::setMethod(const string& s)
 {
     if(s == "Adaptive") {
@@ -1580,6 +1647,8 @@ void LocalAssembly7::Options::setMethod(const string& s)
         method = Method::TheseusAll;
     } else if(s == "DeBruijn") {
         method = Method::DeBruijn;
+    } else if(s == "Plegma") {
+        method = Method::Plegma;
     } else {
         method = Method::Invalid;
     }

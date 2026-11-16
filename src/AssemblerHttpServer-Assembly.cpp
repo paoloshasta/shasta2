@@ -8,6 +8,7 @@
 #include "GTest.hpp"
 #include "LocalAssembly7.hpp"
 #include "Markers.hpp"
+#include "plegmaWrapper.hpp"
 #include "RestrictedAnchorGraph.hpp"
 #include "SegmentStepSupport.hpp"
 #include "Superbubble.hpp"
@@ -964,6 +965,10 @@ void Assembler::exploreSegmentStep(
         "> Theseus, using all oriented reads on one or both anchors."
         "<br><input type=radio name=method value=DeBruijn" <<
         (localAssembly7Options.method == LocalAssembly7::Method::DeBruijn ? " checked=on" : "") << "> De Bruijn"
+        "<br><input type=radio name=method value=Plegma" <<
+        (localAssembly7Options.method == LocalAssembly7::Method::Plegma ? " checked=on" : "") <<
+        "> Plegma, using all oriented reads on one or both anchors" <<
+        (plegmaIsAvailable() ? "" : " (not available in this build)")
         ;
 
     html <<

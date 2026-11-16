@@ -29,6 +29,13 @@ file(GLOB SOURCES ../src/*.cpp)
 include_directories(../src ~/.shasta2Build/abpoa/abPOA/include)
 include_directories(~/.shasta2Build/theseus/theseus-lib/include)
 
+# plegma, if requested. A program that links with the static library
+# must then also link with ~/.shasta2Build/plegma/lib/libplegma.a.
+if(BUILD_WITH_PLEGMA)
+    add_definitions(-DSHASTA2_PLEGMA)
+    include_directories(~/.shasta2Build/plegma/include)
+endif(BUILD_WITH_PLEGMA)
+
 # Define our library.
 add_library(shasta2StaticLibrary STATIC ${SOURCES})
 

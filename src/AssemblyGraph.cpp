@@ -954,6 +954,7 @@ void AssemblyGraph::assembleStep(edge_descriptor e, uint64_t i)
 
 
         LocalAssembly7::Options localAssembly7Options;
+        localAssembly7Options.setMethod(options.localAssemblyMethod);
         localAssembly7Options.useMsaRepair = options.useMsaRepair;
         LocalAssembly7 localAssembly(
             localAssembly7Options,
