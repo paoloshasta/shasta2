@@ -680,14 +680,17 @@ void Assembler::analyzeAnchors(const Options& options) const
 void Assembler::flagBadAnchors(const Options& options)
 {
     const uint64_t threadCount = options.actualThreadCount();
+    const bool debug = false;
 
     uint64_t totalBadAnchorCount = 0;
     for(uint64_t iteration=0; iteration<options.anchorFilteringMaxIterationCount; iteration++) {
         const uint64_t newBadAnchorCount = flagBadAnchorsIteration(
             options.anchorFilteringCoverageThreshold, threadCount);
         totalBadAnchorCount += newBadAnchorCount;
-        cout << "Anchor filtering iteration " << iteration << ": " <<
-            newBadAnchorCount<< " bad anchors, " << totalBadAnchorCount << " so far." << endl;
+        if(debug) {
+            cout << "Anchor filtering iteration " << iteration << ": " <<
+                newBadAnchorCount<< " bad anchors, " << totalBadAnchorCount << " so far." << endl;
+        }
         if(newBadAnchorCount == 0) {
             break;
         }

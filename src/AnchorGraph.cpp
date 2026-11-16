@@ -179,6 +179,7 @@ void AnchorGraph::transitiveReduction(
     uint64_t transitiveReductionMaxDistance)
 {
     AnchorGraph& anchorGraph = *this;
+    const bool debug = false;
     performanceLog << timestamp << "AnchorGraph transitive reduction begins." << endl;
 
     // Initially make sure all edges are flag as "useForAssembly".
@@ -220,19 +221,26 @@ void AnchorGraph::transitiveReduction(
         for(const edge_descriptor e: edgesToRemove) {
             anchorGraph[e].useForAssembly = false;
         }
-        cout << "Edge coverage " << edgeCoverage <<
-            ": processed " << edgesToProcess.size() <<
-            " edges and flagged " << edgesToRemove.size() << endl;
+
+        if(debug) {
+            cout << "Edge coverage " << edgeCoverage <<
+                ": processed " << edgesToProcess.size() <<
+                " edges and flagged " << edgesToRemove.size() << endl;
+        }
     }
 
     uint64_t useForAssemblyCount = 0;
+    uint64_t totalCount = 0;
     BGL_FORALL_EDGES(e, anchorGraph, AnchorGraph) {
+        ++totalCount;
         if(anchorGraph[e].useForAssembly) {
             ++useForAssemblyCount;
         }
     }
-    cout << useForAssemblyCount << " anchor graph edges flagged for use in assembly out of " <<
-        num_edges(anchorGraph) << " total." << endl;
+
+    cout << "Of " << totalCount << " total anchor graph edges, " <<
+        totalCount - useForAssemblyCount << " were flagged by transitive reduction, "
+        "and the remaining " << useForAssemblyCount << " will be used for assembly." << endl;
 
     performanceLog << timestamp << "AnchorGraph transitive reduction ends." << endl;
 }

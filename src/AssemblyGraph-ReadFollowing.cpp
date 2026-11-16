@@ -79,15 +79,15 @@ void AssemblyGraph::separateStrands(
         }
     }
 
-    if(maxLength == std::numeric_limits<uint64_t>::max()) {
-        cout << "Strand separation at infinite maxLength " 
-            " found " << strandContacts.size() << " strand contacts." << endl;
-    } else {
-        cout << "Strand separation at maxLength " << maxLength << 
-            " found " << strandContacts.size() << " strand contacts." << endl;
-    }
-
     if(debug) {
+        if(maxLength == std::numeric_limits<uint64_t>::max()) {
+            cout << "Strand separation at infinite maxLength " 
+                " found " << strandContacts.size() << " strand contacts." << endl;
+        } else {
+            cout << "Strand separation at maxLength " << maxLength << 
+                " found " << strandContacts.size() << " strand contacts." << endl;
+        }
+
         // Write a csv file that can be imported into Bandage to see
         // the tangles.
         vector<uint64_t> strandContactsRc(strandContacts.size());
