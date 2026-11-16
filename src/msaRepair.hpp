@@ -376,7 +376,7 @@ namespace shasta2 {
     // Find the regions of an alignment that are worth repairing.
     //
     // A column is discordant if any row differs from the aligned consensus
-    // there. That is exactly what LocalAssembly7::writeAlignment paints pink.
+    // there. That is exactly what LocalAssembly::writeAlignment paints pink.
     // Discordant columns are clustered, clusters closer together than
     // mergeDistance are merged, each is widened by flank, and a cluster is kept
     // only if the sequences inside it actually show the problem pattern.

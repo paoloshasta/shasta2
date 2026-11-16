@@ -16,7 +16,7 @@
 #include "vector.hpp"
 
 namespace shasta2 {
-    class LocalAssembly7;
+    class LocalAssembly;
 
     class Anchors;
     class HomopolymerModel;
@@ -24,7 +24,7 @@ namespace shasta2 {
 
 
 
-class shasta2::LocalAssembly7 {
+class shasta2::LocalAssembly {
 public:
 
     enum class Method {
@@ -123,7 +123,7 @@ public:
     // If homopolymerModelPointer is not null, msaRepair uses it to choose the length of
     // long homopolymer runs (see HomopolymerModel.hpp). Only used if
     // Options::useMsaRepair is set.
-    LocalAssembly7(
+    LocalAssembly(
         const Options&,
         const Anchors&,
         shared_ptr<const HomopolymerModel> homopolymerModelPointer,

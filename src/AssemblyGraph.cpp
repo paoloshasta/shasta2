@@ -7,7 +7,7 @@
 #include "findLinearChains.hpp"
 #include "findReachableVertices.hpp"
 #include "Journeys.hpp"
-#include "LocalAssembly7.hpp"
+#include "LocalAssembly.hpp"
 #include "memoryInformation.hpp"
 #include "Options.hpp"
 #include "performanceLog.hpp"
@@ -953,10 +953,10 @@ void AssemblyGraph::assembleStep(edge_descriptor e, uint64_t i)
         deduplicate(orientedReadIds);
 
 
-        LocalAssembly7::Options localAssembly7Options;
-        localAssembly7Options.useMsaRepair = options.useMsaRepair;
-        LocalAssembly7 localAssembly(
-            localAssembly7Options,
+        LocalAssembly::Options localAssemblyOptions;
+        localAssemblyOptions.useMsaRepair = options.useMsaRepair;
+        LocalAssembly localAssembly(
+            localAssemblyOptions,
             anchors,
             homopolymerModelPointer,
             anchorPair.anchorIdA,

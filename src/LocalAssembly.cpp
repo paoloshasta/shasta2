@@ -1,5 +1,5 @@
 // Shasta.
-#include "LocalAssembly7.hpp"
+#include "LocalAssembly.hpp"
 #include "abpoaWrapper.hpp"
 #include "Anchor.hpp"
 #include "deduplicate.hpp"
@@ -30,7 +30,7 @@ using namespace shasta2;
 
 
 
-LocalAssembly7::LocalAssembly7(
+LocalAssembly::LocalAssembly(
     const Options& options,
     const Anchors& anchors,
     shared_ptr<const HomopolymerModel> homopolymerModelPointer,
@@ -69,7 +69,7 @@ LocalAssembly7::LocalAssembly7(
 
 
 
-void LocalAssembly7::run()
+void LocalAssembly::run()
 {
     // Find total coverage constrained on both anchors.
     const uint64_t commonCoverage = getTotalCommonCoverage();
@@ -103,14 +103,14 @@ void LocalAssembly7::run()
         runDeBruijn();
         break;
     default:
-        throw runtime_error("Invalid LocalAssembly7 Method.");
+        throw runtime_error("Invalid LocalAssembly Method.");
     }
 }
 
 
 
 // This returns the total coverage in sequences that are on both anchors.
-uint64_t LocalAssembly7::getTotalCommonCoverage() const
+uint64_t LocalAssembly::getTotalCommonCoverage() const
 {
     uint64_t commonCoverage = 0;
     for(const SequenceInfo& sequenceInfo: sequences) {
@@ -124,7 +124,7 @@ uint64_t LocalAssembly7::getTotalCommonCoverage() const
 
 
 // This returns the maximul length of sequences that are on both anchors.
-uint64_t LocalAssembly7::getMaxLengthCommon() const
+uint64_t LocalAssembly::getMaxLengthCommon() const
 {
     uint64_t maxLength = 0;
     for(const SequenceInfo& sequenceInfo: sequences) {
@@ -138,7 +138,7 @@ uint64_t LocalAssembly7::getMaxLengthCommon() const
 
 
 
-void LocalAssembly7::runFastPath()
+void LocalAssembly::runFastPath()
 {
     if(not options.allowFastPath) {
         return;
@@ -200,7 +200,7 @@ void LocalAssembly7::runFastPath()
 
 // Construct the Dr Bruijn graph
 // and, if successful, use it to assemble sequence.
-void LocalAssembly7::runDeBruijn()
+void LocalAssembly::runDeBruijn()
 {
     for(SequenceInfo& sequenceInfo: sequences) {
         sequenceInfo.constructDeBruijnSequence(options.k);
@@ -260,7 +260,7 @@ void LocalAssembly7::runDeBruijn()
 
 
 
-void LocalAssembly7::gatherOrientedReads(
+void LocalAssembly::gatherOrientedReads(
     const vector<OrientedReadId>& orientedReadIds)
 {
     const Anchor anchorA = anchors[anchorIdA];
@@ -322,7 +322,7 @@ void LocalAssembly7::gatherOrientedReads(
 
 
 
-void LocalAssembly7::estimateOffset()
+void LocalAssembly::estimateOffset()
 {
     uint64_t sum = 0;
     uint64_t n = 0;
@@ -339,7 +339,7 @@ void LocalAssembly7::estimateOffset()
 
 
 
-void LocalAssembly7::gatherSequences()
+void LocalAssembly::gatherSequences()
 {
     // For reads fixed on one side only, we use a sequence length
     // equal to offset + aDrift * offset + bDrift.
@@ -411,7 +411,7 @@ void LocalAssembly7::gatherSequences()
 
 
 
-void LocalAssembly7::writeOrientedReads() const
+void LocalAssembly::writeOrientedReads() const
 {
     if(not html) {
         return;
@@ -465,7 +465,7 @@ void LocalAssembly7::writeOrientedReads() const
 
 
 
-void LocalAssembly7::writeSequences() const
+void LocalAssembly::writeSequences() const
 {
     if(not html) {
         return;
@@ -498,7 +498,7 @@ void LocalAssembly7::writeSequences() const
 
 
 
-void LocalAssembly7::SequenceInfo::constructDeBruijnSequence(uint64_t k)
+void LocalAssembly::SequenceInfo::constructDeBruijnSequence(uint64_t k)
 {
     deBruijnSequence.clear();
 
@@ -517,7 +517,7 @@ void LocalAssembly7::SequenceInfo::constructDeBruijnSequence(uint64_t k)
 
 
 
-void LocalAssembly7::SequenceInfo::constructKmers(uint64_t k)
+void LocalAssembly::SequenceInfo::constructKmers(uint64_t k)
 {
     kmers.clear();
 
@@ -536,7 +536,7 @@ void LocalAssembly7::SequenceInfo::constructKmers(uint64_t k)
 
 
 
-void LocalAssembly7::gatherKmers()
+void LocalAssembly::gatherKmers()
 {
     std::map<Kmer, vector<KmerOccurrence> > kmersMap;
     for(uint64_t sequenceId=0; sequenceId<sequences.size(); sequenceId++) {
@@ -557,7 +557,7 @@ void LocalAssembly7::gatherKmers()
 
 
 
-void LocalAssembly7::createGraph(uint64_t k, Graph& graph)
+void LocalAssembly::createGraph(uint64_t k, Graph& graph)
 {
 
     // Vectors to store the vertex corresponding to each position of each sequence.
@@ -643,7 +643,7 @@ void LocalAssembly7::createGraph(uint64_t k, Graph& graph)
 
 
 
-void LocalAssembly7::writeGraph(uint64_t k, const Graph& graph)
+void LocalAssembly::writeGraph(uint64_t k, const Graph& graph)
 {
     if(not html) {
         return;
@@ -666,7 +666,7 @@ void LocalAssembly7::writeGraph(uint64_t k, const Graph& graph)
 
 
 
-void LocalAssembly7::Graph::writeGraphviz(const string& fileName, const vector< pair<Kmer, vector<KmerOccurrence> > >& kmers) const
+void LocalAssembly::Graph::writeGraphviz(const string& fileName, const vector< pair<Kmer, vector<KmerOccurrence> > >& kmers) const
 {
     ofstream dot(fileName);
     writeGraphviz(dot, kmers);
@@ -674,7 +674,7 @@ void LocalAssembly7::Graph::writeGraphviz(const string& fileName, const vector< 
 
 
 
-void LocalAssembly7::Graph::writeGraphviz(ostream& dot, const vector< pair<Kmer, vector<KmerOccurrence> > >& kmers) const
+void LocalAssembly::Graph::writeGraphviz(ostream& dot, const vector< pair<Kmer, vector<KmerOccurrence> > >& kmers) const
 {
     const Graph& graph = *this;
 
@@ -728,7 +728,7 @@ void LocalAssembly7::Graph::writeGraphviz(ostream& dot, const vector< pair<Kmer,
 
 
 
-void LocalAssembly7::Graph::writeVertices(
+void LocalAssembly::Graph::writeVertices(
     const vector< pair<Kmer, vector<KmerOccurrence> > >& kmers,
     const string& fileName) const
 {
@@ -738,7 +738,7 @@ void LocalAssembly7::Graph::writeVertices(
 
 
 
-void LocalAssembly7::Graph::writeVertices(
+void LocalAssembly::Graph::writeVertices(
     const vector< pair<Kmer, vector<KmerOccurrence> > >& kmers,
     ostream& csv) const
 {
@@ -762,7 +762,7 @@ void LocalAssembly7::Graph::writeVertices(
 
 
 
-void LocalAssembly7::writeAssemblyPath(const Graph& graph) const
+void LocalAssembly::writeAssemblyPath(const Graph& graph) const
 {
 
     ofstream csv("AssemblyPath.csv");
@@ -785,7 +785,7 @@ void LocalAssembly7::writeAssemblyPath(const Graph& graph) const
 
 
 
-void LocalAssembly7::Graph::removeUnreachableVertices()
+void LocalAssembly::Graph::removeUnreachableVertices()
 {
     Graph& graph = *this;
 
@@ -820,7 +820,7 @@ void LocalAssembly7::Graph::removeUnreachableVertices()
 
 
 
-void LocalAssembly7::Graph::computeAssemblyPath()
+void LocalAssembly::Graph::computeAssemblyPath()
 {
     Graph& graph = *this;
 
@@ -867,7 +867,7 @@ void LocalAssembly7::Graph::computeAssemblyPath()
 
 // For each assembled base position, we can choose among k vertices the one
 // from which we get the base, which will be the same for all of the k vertices.
-void LocalAssembly7::assemble(uint64_t k, Graph& graph)
+void LocalAssembly::assemble(uint64_t k, Graph& graph)
 {
 
     const uint64_t N = graph.assemblyPath.size();
@@ -912,7 +912,7 @@ void LocalAssembly7::assemble(uint64_t k, Graph& graph)
 
 
 
-void LocalAssembly7::writeConsensus(const vector< pair<Base, uint64_t> >& consensus) const
+void LocalAssembly::writeConsensus(const vector< pair<Base, uint64_t> >& consensus) const
 {
     if(not html) {
         return;
@@ -979,7 +979,7 @@ void LocalAssembly7::writeConsensus(const vector< pair<Base, uint64_t> >& consen
 
 
 
-char LocalAssembly7::getCoverageCharacter(uint64_t coverage)
+char LocalAssembly::getCoverageCharacter(uint64_t coverage)
 {
     if(coverage < 10) {
         return char(coverage + '0');
@@ -991,7 +991,7 @@ char LocalAssembly7::getCoverageCharacter(uint64_t coverage)
 }
 
 
-void LocalAssembly7::writeAlignment(
+void LocalAssembly::writeAlignment(
     const vector< vector<AlignedBase> >& alignment,
     const vector<AlignedBase>& alignedConsensus,
     const vector< pair<Base, uint64_t> >& consensus,
@@ -1087,7 +1087,7 @@ void LocalAssembly7::writeAlignment(
 
 
 
-void LocalAssembly7::writeSequence() const
+void LocalAssembly::writeSequence() const
 {
     if(not html) {
         return;
@@ -1113,7 +1113,7 @@ void LocalAssembly7::writeSequence() const
 
 
 
-void LocalAssembly7::removeOutliers()
+void LocalAssembly::removeOutliers()
 {
     // Gather the offsets.
     vector<pair<uint64_t, uint64_t > > offsetTable; // (index in orientedReadInfos, offset).
@@ -1196,7 +1196,7 @@ void LocalAssembly7::removeOutliers()
 
 
 
-bool LocalAssembly7::checkOffsets(uint64_t offset0, uint64_t offset1)
+bool LocalAssembly::checkOffsets(uint64_t offset0, uint64_t offset1)
 {
     // EXPOSE WHEN CODE STABILIZES.
     const double aDrift = 0.02;
@@ -1219,7 +1219,7 @@ bool LocalAssembly7::checkOffsets(uint64_t offset0, uint64_t offset1)
 
 
 
-void LocalAssembly7::writeKmerOccurrences(const Graph& graph, const string& fileName) const
+void LocalAssembly::writeKmerOccurrences(const Graph& graph, const string& fileName) const
 {
     ofstream csv(fileName);
     writeKmerOccurrences(graph, csv);
@@ -1227,7 +1227,7 @@ void LocalAssembly7::writeKmerOccurrences(const Graph& graph, const string& file
 
 
 
-void LocalAssembly7::writeKmerOccurrences(const Graph& graph, ostream& csv) const
+void LocalAssembly::writeKmerOccurrences(const Graph& graph, ostream& csv) const
 {
     csv << "VertexId,KmerId,Coverage,SequenceId,Position in sequence,\n";
 
@@ -1248,7 +1248,7 @@ void LocalAssembly7::writeKmerOccurrences(const Graph& graph, ostream& csv) cons
 
 
 
-void LocalAssembly7::runAbpoa()
+void LocalAssembly::runAbpoa()
 {
     // Get the sequenceIds to be used, sorted in order of decreasing coverage.
     vector<uint64_t> sequenceIds;
@@ -1354,7 +1354,7 @@ void LocalAssembly7::runAbpoa()
 
 // If useAll is true, this uses oriented reads that
 // appear only in the left or right anchor.
-void LocalAssembly7::runTheseus(bool useAll)
+void LocalAssembly::runTheseus(bool useAll)
 {
     // Get the sequenceIds to be used, sorted in order of decreasing coverage.
     vector<uint64_t> bothSidesFixedSequenceIds;
@@ -1529,7 +1529,7 @@ void LocalAssembly7::runTheseus(bool useAll)
 
 
 
-void LocalAssembly7::runAdaptive()
+void LocalAssembly::runAdaptive()
 {
     // Try fast path first, if allowed.
     if(options.allowFastPath) {
@@ -1566,7 +1566,7 @@ void LocalAssembly7::runAdaptive()
 
 
 
-void LocalAssembly7::Options::setMethod(const string& s)
+void LocalAssembly::Options::setMethod(const string& s)
 {
     if(s == "Adaptive") {
         method = Method::Adaptive;
@@ -1591,7 +1591,7 @@ void LocalAssembly7::Options::setMethod(const string& s)
 // sorted by decreasing coverage.
 // These are used for assembly with abpoa or theseus.
 // SequenceId is the index in the sequences vector.
-void LocalAssembly7::getSequencesOnBothAnchors(
+void LocalAssembly::getSequencesOnBothAnchors(
     vector<uint64_t>& v) const
 {
     // Get pairs (sequenceId, coverage) and sort them by decreasing coverage.
@@ -1615,7 +1615,7 @@ void LocalAssembly7::getSequencesOnBothAnchors(
 
 // Same, but for SequenceInfos on one anchor only.
 // These are used for local assembly with theseus.
-void LocalAssembly7::getSequencesOnAnchorA(
+void LocalAssembly::getSequencesOnAnchorA(
     vector<uint64_t>& v) const
 {
     // Get pairs (sequenceId, coverage) and sort them by decreasing coverage.
@@ -1637,7 +1637,7 @@ void LocalAssembly7::getSequencesOnAnchorA(
 
 
 
-void LocalAssembly7::getSequencesOnAnchorB(
+void LocalAssembly::getSequencesOnAnchorB(
     vector<uint64_t>& v) const
 {
     // Get pairs (sequenceId, coverage) and sort them by decreasing coverage.

@@ -6,7 +6,7 @@
 #include "deduplicate.hpp"
 #include "findConvergingVertex.hpp"
 #include "GTest.hpp"
-#include "LocalAssembly7.hpp"
+#include "LocalAssembly.hpp"
 #include "Markers.hpp"
 #include "RestrictedAnchorGraph.hpp"
 #include "SegmentStepSupport.hpp"
@@ -882,31 +882,31 @@ void Assembler::exploreSegmentStep(
 
 
 
-    // LocalAssembly7::Options.
-    LocalAssembly7::Options localAssembly7Options;
-    getParameterValue(request, "aExtend", localAssembly7Options.aExtend);
-    getParameterValue(request, "bExtend", localAssembly7Options.bExtend);
+    // LocalAssembly::Options.
+    LocalAssembly::Options localAssemblyOptions;
+    getParameterValue(request, "aExtend", localAssemblyOptions.aExtend);
+    getParameterValue(request, "bExtend", localAssemblyOptions.bExtend);
 
     string methodString = "Adaptive";
     getParameterValue(request, "method", methodString);
-    localAssembly7Options.setMethod(methodString);
+    localAssemblyOptions.setMethod(methodString);
 
     string useMsaRepairString;
-    localAssembly7Options.useMsaRepair = HttpServer::getParameterValue(request,
+    localAssemblyOptions.useMsaRepair = HttpServer::getParameterValue(request,
         "useMsaRepair", useMsaRepairString);
 
     string useHomopolymerModelString;
     const bool useHomopolymerModel = HttpServer::getParameterValue(request,
         "useHomopolymerModel", useHomopolymerModelString);
 
-    getParameterValue(request, "commonCoverageThreshold", localAssembly7Options.commonCoverageThreshold);
+    getParameterValue(request, "commonCoverageThreshold", localAssemblyOptions.commonCoverageThreshold);
 
     string disallowFastPathString;
-    localAssembly7Options.allowFastPath = not HttpServer::getParameterValue(request,
+    localAssemblyOptions.allowFastPath = not HttpServer::getParameterValue(request,
         "disallowFastPath", disallowFastPathString);
 
-    getParameterValue(request, "fastPathFractionThreshold", localAssembly7Options.fastPathFractionThreshold);
-    getParameterValue(request, "maxAbpoaLength", localAssembly7Options.maxAbpoaLength);
+    getParameterValue(request, "fastPathFractionThreshold", localAssemblyOptions.fastPathFractionThreshold);
+    getParameterValue(request, "maxAbpoaLength", localAssemblyOptions.maxAbpoaLength);
 
 
 
@@ -943,34 +943,34 @@ void Assembler::exploreSegmentStep(
     html <<
         "<tr><th class=left>aExtend<td class=centered>"
         "<input type=text name=aExtend style='text-align:center' "
-        "value='" << localAssembly7Options.aExtend << "'>";
+        "value='" << localAssemblyOptions.aExtend << "'>";
 
     html <<
         "<tr><th class=left>bExtend<td class=centered>"
         "<input type=text name=bExtend style='text-align:center' "
-        "value='" << localAssembly7Options.bExtend << "'>";
+        "value='" << localAssemblyOptions.bExtend << "'>";
 
     html <<
         "<tr><th class=left>Method<td class=left>"
         "<input type=radio name=method value=Adaptive" <<
-        (localAssembly7Options.method == LocalAssembly7::Method::Adaptive ? " checked=on" : "") << "> Adaptive"
+        (localAssemblyOptions.method == LocalAssembly::Method::Adaptive ? " checked=on" : "") << "> Adaptive"
         "<br><input type=radio name=method value=Abpoa" <<
-        (localAssembly7Options.method == LocalAssembly7::Method::Abpoa ? " checked=on" : "") << "> Abpoa"
+        (localAssemblyOptions.method == LocalAssembly::Method::Abpoa ? " checked=on" : "") << "> Abpoa"
         "<br><input type=radio name=method value=TheseusOnly" <<
-        (localAssembly7Options.method == LocalAssembly7::Method::TheseusOnly ? " checked=on" : "") <<
+        (localAssemblyOptions.method == LocalAssembly::Method::TheseusOnly ? " checked=on" : "") <<
         "> Theseus, using only oriented reads on both anchors"
         "<br><input type=radio name=method value=TheseusAll" <<
-        (localAssembly7Options.method == LocalAssembly7::Method::TheseusAll ? " checked=on" : "") <<
+        (localAssemblyOptions.method == LocalAssembly::Method::TheseusAll ? " checked=on" : "") <<
         "> Theseus, using all oriented reads on one or both anchors."
         "<br><input type=radio name=method value=DeBruijn" <<
-        (localAssembly7Options.method == LocalAssembly7::Method::DeBruijn ? " checked=on" : "") << "> De Bruijn"
+        (localAssemblyOptions.method == LocalAssembly::Method::DeBruijn ? " checked=on" : "") << "> De Bruijn"
         ;
 
     html <<
         "<tr><th class=left>Msa repair"
         "<td class=centered>"
         "<input type=checkbox name=useMsaRepair" <<
-        (localAssembly7Options.useMsaRepair ? " checked=on" : "") << ">";
+        (localAssemblyOptions.useMsaRepair ? " checked=on" : "") << ">";
 
     html <<
         "<tr><th class=left>Use the homopolymer model"
@@ -985,24 +985,24 @@ void Assembler::exploreSegmentStep(
     html <<
         "<tr><th class=left>commonCoverageThreshold<td class=centered>"
         "<input type=text name=commonCoverageThreshold style='text-align:center' "
-        "value='" << localAssembly7Options.commonCoverageThreshold << "'>";
+        "value='" << localAssemblyOptions.commonCoverageThreshold << "'>";
 
     html <<
         "<tr><th class=left>Forbid fast path"
         "<td class=centered>"
         "<input type=checkbox name=disallowFastPath" <<
-            (localAssembly7Options.allowFastPath ? "" : " checked") <<
+            (localAssemblyOptions.allowFastPath ? "" : " checked") <<
             ">";
 
     html <<
         "<tr><th class=left>fastPathFractionThreshold<td class=centered>"
         "<input type=text name=fastPathFractionThreshold style='text-align:center' "
-        "value='" << localAssembly7Options.fastPathFractionThreshold << "'>";
+        "value='" << localAssemblyOptions.fastPathFractionThreshold << "'>";
 
     html <<
         "<tr><th class=left>maxAbpoaLength<td class=centered>"
         "<input type=text name=maxAbpoaLength style='text-align:center' "
-        "value='" << localAssembly7Options.maxAbpoaLength << "'>";
+        "value='" << localAssemblyOptions.maxAbpoaLength << "'>";
 
 
 
@@ -1095,8 +1095,8 @@ void Assembler::exploreSegmentStep(
 
 
     // Do the local assembly.
-    LocalAssembly7 localAssembly(
-        localAssembly7Options,
+    LocalAssembly localAssembly(
+        localAssemblyOptions,
         anchors(),
         useHomopolymerModel ? homopolymerModelPointer : nullptr,
         anchorPair.anchorIdA,
