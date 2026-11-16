@@ -717,7 +717,9 @@ void shasta2::main::writeHtmlLogInitialOutput(
         "<tr><th class=left>Number of threads<td>" << threadCount << "\n" <<
         "<tr><th class=left>Number of virtual processors<td>" << virtualProcessorCount << "\n" <<
         "<tr><th class=left>Total usable physical memory<td>" << memoryBytes <<
-        " bytes, " << memoryGiB << " GiB\n";
+        " bytes = " << 
+        double(memoryBytes) / 1.e9 << " GB = " <<
+        memoryGiB << " GiB\n";
 
     htmlLog << "</table>\n" << flush;
 }
