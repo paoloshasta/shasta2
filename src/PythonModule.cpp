@@ -183,8 +183,18 @@ PYBIND11_MODULE(shasta2, shasta2Module)
             &AssemblyGraph::detangleVertices)
         .def("detangleEdges", &AssemblyGraph::detangleEdges)
         .def("detangleAndReadFollowingSuperbubbles", &AssemblyGraph::detangleAndReadFollowingSuperbubbles)
-        .def("separateStrands1", &AssemblyGraph::separateStrands1)
-        .def("separateStrands", &AssemblyGraph::separateStrands)
+        .def("separateStrands", 
+            (
+                void (AssemblyGraph::*)
+                (const string&)
+            )
+            &AssemblyGraph::separateStrands)
+        .def("separateStrandsWithLength", 
+            (
+                void (AssemblyGraph::*)
+                (uint64_t, const string&)
+            )
+            &AssemblyGraph::separateStrands)
         .def("removeEmptyEdges", &AssemblyGraph::removeEmptyEdges)
         .def("assembleAll", &AssemblyGraph::assembleAll)
         .def("assembleAllStrandSymmetric", &AssemblyGraph::assembleAllStrandSymmetric)

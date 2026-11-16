@@ -311,9 +311,6 @@ public:
         const vector<uint64_t>& tangleRc,
         bool attemptReadFollowing,
         const string& debugOutputBaseName);
-    void separateStrands1(uint64_t maxLength, const string& debugOutputBaseName);
-    void separateStrands1Global(const string& debugOutputBaseName);
-    void separateStrands(const string& debugOutputBaseName);
 private:
     bool detangleStrandSymmetric(const Tangle&, ostream& html);
     bool detangleTanglePair(const Tangle&, ostream& html);
@@ -327,8 +324,7 @@ private:
         ostream& html,
         const string& debugOutputBaseName);
 
-
-    // Make connections for detangling a detangle.
+    // Make connections for detangling a tangle.
     // The connectPairs contain pairs of entrance/exit segmentIds,
     // and the bool parameter says whether a "deep" connect should be used for that pair.
     void detangleMakeConnections(
@@ -336,6 +332,14 @@ private:
         const vector< pair< pair<uint64_t, uint64_t>, bool> >& connectPairs
         );
 
+
+
+    // Strand separation.
+public:
+    void separateStrands(uint64_t maxLength, const string& debugOutputBaseName);
+    void separateStrandsGlobal(const string& debugOutputBaseName);
+    void separateStrands(const string& debugOutputBaseName);
+private:
 
 
     // Create tangles as connected components when only short Segments are considered.

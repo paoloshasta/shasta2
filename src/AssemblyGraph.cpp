@@ -360,7 +360,7 @@ void AssemblyGraph::simplifyAndAssemble()
     writeIntermediateStageIfRequested("B", 1);
 
     // Make the AssemblyGraph single-stranded.
-    separateStrands1Global("Global");
+    separateStrandsGlobal("Global");
     makeSingleStranded();
     renumber();
     write("Final-NoSequence");

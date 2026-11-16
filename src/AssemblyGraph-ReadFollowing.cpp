@@ -35,23 +35,23 @@ void AssemblyGraph::separateStrands(const string& debugOutputBaseName)
     const uint64_t maxLengthEnd = 100000000;
 
     for(uint64_t maxLength=maxLengthStart; maxLength<=maxLengthEnd; maxLength*=2) {
-        separateStrands1(maxLength, debugOutputBaseName);    
+        separateStrands(maxLength, debugOutputBaseName);    
     }
 
-    separateStrands1Global(debugOutputBaseName);
+    separateStrandsGlobal(debugOutputBaseName);
 }
 
 
 
-void AssemblyGraph::separateStrands1Global(const string& debugOutputBaseName)
+void AssemblyGraph::separateStrandsGlobal(const string& debugOutputBaseName)
 {
     const uint64_t maxLength = std::numeric_limits<uint64_t>::max();
-    separateStrands1(maxLength, debugOutputBaseName);    
+    separateStrands(maxLength, debugOutputBaseName);    
 }
 
 
 
-void AssemblyGraph::separateStrands1(
+void AssemblyGraph::separateStrands(
     uint64_t maxLength, 
     const string& debugOutputBaseName)
 {
