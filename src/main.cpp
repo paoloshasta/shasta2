@@ -352,6 +352,8 @@ void shasta2::main::assemble(
     writeHtmlLogFinalOutput(elapsedTime, cpuTime, options.threadCount);
     writeHtmlEnd(htmlLog);
 
+    cout << "For more readable assembly output, see " << options.assemblyDirectory << "/AssemblyLog.html." << endl;
+
     cout << timestamp << "Assembly ends." << endl;
     performanceLog << timestamp << "Assembly ends." << endl;
 }
