@@ -14,7 +14,7 @@
 #include "vector.hpp"
 
 namespace shasta2 {
-    namespace StrandSeparation1 {
+    namespace StrandSeparation {
         class ReadOccurrence;
         class SegmentInfo;
         class StrandContact;
@@ -69,7 +69,7 @@ namespace shasta2 {
 
 
 // Information about a single Segment in a StrandContact.
-class shasta2::StrandSeparation1::SegmentInfo {
+class shasta2::StrandSeparation::SegmentInfo {
 public:
     Segment segment;
     uint64_t id;
@@ -85,7 +85,7 @@ public:
 // A pair of reverse complemented Segments in a StrandContact.
 // The Segment with the lower id is stored first.
 // Ordered by the id of the first segment in the pair.
-class shasta2::StrandSeparation1::SegmentPair {
+class shasta2::StrandSeparation::SegmentPair {
 public:
     array<SegmentInfo, 2> segmentInfos;
     uint64_t length;
@@ -101,7 +101,7 @@ public:
 
 
 // Class used to count occurrences of reads in Segments.
-class shasta2::StrandSeparation1::ReadOccurrence {
+class shasta2::StrandSeparation::ReadOccurrence {
 public:
     uint64_t segmentPairId = invalid<uint64_t>;
     Strand strand = invalid<Strand>;
@@ -124,7 +124,7 @@ public:
 
 // A vertex of the BipartiteGraph can represent an OrientedReadId
 // or a Segment.
-class shasta2::StrandSeparation1::BipartiteGraphVertex {
+class shasta2::StrandSeparation::BipartiteGraphVertex {
 public:
     bool isSegment;
 
@@ -150,7 +150,7 @@ public:
 
 
 
-class shasta2::StrandSeparation1::BipartiteGraphEdge {
+class shasta2::StrandSeparation::BipartiteGraphEdge {
 public:
 
     // The number of times (steps) this OrientedReadId appears
@@ -160,7 +160,7 @@ public:
 
 
 
-class shasta2::StrandSeparation1::VertexStatistics {
+class shasta2::StrandSeparation::VertexStatistics {
 public:
     uint64_t totalEdgeCount = 0;
     uint64_t crossStrandEdgeCount = 0;
@@ -176,7 +176,7 @@ public:
 
 
 
-class shasta2::StrandSeparation1::BipartiteGraph : public BipartiteGraphBaseClass {
+class shasta2::StrandSeparation::BipartiteGraph : public BipartiteGraphBaseClass {
 public:
 
     // Add a vertex representing a Segment.
@@ -224,10 +224,10 @@ public:
 // in the same or opposite strands.
 // The vertex_descriptor of the SegmentPairGraph is the segmentPairId
 // (index in the segmentPairs vector).
-class shasta2::StrandSeparation1::SegmentPairGraphVertex {
+class shasta2::StrandSeparation::SegmentPairGraphVertex {
 public:
 };
-class shasta2::StrandSeparation1::SegmentPairGraphEdge {
+class shasta2::StrandSeparation::SegmentPairGraphEdge {
 public:
     class Data {
     public:
@@ -244,7 +244,7 @@ public:
     // -1 is all Data::isSameStrand are false,
     double orientation() const;
 };
-class shasta2::StrandSeparation1::SegmentPairGraph : public SegmentPairGraphBaseClass {
+class shasta2::StrandSeparation::SegmentPairGraph : public SegmentPairGraphBaseClass {
 public:
     void writeGraphviz(const string& fileName) const;
     void writeGraphviz(ostream&) const;
@@ -255,16 +255,16 @@ public:
 
 
 // Each vertex of the SegmentPairGraph generates two vertices of the SegmentGraph.
-class shasta2::StrandSeparation1::SegmentGraphVertex {
+class shasta2::StrandSeparation::SegmentGraphVertex {
 public:
     uint64_t segmentPairId;
     uint64_t segmentIndexInPair;
 };
-class shasta2::StrandSeparation1::SegmentGraphEdge {
+class shasta2::StrandSeparation::SegmentGraphEdge {
 public:
     uint64_t coverage;
 };
-class shasta2::StrandSeparation1::SegmentGraph : public SegmentGraphBaseClass {
+class shasta2::StrandSeparation::SegmentGraph : public SegmentGraphBaseClass {
 public:
 
     // The vertexTable is indexed by [segmentPairId][segmentIndexInPair]
@@ -317,7 +317,7 @@ public:
 
 
 
-class shasta2::StrandSeparation1::SegmentGraphSplit {
+class shasta2::StrandSeparation::SegmentGraphSplit {
 public:
     vector< vector<SegmentGraph::vertex_descriptor> > components;
 
@@ -354,7 +354,7 @@ public:
 // The BipartiteGraphSplit of a BipartiteGraph is not unique.
 // An optimal BipartiteGraphSplit minimizes the sum of the frequencies
 // of the cross-strand edges.
-class shasta2::StrandSeparation1::BipartiteGraphSplit {
+class shasta2::StrandSeparation::BipartiteGraphSplit {
 public:
     vector< vector<BipartiteGraph::vertex_descriptor> > components;
 
@@ -378,7 +378,7 @@ public:
 
 
 
-class shasta2::StrandSeparation1::ConnectGraphVertex {
+class shasta2::StrandSeparation::ConnectGraphVertex {
 public:
     uint64_t segmentPairId = invalid<uint64_t>;
     uint64_t segmentIndexInPair = invalid<uint64_t>;
@@ -400,13 +400,13 @@ public:
 
 
 
-class shasta2::StrandSeparation1::ConnectGraphEdge {
+class shasta2::StrandSeparation::ConnectGraphEdge {
 public:
 };
 
 
 
-class shasta2::StrandSeparation1::ConnectGraph : public shasta2::StrandSeparation1::ConnectGraphBaseClass {
+class shasta2::StrandSeparation::ConnectGraph : public shasta2::StrandSeparation::ConnectGraphBaseClass {
 public:
     std::map<Segment, vertex_descriptor> vertexMap;
     void keepStrand0();
@@ -418,7 +418,7 @@ public:
 
 
 
-class shasta2::StrandSeparation1::StrandContact {
+class shasta2::StrandSeparation::StrandContact {
 public:
 
     // EXPOSE WHEN CODE STABILIZES.

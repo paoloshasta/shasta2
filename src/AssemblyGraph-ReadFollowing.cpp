@@ -1,7 +1,7 @@
 #include "AssemblyGraph.hpp"
 #include "performanceLog.hpp"
 #include "ReadFollowing.hpp"
-#include "StrandSeparation1.hpp"
+#include "StrandSeparation.hpp"
 #include "Tangle.hpp"
 #include "timestamp.hpp"
 using namespace shasta2;
@@ -95,7 +95,7 @@ void AssemblyGraph::separateStrands1(
 
     // Process each strand contact separately.
     for(uint64_t strandContactId=0; strandContactId<strandContacts.size(); strandContactId++) {
-        const StrandSeparation1::StrandContact strandContact(
+        const StrandSeparation::StrandContact strandContact(
             assemblyGraph,
             strandContacts[strandContactId],
             debugOutputBaseName,

@@ -1,5 +1,5 @@
 // Shasta2.
-#include "StrandSeparation1.hpp"
+#include "StrandSeparation.hpp"
 #include "AssemblyGraph.hpp"
 #include "color.hpp"
 #include "computeLayout.hpp"
@@ -9,7 +9,7 @@
 #include "html.hpp"
 #include "weightedShuffle.hpp"
 using namespace shasta2;
-using namespace StrandSeparation1;
+using namespace StrandSeparation;
 
 // Standard library.
 #include <iomanip>
