@@ -24,3 +24,20 @@ This creates:
 * Static executable `shasta2-build/shasta2-install/bin/shasta2`. It is highly portable to other 64-bit `x86_64` Linux systems. It can be moved to other systems and immediately used without requiring installation.
 * Python3 module `shasta2-build/shasta2-install/bin/shasta2.so`. This is not portable to other Linux distributions.
 
+
+## Optional: build with plegma
+
+[plegma](https://github.com/kokyriakidis/plegma) can be used for local assembly
+with `--local-assembly-method Plegma`. To build with it:
+
+```
+shasta2/scripts/BuildPlegma.py
+mkdir shasta2-build
+cd shasta2-build
+cmake ../shasta2 -DBUILD_WITH_PLEGMA=ON
+make all
+make install
+```
+
+* `BuildPlegma.py` builds the plegma shared library in `~/.shasta2Build/plegma`. plegma is written in Mojo, and the build uses [pixi](https://pixi.sh), which `BuildPlegma.py` installs in `~/.shasta2Build/plegma/pixi` if it is not already installed.
+* plegma is only available as a shared library, so with `-DBUILD_WITH_PLEGMA=ON` the executable is not static. `make install` puts `libplegma.so` and the Mojo runtime libraries it needs in `shasta2-install/bin`, next to the executable, which finds them there.
