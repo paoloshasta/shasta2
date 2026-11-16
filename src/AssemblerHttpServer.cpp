@@ -463,7 +463,7 @@ void Assembler::writeHtmlBegin(ostream& html) const
         "<html>"
         "<head>"
         "<meta charset='UTF-8'>"
-        "<title>Shasta assembler</title>";
+        "<title>Shasta2 assembler</title>";
     writeStyle(html);
     writeMakeAllTablesCopyable(html);
     html <<
