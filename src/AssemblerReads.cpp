@@ -1,5 +1,6 @@
 // Shasta.
 #include "Assembler.hpp"
+#include "htmlLog.hpp"
 #include "FastaLoader.hpp"
 #include "memoryInformation.hpp"
 #include "performanceLog.hpp"
@@ -59,6 +60,26 @@ void Assembler::addReads(
 
     const auto t1 = steady_clock::now();
     performanceLog << "Read loading took " << seconds(t1-t0) << "s." << endl;
+
+
+    // Write the Reads section of the assembly log.
+    const uint64_t averageReadLength =
+        uint64_t(std::round(double(reads().getTotalBaseCount()) / double(reads().readCount())));
+    htmlLog <<
+        "<h2>Reads</h2>"
+        "The table contains statistics for the reads that will be used for assembly, "
+        "not all reads contained in the input " <<
+        ((fileNames.size() == 1) ? "file" : "files") << ". "
+        "These are the reads that are at least " << minReadLength <<
+        " bases long."
+        "<br><br>"
+        "<table>"
+        "<tr><th class=left>Read length cutoff<td class=centered>" << minReadLength <<
+        "<tr><th class=left>Number of reads<td class=centered>" << reads().readCount() <<
+        "<tr><th class=left>Total number of bases<td class=centered>" << reads().getTotalBaseCount() <<
+        "<tr><th class=left>Read N50<td class=centered>" << reads().getN50() <<
+        "<tr><th class=left>Average read length<td class=centered>" << averageReadLength <<
+        "</table>" << endl;
 
     writeMemoryStatistics("Assembler::addReads ends");
 }
