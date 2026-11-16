@@ -1,19 +1,13 @@
 #include "AssemblyGraph.hpp"
-#include "deduplicate.hpp"
-#include "findDescendants.hpp"
-#include "Options.hpp"
 #include "performanceLog.hpp"
 #include "ReadFollowing5.hpp"
 #include "StrandSeparation1.hpp"
-#include "SegmentGraph.hpp"
 #include "Tangle.hpp"
 #include "timestamp.hpp"
 using namespace shasta2;
-using namespace ReadFollowing5;
 
 
 
-// This uses ReadFollowing5 code.
 bool AssemblyGraph::readFollowingStrandSymmetric5(
     uint64_t tangleId,
     const Tangle& tangle,
@@ -113,40 +107,4 @@ void AssemblyGraph::separateStrands1(
 
     performanceLog << timestamp << "AssemblyGraph::separateStrands1 ends: " <<
         debugOutputBaseName << endl;
-}
-
-
-
-// This passes all the vertices ot the strand contact.
-void AssemblyGraph::findStrandContactsInteractive()
-{
-    AssemblyGraph& assemblyGraph = *this;
-
-    vector<vertex_descriptor> strandContactVertices;
-    BGL_FORALL_VERTICES(v, assemblyGraph, AssemblyGraph) {
-        strandContactVertices.push_back(v);
-    }
-
-
-
-    cout << "The initial AssemblyGraph has " <<
-        num_vertices(assemblyGraph) << " vertices and " <<
-        num_edges(assemblyGraph) << " segments." << endl;
-
-    const StrandSeparation1::StrandContact strandContact(
-        assemblyGraph,
-        strandContactVertices,
-        "Python",
-        0);
-
-    removeZeroLengthSegmentsStrandSymmetric();
-    removeIsolatedVertices();
-    strandSymmetricCompress();
-    
-    cout << "The final AssemblyGraph has " <<
-        num_vertices(assemblyGraph) << " vertices and " <<
-        num_edges(assemblyGraph) << " segments." << endl;
-
-    write("Z");
-    save("Z");
 }
