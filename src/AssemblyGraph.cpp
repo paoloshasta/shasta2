@@ -3795,7 +3795,6 @@ void AssemblyGraph::assembleAllStrandSymmetric()
 void AssemblyGraph::makeSingleStranded()
 {
     AssemblyGraph& assemblyGraph = *this;
-    check();
 
     // Find the maximum segment length.
     uint64_t maxSegmentLength = 0;
@@ -3843,7 +3842,6 @@ void AssemblyGraph::makeSingleStranded()
         }
         maxLength *= 2;
     }
-    check();
 
 
 

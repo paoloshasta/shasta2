@@ -488,7 +488,6 @@ bool AssemblyGraph::detangleAndReadFollowing(
             }
         }
     }
-    check();
 
     removeZeroLengthSegmentsStrandSymmetric();
     removeIsolatedVertices();
