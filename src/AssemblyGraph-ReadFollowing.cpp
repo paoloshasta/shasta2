@@ -1,6 +1,6 @@
 #include "AssemblyGraph.hpp"
 #include "performanceLog.hpp"
-#include "ReadFollowing5.hpp"
+#include "ReadFollowing.hpp"
 #include "StrandSeparation1.hpp"
 #include "Tangle.hpp"
 #include "timestamp.hpp"
@@ -17,7 +17,7 @@ bool AssemblyGraph::readFollowingStrandSymmetric5(
     SHASTA2_ASSERT(not tangle.entrances.empty());
     SHASTA2_ASSERT(not tangle.exits.empty());
 
-    ReadFollowing5::Graph graph(*this, tangleId, tangle, html, debugOutputBaseName);
+    ReadFollowing::Graph graph(*this, tangleId, tangle, html, debugOutputBaseName);
 
     if(graph.updateAssemblyGraph1()) {
         return true;

@@ -13,7 +13,7 @@
 #include "vector.hpp"
 
 namespace shasta2 {
-    namespace ReadFollowing5 {
+    namespace ReadFollowing {
 
     class Graph;
     class Vertex;
@@ -42,7 +42,7 @@ namespace shasta2 {
 // plus a vertex for each entrance and exit of the tangle.
 // If a Segment is both an entrance and an exit
 // there will be two vertices associated with it.
-class shasta2::ReadFollowing5::Vertex {
+class shasta2::ReadFollowing::Vertex {
 public:
     Segment segment;
     bool isEntrance;
@@ -69,7 +69,7 @@ public:
 // - The two Segments have sufficiently similar read compositions,
 //   as determined based on commonCount and logP.
 // - The two Segments are adjacent in the AssemblyGraph.
-class shasta2::ReadFollowing5::Edge {
+class shasta2::ReadFollowing::Edge {
 public:
 
     bool areAdjacent = false;
@@ -92,7 +92,7 @@ public:
 
 
 
-class shasta2::ReadFollowing5::Graph: public GraphBaseClass {
+class shasta2::ReadFollowing::Graph: public GraphBaseClass {
 public:
     Graph(
         AssemblyGraph&,
@@ -176,14 +176,14 @@ private:
 
 
 
-class shasta2::ReadFollowing5::CondensedGraphVertex {
+class shasta2::ReadFollowing::CondensedGraphVertex {
 public:
     vector<Graph::vertex_descriptor> vertices;
 };
 
 
 
-class shasta2::ReadFollowing5::CondensedGraphEdge {
+class shasta2::ReadFollowing::CondensedGraphEdge {
 public:
     Graph::edge_descriptor e = {0, 0, 0};
 };

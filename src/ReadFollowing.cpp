@@ -1,5 +1,5 @@
 // Shasta2.
-#include "ReadFollowing5.hpp"
+#include "ReadFollowing.hpp"
 #include "CondensedGraph.hpp"
 #include "deduplicate.hpp"
 #include "findReachableVertices.hpp"
@@ -10,7 +10,7 @@
 #include "Tangle.hpp"
 #include "transitiveReduction.hpp"
 using namespace shasta2;
-using namespace ReadFollowing5;
+using namespace ReadFollowing;
 
 // Boost libraries.
 #include "boost/graph/dijkstra_shortest_paths.hpp"
