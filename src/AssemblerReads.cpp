@@ -108,8 +108,14 @@ void Assembler::writeReadLengthDistributionToHtmlLog()
 
     const uint64_t width = 800;
     const uint64_t height = 600;
-    writeGnuPlotPngToHtml(htmlLog, width, height,gnuplotCommands);
-    htmlLog << flush;
+
+    try {   
+        writeGnuPlotPngToHtml(htmlLog, width, height,gnuplotCommands);
+    } catch (std::exception& e) {
+        htmlLog << "<br>The cumulative read length distribution could not been shown, "
+            "possibly because the gnuplot and/or base64 commands are not available.";
+    }
+    htmlLog << "<br>See <a href='Binned-ReadLengthHistogram.csv'>Binned-ReadLengthHistogram.csv</a>." << flush;
 }
 
 
