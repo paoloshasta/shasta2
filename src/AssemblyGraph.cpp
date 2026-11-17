@@ -6,6 +6,7 @@
 #include "CondensedGraph.hpp"
 #include "findLinearChains.hpp"
 #include "findReachableVertices.hpp"
+#include "htmlLog.hpp"
 #include "Journeys.hpp"
 #include "LocalAssembly.hpp"
 #include "memoryInformation.hpp"
@@ -370,6 +371,18 @@ void AssemblyGraph::simplifyAndAssemble()
     write("Final");
     writeFasta("Final");
 
+    // Write Final assembly statistics to htmlLog.
+    const AssemblyGraphStatistics statistics = getStatistics();
+    htmlLog << "<h2>Final assembly</h2>"
+        "<table>"
+        "<tr><th class=left>Number of segments<td class=centered>" << statistics.segmentCount <<
+        "<tr><th class=left>Total length<td class=centered>" << statistics.totalSequenceLength <<
+        "<tr><th class=left>N50<td class=centered>" << statistics.n50 <<
+        "</table>"
+        "<br>See Assembly-Final.gfa, Assembly-Final.fasta.";
+    
+
+
     // Pseudo-assembly, if requested.
     if(options.createPseudoAssembly) {
         makePseudo();
@@ -378,7 +391,17 @@ void AssemblyGraph::simplifyAndAssemble()
         renumber();
         write("Pseudo");
         writeFasta("Pseudo");
-        writePseudoAssemblyDisclaimer();
+
+        // Write Pseudo-assembly statistics to htmlLog.
+        const AssemblyGraphStatistics statistics = getStatistics();
+        htmlLog << "<h2>Pseudo-assembly</h2>"
+            "<table>"
+            "<tr><th class=left>Number of segments<td class=centered>" << statistics.segmentCount <<
+            "<tr><th class=left>Total length<td class=centered>" << statistics.totalSequenceLength <<
+            "<tr><th class=left>N50<td class=centered>" << statistics.n50 <<
+            "</table>"
+            "<br>See Assembly-Pseudo.gfa, Assembly-Pseudo.fasta.";
+            writePseudoAssemblyDisclaimer();
     }
 
     writeMemoryStatistics("AssemblyGraph::simplifyAndAssemble ends");
@@ -595,9 +618,13 @@ void AssemblyGraph::write(const string& stage)
 {
     performanceLog << timestamp << "AssemblyGraph::write begins for stage " << stage << endl;
 
+    const AssemblyGraphStatistics statistics = getStatistics();
+
     cout << "Stage " << stage << ": " <<
         num_vertices(*this) << " vertices, " <<
         num_edges(*this) << " segments. Next segment id is " << nextEdgeId << "." << endl;
+    cout << "Total length " << statistics.totalSequenceLength << 
+        ", N50 " << statistics.n50 << endl;
 
     const uint64_t zeroLengthSegmentCount = countZeroLengthSegments();
     if(zeroLengthSegmentCount) {
@@ -4419,4 +4446,33 @@ void AssemblyGraph::renumber()
         const Segment segment = segmentsWithKeys[id].segment;
         assemblyGraph[segment].id = id;
     }
+}
+
+
+
+AssemblyGraphStatistics AssemblyGraph::getStatistics() const
+{
+    const AssemblyGraph& assemblyGraph = *this;
+
+    vector<uint64_t> lengths;
+    BGL_FORALL_EDGES(segment, assemblyGraph, AssemblyGraph) {
+        lengths.push_back(assemblyGraph[segment].length());
+    }
+    std::ranges::sort(lengths, std::greater<uint64_t>());
+
+    AssemblyGraphStatistics statistics;
+    statistics.segmentCount = lengths.size();
+    statistics.totalSequenceLength = accumulate(lengths.begin(), lengths.end(), 0);
+    const uint64_t halfTotalLength = statistics.totalSequenceLength / 2;
+
+    uint64_t totalLengthSoFar = 0;
+    for(const uint64_t length: lengths) {
+        totalLengthSoFar += length;
+        if(totalLengthSoFar >= halfTotalLength) {
+            statistics.n50 = length;
+            break;
+        }
+    }
+
+    return statistics;    
 }

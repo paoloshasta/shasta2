@@ -31,6 +31,7 @@ namespace shasta2 {
 
     class AssemblyGraphEdgeStep;
     const AssemblyGraphBaseClass::edge_descriptor assemblyGraphNullEdge = {0, 0, 0};
+    class AssemblyGraphStatistics;
 
     class AnchorGraph;
     class Anchors;
@@ -163,6 +164,15 @@ public:
     {
         return back().anchorPair.anchorIdB;
     }
+};
+
+
+
+class shasta2::AssemblyGraphStatistics {
+public:
+    uint64_t segmentCount = 0;
+    uint64_t totalSequenceLength = 0;
+    uint64_t n50 = 0;
 };
 
 
@@ -638,7 +648,7 @@ private:
     vector< pair<edge_descriptor, uint64_t> > stepsToBeAssembled;
     void clearAllSequence();
 
-
+    AssemblyGraphStatistics getStatistics() const;
 
     // Strand-symmetric sequence assembly.
     // If an edge has a reverse complement, the sequences
