@@ -108,6 +108,7 @@ void Assembler::assemble(
         createMarkerKmers(options.maxMarkerErrorRate, options.threadCount);
         removeIfAllowed(options, *markersPointer);
         markersPointer = 0;
+        writeMarkerKmersInformationToHtmlLog(options.minAnchorCoverage, options.maxAnchorCoverage);
 
         // Create the Anchors.
         createAnchors(

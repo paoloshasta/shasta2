@@ -181,7 +181,7 @@ void Assembler::writePngToHtml(
     }
 
     // Write the base64 file to html in an img tag.
-    html << "<p><img";
+    html << "<br><img";
     if(not useMap.empty()) {
         html << " usemap='" << useMap << "'";
     }

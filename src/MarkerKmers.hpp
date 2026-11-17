@@ -173,9 +173,11 @@ private:
     // If this is called for a non-canonical k-mer, it returns an empty span.
     span<const MarkerInfo> getMarkerInfos(const Kmer&) const;
 
-
-    void writeCsv() const;
     void writeFrequencyHistogram() const;
+
+    // The functions below are currently not used.
+    // They can be useful for testing.
+    void writeCsv() const;
     void writeMarkerInfosCsv1() const;
     void writeMarkerInfosCsv2() const;
     void writeKmerInfosCsv() const;

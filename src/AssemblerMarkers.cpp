@@ -2,6 +2,7 @@
 #include "Assembler.hpp"
 #include "deduplicate.hpp"
 #include "extractKmer128.hpp"
+#include "htmlLog.hpp"
 #include "Markers.hpp"
 #include "memoryInformation.hpp"
 #include "MarkerKmers.hpp"
@@ -108,6 +109,46 @@ void Assembler::createMarkerKmers(double maxMarkerErrorRate, uint64_t threadCoun
     }
 
     writeMemoryStatistics("Assembler::createMarkerKmers ends");
+}
+
+
+
+void Assembler::writeMarkerKmersInformationToHtmlLog(uint64_t minAnchorCoverage, uint64_t maxAnchorCoverage)
+{
+    const string shade = 
+        "set object 1 rectangle from " + to_string(minAnchorCoverage) + 
+        ", graph 0 to " + to_string(maxAnchorCoverage) + 
+        ", graph 1 behind fillcolor rgb \"#ffcccc\" fillstyle solid 0.5 noborder";
+
+    const string gnuplotCommands = shade +  R"(
+        set datafile separator ","
+        set key noautotitle
+
+        set xtics out nomirror
+        set ytics out nomirror
+        set grid xtics mxtics ytics linestyle 1 linewidth 1 linecolor rgb '#e0e0e0'
+
+        set xlabel "Coverage"
+        set ylabel "Frequency"
+        set title "Marker k-mer frequency histogram"
+
+        set logscale xy
+
+        plot "MarkerKmers-Histogram.csv" using 1:2 with points pointtype 7 pointsize 0.5 linecolor rgb "#4c6691"
+    )";
+
+    const uint64_t width = 800;
+    const uint64_t height = 600;
+
+    try {   
+        writeGnuPlotPngToHtml(htmlLog, width, height,gnuplotCommands);
+    } catch (std::exception& e) {
+        htmlLog << "<br>The marker k-mer histogram could not be shown, "
+            "possibly because the gnuplot and/or base64 commands are not available.";
+    }
+    htmlLog << 
+        "<br>Anchors are created from a subset of the marker k-mers in the shaded region."
+        "<br>See <a href='MarkerKmers-Histogram.csv'>MarkerKmers-Histogram.csv</a>." << flush;
 }
 
 

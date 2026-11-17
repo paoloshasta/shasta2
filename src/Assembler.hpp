@@ -174,6 +174,7 @@ public:
     shared_ptr<MarkerKmers> markerKmers;
     void createMarkerKmers(double maxMarkerErrorRate, uint64_t threadCount);
     void accessMarkerKmers();
+    void writeMarkerKmersInformationToHtmlLog(uint64_t minAnchorCoverage, uint64_t maxAnchorCoverage);
 
     // Compute marker error rates for each read.
     // This computes the number of low frequency markers for each ReadId
