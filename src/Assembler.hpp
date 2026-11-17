@@ -132,6 +132,7 @@ public:
         size_t threadCount,
         FastaLoader&);
     void histogramReadLength(const string& fileName);
+    void writeReadLengthDistributionToHtmlLog();
 
     void findPalindromicReads();
     void findPalindromicReadsMultithreaded(uint64_t threadCount);

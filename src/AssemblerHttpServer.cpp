@@ -181,9 +181,9 @@ void Assembler::writePngToHtml(
     }
 
     // Write the base64 file to html in an img tag.
-    html << "<p><img ";
+    html << "<p><img";
     if(not useMap.empty()) {
-        html << "usemap='" << useMap << "'";
+        html << " usemap='" << useMap << "'";
     }
     html << " src=\"data:image/png;base64,";
     ifstream png(base64FileName);
@@ -219,7 +219,7 @@ void Assembler::writeGnuPlotPngToHtml(
         ofstream gnuplotFile(gnuplotFileName);
         gnuplotFile <<
             "set terminal pngcairo size " << width << "," << height <<
-            " font 'Noto Serif'\n"
+            " font 'Noto Sans Serif'\n"
             "set output '" << pngFileName << "'\n" <<
             gnuplotCommands;
     }
@@ -235,6 +235,7 @@ void Assembler::writeGnuPlotPngToHtml(
 
     // Write the png file to html.
     writePngToHtml(html, pngFileName);
+    html << flush;
 
     // Remove the files we created.
     std::filesystem::remove(gnuplotFileName);

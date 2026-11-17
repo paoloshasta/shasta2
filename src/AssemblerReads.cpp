@@ -62,12 +62,13 @@ void Assembler::addReads(
     performanceLog << "Read loading took " << seconds(t1-t0) << "s." << endl;
 
 
+
     // Write the Reads section of the assembly log.
     const uint64_t averageReadLength =
         uint64_t(std::round(double(reads().getTotalBaseCount()) / double(reads().readCount())));
     htmlLog <<
         "<h2>Reads</h2>"
-        "The table contains statistics for the reads that will be used for assembly, "
+        "Thi section contains statistics for the reads that will be used for assembly, "
         "not all reads contained in the input " <<
         ((fileNames.size() == 1) ? "file" : "files") << ". "
         "These are the reads that are at least " << minReadLength <<
@@ -80,8 +81,35 @@ void Assembler::addReads(
         "<tr><th class=left>Read N50<td class=centered>" << reads().getN50() <<
         "<tr><th class=left>Average read length<td class=centered>" << averageReadLength <<
         "</table>" << endl;
+    writeReadLengthDistributionToHtmlLog();
+
 
     writeMemoryStatistics("Assembler::addReads ends");
+}
+
+
+
+void Assembler::writeReadLengthDistributionToHtmlLog()
+{
+    const string gnuplotCommands = R"(
+    set datafile separator ","
+    set key noautotitle
+
+    set xtics out nomirror
+    set ytics out nomirror
+    set grid xtics mxtics ytics linestyle 1 linewidth 1 linecolor rgb '#e0e0e0'
+
+    set xlabel "Read length"
+    set ylabel "Cumulative coverage"
+    set title "Cumulative read length distribution"
+
+    plot "Binned-ReadLengthHistogram.csv" using 1:6 with lines linewidth 3 linecolor rgb "#4c6691"
+    )";
+
+    const uint64_t width = 800;
+    const uint64_t height = 600;
+    writeGnuPlotPngToHtml(htmlLog, width, height,gnuplotCommands);
+    htmlLog << flush;
 }
 
 
