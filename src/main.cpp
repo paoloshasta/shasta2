@@ -1,6 +1,7 @@
 
 // Shasta.
 #include "Assembler.hpp"
+#include "configurationTable.hpp"
 #include "Options.hpp"
 #include "filesystem.hpp"
 #include "HomopolymerModelTable.hpp"
@@ -55,6 +56,7 @@ namespace shasta2 {
         void cleanupBinaryData(const Options&);
         void explore(const Options&);
         void listCommands();
+        void listAssemblyConfigurations();
         void listHomopolymerModels();
         void createBashCompletionScript();
 
@@ -65,6 +67,7 @@ namespace shasta2 {
             "explore",
             "listCommands",
             "listHomopolymerModels",
+            "listAssemblyConfigurations",
             "createBashCompletionScript"};
 
         void writeHtmlLogInitialOutput(
@@ -178,6 +181,9 @@ void shasta2::main::main(int argumentCount, char** arguments)
         return;
     } else if(options.command == "listCommands") {
         listCommands();
+        return;
+    } else if(options.command == "listAssemblyConfigurations") {
+        listAssemblyConfigurations();
         return;
     } else if(options.command == "listHomopolymerModels") {
         listHomopolymerModels();
@@ -642,10 +648,23 @@ void shasta2::main::listCommands()
 
 
 
+void shasta2::main::listAssemblyConfigurations()
+{
+    cout << "Built-in assembly configurations are:" << endl;
+    for(const auto&[name, _]: configurationTable) {
+        cout << name << endl;
+    }
+
+    cout << "You can also use a configuration file from shasta2/conf "
+        "or one created by you." << endl;
+}
+
+
+
 void shasta2::main::listHomopolymerModels()
 {
     cout << "Valid built-in homopoymer models are:" << endl;
-    for(const auto&[name, ignore]: homopolymerModelTable) {
+    for(const auto&[name, _]: homopolymerModelTable) {
         cout << name << endl;
     }
 }

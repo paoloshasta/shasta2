@@ -22,8 +22,12 @@ Options::Options(int argc, char** argv) :
     // First get the options from the arguments.
     parse(argc, argv);
 
+    if(command != "assemble") {
+        return;
+    }
+
     // When initializing from command line and --command is assemble, --config is mandatory.
-    if((command == "assemble") and config.empty()) {
+    if(config.empty()) {
         throw runtime_error("Option --config is missing. "
             "It is mandatory when running an assembly "
             "and should specify a built-in assembly configuration "
