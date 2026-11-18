@@ -1071,33 +1071,51 @@ namespace shasta2 {
         const theseus::Penalties penalties(match, mismatch, gapo, gape);
         const theseus::Heuristics heuristics;
 
+        // Define options for the three types of sequence.
+        // We never use lag pruning. We use density_drop for sequence 
+        // fixed on one side only.    
+        theseus::MSAOptions fixedOnBothSidesOptions;
+        fixedOnBothSidesOptions.lag_pruning   = false;
+        fixedOnBothSidesOptions.reverse       = false;
+        fixedOnBothSidesOptions.end_condition = theseus::EndCondition::EndToEnd;
+        fixedOnBothSidesOptions.density_drop  = false;  
+
+        theseus::MSAOptions fixedOnLeftOnlyOptions;
+        fixedOnLeftOnlyOptions.lag_pruning   = false;
+        fixedOnLeftOnlyOptions.reverse       = false;
+        fixedOnLeftOnlyOptions.end_condition = theseus::EndCondition::EndsFree;
+        fixedOnLeftOnlyOptions.density_drop  = true;  
+
+        theseus::MSAOptions fixedOnRightOnlyOptions;
+        fixedOnRightOnlyOptions.lag_pruning   = false;
+        fixedOnRightOnlyOptions.reverse       = true;
+        fixedOnRightOnlyOptions.end_condition = theseus::EndCondition::EndsFree;
+        fixedOnRightOnlyOptions.density_drop  = true;  
+
+
         // Create the aligner, passing in the first sequence fixed on both sides.
         SHASTA2_ASSERT(not fixedSequences.empty());
         const auto& [firstSequence, firstSequenceWeight] = fixedSequences.front();
         theseus::TheseusMSA aligner(penalties, heuristics,
-            toString(firstSequence), int(firstSequenceWeight), false);
+            toString(firstSequence), int(firstSequenceWeight));
 
         // Pass in the remaining sequences fixed on both sides.
         for(uint64_t i=1; i<fixedSequences.size(); i++) {
             const auto& [sequence, weight] = fixedSequences[i];
-            const bool densityDrop = false;
-            const bool lagPruning = false;
-            aligner.align(toString(sequence), int(weight), false, false, densityDrop, lagPruning);
+            aligner.align(toString(sequence), int(weight), fixedOnBothSidesOptions);
         }
 
         // Pass in the sequences fixed on the left only.
         for(const auto& [sequence, weight]: leftFixedSequences) {
-            const bool densityDrop = true;
-            const bool lagPruning = false;
-            aligner.align(toString(sequence), int(weight), false, true, densityDrop, lagPruning);
+           aligner.align(toString(sequence), int(weight), fixedOnLeftOnlyOptions);
         }
 
         // Pass in the sequences fixed on the right only.
         for(const auto& [sequence, weight]: rightFixedSequences) {
-            const bool densityDrop = true;
-            const bool lagPruning = false;
-            aligner.align(toString(sequence), int(weight), true, true, densityDrop, lagPruning);
+            aligner.align(toString(sequence), int(weight), fixedOnRightOnlyOptions);
         }
+
+
 
         // Read the alignment back. print_as_msa writes a header line for each
         // sequence, then its alignment row, and finally a row for the aligned

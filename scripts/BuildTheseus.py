@@ -2,8 +2,7 @@
 
 """
 This clones the albertjimenezbl/theseus-lib
-Github repository, switches to the pericles branch,
-and builds the theseus static and shared libraries. 
+Github repository and builds the theseus static and shared libraries. 
 
 All output goes to ~/.shasta2Build/theseus
 The static build goes to ~/.shasta2Build/theseus/theseus-lib/staticBuild
@@ -40,9 +39,6 @@ os.system("git clone https://github.com/albertjimenezbl/theseus-lib.git")
 
 # cd to the theseus-lib directory.
 os.chdir("theseus-lib")
-
-# Switch to the pericles branch.
-os.system("git checkout pericles")
 
 # Build the static library.
 print("Building the theseus static library.")
