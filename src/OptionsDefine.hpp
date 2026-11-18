@@ -1,7 +1,12 @@
 // General options.
 SHASTA2_OPTION_DEFINE(
-    string, command, "--command", "assemble",
-    "Shasta2 command.")
+    string, config, "--config", "assemble",
+    "Assembly configuration. Must be a built-in configuration name "
+    "or a configuration file.")
+
+SHASTA2_OPTION_DEFINE(
+string, command, "--command", "assemble",
+"Shasta2 command.")
 
 SHASTA2_OPTION_DEFINE(
     string, assemblyDirectory, "--output", "ShastaRun",

@@ -21,7 +21,7 @@ public:
     Options(int argumentCount, char** arguments);
 
     // Constructor from a configuration file.
-    Options(const string& fileName = "");
+    Options(const string& configurationFileName = "");
 
     // Write a configuration file.
     void write(ostream&) const;
@@ -51,6 +51,7 @@ public:
 private:
     void addOptions();
     void validate();
+    void load(istream&);
 };
 
 
