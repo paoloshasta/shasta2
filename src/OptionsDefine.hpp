@@ -1,6 +1,6 @@
 // General options.
 SHASTA2_OPTION_DEFINE(
-    string, config, "--config", "assemble",
+    string, config, "--config", "",
     "Assembly configuration. Must be a built-in configuration name "
     "or a configuration file.")
 
