@@ -6,6 +6,7 @@ using namespace shasta2;
 // Standard library.
 #include "array.hpp"
 #include "fstream.hpp"
+#include "iostream.hpp"
 #include "stdexcept.hpp"
 #include <thread>
 
@@ -22,11 +23,11 @@ Options::Options(int argc, char** argv) :
     // First get the options from the arguments.
     parse(argc, argv);
 
-    if(command != "assemble") {
+    if((command != "assemble") and (command != "explore")) {
         return;
     }
 
-    // When initializing from command line and --command is assemble, --config is mandatory.
+    // When initializing from command line and --command is assemble or explore, --config is mandatory.
     if(config.empty()) {
         throw runtime_error("Option --config is missing. "
             "It is mandatory when running an assembly "
@@ -42,8 +43,13 @@ Options::Options(int argc, char** argv) :
         // From configuration file.
         ifstream configurationFile(config);
         if(not configurationFile) {
-            throw runtime_error("Option --config does not specify a built-in assembly configuration "
-                "and is not a valid configuration file.");
+            cout << "Option --config does not specify a built-in assembly configuration "
+                "and is not a valid configuration file." << endl;
+            cout << "Built-in assembly configurations are:" << endl;
+            for(const auto&[name, _]: configurationTable) {
+                cout << name << endl;
+            }
+            throw runtime_error("Invalid --config option. See above for a list of built-in assembly configurations.");
 
         }
         load(configurationFile);
@@ -84,9 +90,13 @@ Options::Options(const string& configurationFileName)
 {
 
     allow_config_extras(false);
+    addOptions();
 
     config = configurationFileName;
     ifstream s(config);
+    if(not s) {
+        throw runtime_error("Could not open configuration file " + config);
+    }
     load(s); 
 
     validate();
