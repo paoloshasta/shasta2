@@ -106,8 +106,7 @@ public:
     void assemble(
         const Options& options,
         const vector<string>& inputFileNames,
-        const string& externalAnchorsNameAbsolutePath,
-        const string& externalAnchorGraphNameAbsolutePath);
+        const string& externalAnchorsNameAbsolutePath);
 
     // The homopolymer model used by msaRepair, if one was specified with
     // --homopolymer-model. Null otherwise.

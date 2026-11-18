@@ -33,10 +33,6 @@ SHASTA2_OPTION_DEFINE(
     "External anchors name. Must be an absolute or relarive path relative base name "
     "for the four external anchors files.")
 
-SHASTA2_OPTION_DEFINE(
-    string, externalAnchorGraphName, "--external-anchor-graph-name", "",
-    "External anchor graph name. Only in effect if --external-anchors-name is also used.")
-
 
 
 // Http server.

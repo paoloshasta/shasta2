@@ -249,10 +249,6 @@ void shasta2::main::assemble(
     if(not options.externalAnchorsName.empty()) {
         externalAnchorsNameAbsolutePath = filesystem::getAbsolutePath(options.externalAnchorsName);
     }
-    string externalAnchorGraphNameAbsolutePath;
-    if(not options.externalAnchorGraphName.empty()) {
-        externalAnchorGraphNameAbsolutePath = filesystem::getAbsolutePath(options.externalAnchorGraphName);
-    }
 
     // Check --homopolymer-model. It must be in the homopolymerModelTable,
     // or else it must be an absolute path.
@@ -337,8 +333,7 @@ void shasta2::main::assemble(
         assembler.assemble(
             options,
             inputFileAbsolutePaths,
-            externalAnchorsNameAbsolutePath,
-            externalAnchorGraphNameAbsolutePath);
+            externalAnchorsNameAbsolutePath);
     }
 
     // Final memory cleanup must happen after the Assembler is destroyed.
