@@ -21,7 +21,13 @@ Options::Options(int argc, char** argv) :
     addOptions();
 
     // First get the options from the arguments.
-    parse(argc, argv);
+    try {
+        parse(argc, argv);
+    } catch (const CLI::ParseError &e) {
+        exit(e);
+        isHelp = true;
+        return;
+    }
 
     if((command != "assemble") and (command != "explore")) {
         return;
