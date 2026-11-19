@@ -4461,23 +4461,24 @@ AssemblyGraphStatistics AssemblyGraph::getStatistics() const
 
     vector<uint64_t> lengths;
     BGL_FORALL_EDGES(segment, assemblyGraph, AssemblyGraph) {
-        lengths.push_back(assemblyGraph[segment].length());
+        const uint64_t length = assemblyGraph[segment].length();
+        lengths.push_back(length);
     }
     std::ranges::sort(lengths, std::greater<uint64_t>());
 
     AssemblyGraphStatistics statistics;
     statistics.segmentCount = lengths.size();
-    statistics.totalSequenceLength = accumulate(lengths.begin(), lengths.end(), 0);
-    const uint64_t halfTotalLength = statistics.totalSequenceLength / 2;
+    statistics.totalSequenceLength = accumulate(lengths.begin(), lengths.end(), 0UL);
+    const uint64_t halfTotalLength = statistics.totalSequenceLength / 2UL;
 
     uint64_t totalLengthSoFar = 0;
     for(const uint64_t length: lengths) {
         totalLengthSoFar += length;
         if(totalLengthSoFar >= halfTotalLength) {
             statistics.n50 = length;
-            break;
+            return statistics;
         }
     }
 
-    return statistics;    
+    SHASTA2_ASSERT(0);   
 }
