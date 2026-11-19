@@ -418,6 +418,8 @@ bool AssemblyGraph::simplifyIteration(uint64_t iteration)
     cout << num_edges(*this) <<
         " segments are present when simplify iteration " << iteration << " begins." << endl;
 
+    writeMemoryStatistics("AssemblyGraph::simplifyIteration " + to_string(iteration) + " begins");
+
     const string iterationString = to_string(iteration);
 
     const uint64_t oldNextEdgeId = nextEdgeId;
@@ -472,6 +474,7 @@ bool AssemblyGraph::simplifyIteration(uint64_t iteration)
     const bool changesWereMade = (nextEdgeId > oldNextEdgeId);
 
     performanceLog << timestamp << "End assembly graph simplify iteration " << iteration << endl;
+    writeMemoryStatistics("AssemblyGraph::simplifyIteration " + to_string(iteration) + " begins");
 
     return changesWereMade;
 }
@@ -652,6 +655,8 @@ void AssemblyGraph::writeIntermediateStageIfRequested(
     const string& name,
     uint64_t outputLevel)
 {
+    writeMemoryStatistics("Assembly stage " + name);
+    
     if(outputLevel <= options.writeIntermediateAssemblyStages) {
         write(name);
     }
