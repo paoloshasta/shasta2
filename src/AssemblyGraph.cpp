@@ -358,7 +358,7 @@ void AssemblyGraph::simplifyAndAssemble()
             break;
         }
     }
-    writeIntermediateStageIfRequested("B", 1);
+    writeIntermediateStageIfRequested("E", 1);
 
     // Make the AssemblyGraph single-stranded.
     separateStrandsGlobal("Global");
@@ -465,10 +465,11 @@ bool AssemblyGraph::simplifyIteration(uint64_t iteration)
 
     // Strand separation for self-complementary tangles.
     if(iteration == 0) {
+        writeIntermediateStageIfRequested(iterationString + "B", 1);
         separateStrands(iterationString);
-        writeIntermediateStageIfRequested(iterationString + "H", 3);
+        writeIntermediateStageIfRequested(iterationString + "C", 3);
         strandSymmetricCompress();
-        writeIntermediateStageIfRequested(iterationString + "H-Compressed", 2);
+        writeIntermediateStageIfRequested(iterationString + "D", 1);
     }
 
     const bool changesWereMade = (nextEdgeId > oldNextEdgeId);
