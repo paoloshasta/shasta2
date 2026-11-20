@@ -465,11 +465,11 @@ bool AssemblyGraph::simplifyIteration(uint64_t iteration)
 
     // Strand separation for self-complementary tangles.
     if(iteration == 0) {
-        writeIntermediateStageIfRequested(iterationString + "B", 1);
+        writeIntermediateStageIfRequested("B", 1);
         separateStrands(iterationString);
-        writeIntermediateStageIfRequested(iterationString + "C", 3);
+        writeIntermediateStageIfRequested("C", 3);
         strandSymmetricCompress();
-        writeIntermediateStageIfRequested(iterationString + "D", 1);
+        writeIntermediateStageIfRequested("D", 1);
     }
 
     const bool changesWereMade = (nextEdgeId > oldNextEdgeId);
