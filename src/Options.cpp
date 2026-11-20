@@ -110,6 +110,15 @@ Options::Options(const string& configurationFileName)
 
 
 
+// Construct with just default values. 
+// Used by createBashCompletionScript.
+Options::Options(int)
+{
+    addOptions();
+}
+
+
+
 void Options::load(istream& s) 
 {
     parse_from_stream(s);

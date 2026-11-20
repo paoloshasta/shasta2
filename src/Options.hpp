@@ -21,7 +21,12 @@ public:
     Options(int argumentCount, char** arguments);
 
     // Constructor from a configuration file.
+    // Used by the Python API.
     Options(const string& configurationFileName = "");
+
+    // Construct with just default values. 
+    // Used by createBashCompletionScript.
+    Options(int);
 
     // Write a configuration file.
     void write(ostream&) const;

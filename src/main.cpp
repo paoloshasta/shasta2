@@ -675,7 +675,7 @@ void shasta2::main::createBashCompletionScript()
     file << "complete -o default -W \"\\\n";
 
     // Options.
-    const Options options;
+    const Options options(0);
     for(const CLI::Option* option: options.get_options()) {
         for(const string& name: option->get_lnames()) {
             file << "--" << name << " \\\n";
