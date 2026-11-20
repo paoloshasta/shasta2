@@ -61,7 +61,7 @@ void AssemblyGraph::separateStrands(
     SHASTA2_ASSERT(countZeroLengthSegments() == 0);
 
     performanceLog << timestamp << "AssemblyGraph::separateStrands1 begins: " <<
-        debugOutputBaseName << endl;
+        debugOutputBaseName << " " << maxLength << endl;
 
     // Create tangles as connected components of the AssemblyGraph,
     // computed considering only short Segments.
