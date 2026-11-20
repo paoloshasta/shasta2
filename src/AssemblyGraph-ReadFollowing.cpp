@@ -1,4 +1,5 @@
 #include "AssemblyGraph.hpp"
+#include "Options.hpp"
 #include "performanceLog.hpp"
 #include "ReadFollowing.hpp"
 #include "StrandSeparation.hpp"
@@ -102,7 +103,8 @@ void AssemblyGraph::separateStrands(
             assemblyGraph,
             strandContacts[strandContactId],
             debugOutputBaseName,
-            strandContactId);
+            strandContactId,
+            options.strandSeparationIterationCount);
     }
 
     removeZeroLengthSegmentsStrandSymmetric();

@@ -241,3 +241,6 @@ SHASTA2_OPTION_DEFINE(
     uint64_t, readFollowingPathCountThreshold2, "--read-following-path-count-threshold2", 60,
     "Second path count threshold for read following.")
 
+SHASTA2_OPTION_DEFINE(
+    uint64_t, strandSeparationIterationCount, "--strand-separation-iteration-count", 1000,
+    "Number of split iteration for strand separation.")

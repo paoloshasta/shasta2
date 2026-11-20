@@ -433,7 +433,8 @@ public:
         AssemblyGraph&,
         const vector<AssemblyGraphBaseClass::vertex_descriptor>& strandContactVertices,
         const string& debugOutputBaseName,
-        uint64_t strandContactId
+        uint64_t strandContactId,
+        uint64_t iterationCount
         );
 
 private:
@@ -477,7 +478,7 @@ private:
     void createBipartiteGraph();
     void writeBipartiteGraphGraphviz(const BipartiteGraphSplit&);
     void writeBipartiteGraphCustom(const BipartiteGraphSplit&);
-    void computeSplit(BipartiteGraphSplit&) const;
+    void computeSplit(uint64_t iterationCount, BipartiteGraphSplit&) const;
     void writeSplitSummary(const BipartiteGraphSplit&) const;
     void writeSplitDetails(const BipartiteGraphSplit&) const;
 
@@ -491,7 +492,7 @@ private:
     // The SegmentGraph is created using the SegmentPairGraph.
     void createSegmentGraph();
     SegmentGraph segmentGraph;
-    void computeSplit(SegmentGraphSplit&) const;
+    void computeSplit(uint64_t iterationCount, SegmentGraphSplit&) const;
     void writeSplitSummary(const SegmentGraphSplit&) const;
     void writeSplitDetails(const SegmentGraphSplit&) const;
     void writeSegmentGraphGraphviz(const SegmentGraphSplit&);

@@ -24,14 +24,15 @@ StrandContact::StrandContact(
     AssemblyGraph& assemblyGraph,
     const vector<AssemblyGraph::vertex_descriptor>& strandContactVertices,
     const string& debugOutputBaseName,
-    uint64_t strandContactId
+    uint64_t strandContactId,
+    uint64_t iterationCount
     ) :
     assemblyGraph(assemblyGraph),
     strandContactVertices(strandContactVertices),
     debugOutputBaseName(debugOutputBaseName),
     strandContactId(strandContactId)
 {
-  
+ 
     const bool debug = false;
     if(debug) {
         html.open(debugOutputBaseName + "-StrandContact-" + to_string(strandContactId) + ".html");
@@ -58,7 +59,7 @@ StrandContact::StrandContact(
         createSegmentPairGraph();
         createSegmentGraph();
         SegmentGraphSplit split;
-        computeSplit(split);
+        computeSplit(iterationCount, split);
 
         if(html) {
             html << "<h2>Best strand separation found</h2>";
@@ -83,7 +84,7 @@ StrandContact::StrandContact(
 
         // Strand separation in the BipartiteGraph.
         BipartiteGraphSplit split;
-        computeSplit(split);
+        computeSplit(iterationCount, split);
 
         if(html) {
             html << "<h2>Best strand separation found</h2>";
@@ -826,10 +827,10 @@ BipartiteGraph::vertex_descriptor BipartiteGraph::addVertex(OrientedReadId orien
 // At the first iteration, use the EdgePairs sorted by decreasing
 // frequency. At subsequent iterations, use random shuffles of
 // the EdgePairs, weighted by their frequency.
-void StrandContact::computeSplit(BipartiteGraphSplit& bestSplit) const
+void StrandContact::computeSplit(
+    uint64_t iterationCount, 
+    BipartiteGraphSplit& bestSplit) const
 {
-    // EXPOSE WHEN CODE STABILIZES.
-    const uint64_t iterationCount = 1000;
 
     // Gather the weight of each EdgePair.
     vector<double> weights;
@@ -2155,10 +2156,10 @@ void SegmentGraph::computeSplit(
 // At the first iteration, use the EdgePairs sorted by decreasing
 // frequency. At subsequent iterations, use random shuffles of
 // the EdgePairs, weighted by their frequency.
-void StrandContact::computeSplit(SegmentGraphSplit& bestSplit) const
+void StrandContact::computeSplit(
+    uint64_t iterationCount, 
+    SegmentGraphSplit& bestSplit) const
 {
-    // EXPOSE WHEN CODE STABILIZES.
-    const uint64_t iterationCount = 10000;
 
     // Gather the weight of each EdgePair.
     vector<double> weights;
